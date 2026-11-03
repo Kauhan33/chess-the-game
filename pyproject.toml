@@ -1,0 +1,18 @@
+[project]
+name = "xadrez-the-game"
+version = "0.1.0"
+description = "Xadrez 3D low-poly para 2 jogadores em Python, com pipeline gráfico próprio"
+requires-python = ">=3.10"
+dependencies = ["pygame>=2.5", "numpy>=1.24"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+markers = [
+    "ct(id): vincula o teste a um caso de teste formal da documentação (ex.: CT-01)",
+    "slow: testes demorados (perft profundo)",
+]
+
+[tool.coverage.run]
+source = ["xadrez"]
+branch = true
