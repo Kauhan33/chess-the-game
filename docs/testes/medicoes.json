@@ -9,29 +9,61 @@
   },
   "janela_real": {
     "ferramenta": "tools/demo_automatica.py",
-    "commit": "c5c150b",
+    "commit": "632c766",
     "resolucao": "1280x720",
     "fps_medio": 60.0,
-    "quadros": 1289,
+    "quadros": 1286,
     "intervalo_medio_ms": 16.66,
-    "intervalo_p95_ms": 17.22,
-    "intervalo_p99_ms": 20.01,
-    "intervalo_max_ms": 40.29,
-    "trabalho_medio_ms": 4.84,
+    "intervalo_p95_ms": 17.42,
+    "intervalo_p99_ms": 20.47,
+    "intervalo_max_ms": 42.31,
+    "trabalho_medio_ms": 5.21,
     "quadros_acima_de_25_ms": 2,
     "percentual_acima_de_25_ms": 0.16,
-    "troca_menu_partida_ms": 26
+    "troca_menu_partida_ms": 29
   },
   "sem_janela": {
     "ferramenta": "tools/benchmark_ui.py",
-    "commit": "c5c150b",
+    "commit": "632c766",
     "resolucao": "1280x720",
     "observacao": "App.step completo com HUD, sem display.flip.",
     "cenarios": [
-      {"nome": "Partida inteira com câmera parada", "quadros": 1902, "media_ms": 1.99, "p95_ms": 3.28, "p99_ms": 4.70, "max_ms": 5.44, "acima_de_16_67": 0},
-      {"nome": "Partida inteira com giro por turno", "quadros": 3438, "media_ms": 4.22, "p95_ms": 7.17, "p99_ms": 10.67, "max_ms": 15.12, "acima_de_16_67": 0},
-      {"nome": "Câmera em giro contínuo (pior caso)", "quadros": 600, "media_ms": 7.04, "p95_ms": 7.94, "p99_ms": 10.72, "max_ms": 12.08, "acima_de_16_67": 0},
-      {"nome": "Tela de vitória com fogos", "quadros": 600, "media_ms": 6.84, "p95_ms": 7.46, "p99_ms": 10.08, "max_ms": 11.21, "acima_de_16_67": 0}
+      {
+        "nome": "Partida inteira com câmera parada",
+        "quadros": 1902,
+        "media_ms": 2.12,
+        "p95_ms": 3.5,
+        "p99_ms": 5.17,
+        "max_ms": 6.49,
+        "acima_de_16_67": 0
+      },
+      {
+        "nome": "Partida inteira com giro por turno",
+        "quadros": 3438,
+        "media_ms": 4.38,
+        "p95_ms": 7.54,
+        "p99_ms": 10.34,
+        "max_ms": 14.37,
+        "acima_de_16_67": 0
+      },
+      {
+        "nome": "Câmera em giro contínuo (pior caso)",
+        "quadros": 600,
+        "media_ms": 7.06,
+        "p95_ms": 7.6,
+        "p99_ms": 9.77,
+        "max_ms": 10.59,
+        "acima_de_16_67": 0
+      },
+      {
+        "nome": "Tela de vitória com fogos",
+        "quadros": 600,
+        "media_ms": 6.9,
+        "p95_ms": 7.37,
+        "p99_ms": 9.86,
+        "max_ms": 10.81,
+        "acima_de_16_67": 0
+      }
     ]
   },
   "pendencias_portabilidade": "Python 3.10, Linux e macOS não foram executados localmente. O CI em .github/workflows/testes.yml cobre essas combinações, mas só roda quando o repositório for publicado."

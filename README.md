@@ -22,8 +22,8 @@ Precisa de Python 3.10 ou mais novo. As dependências são `pygame` e `numpy`.
 Baixe o código:
 
 ```
-git clone <endereço do repositório>
-cd <pasta do repositório>
+git clone https://github.com/Kauhan33/chess-the-game.git
+cd chess-the-game
 ```
 
 No Windows:

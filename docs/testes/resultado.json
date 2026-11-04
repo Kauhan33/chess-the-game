@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-04T06:22:06",
+  "generated_at": "2026-11-04T15:04:13",
   "info": {
     "is_quick": false,
     "python": "3.12.10",
@@ -7,19 +7,19 @@
     "pytest": "9.2.0",
     "pygame": "2.6.1",
     "numpy": "2.5.3",
-    "commit": "c5c150b",
-    "has_local_changes": false
+    "commit": "632c766",
+    "has_local_changes": true
   },
   "totals": {
-    "passed": 916,
+    "passed": 1508,
     "failed": 0,
     "skipped": 0
   },
   "coverage_percent": {
     "core": 100.0,
-    "graphics": 99.36,
-    "ui": 98.85,
-    "total": 99.21
+    "graphics": 99.47,
+    "ui": 99.24,
+    "total": 99.43
   },
   "cases": {
     "CT-01": {
@@ -134,8 +134,8 @@
     },
     "CT-31": {
       "status": "PASSOU",
-      "tests": 81,
-      "passed": 81
+      "tests": 83,
+      "passed": 83
     },
     "CT-32": {
       "status": "PASSOU",
@@ -211,6 +211,96 @@
       "status": "PASSOU",
       "tests": 7,
       "passed": 7
+    },
+    "CT-50": {
+      "status": "PASSOU",
+      "tests": 7,
+      "passed": 7
+    },
+    "CT-51": {
+      "status": "PASSOU",
+      "tests": 23,
+      "passed": 23
+    },
+    "CT-52": {
+      "status": "PASSOU",
+      "tests": 10,
+      "passed": 10
+    },
+    "CT-53": {
+      "status": "PASSOU",
+      "tests": 4,
+      "passed": 4
+    },
+    "CT-54": {
+      "status": "PASSOU",
+      "tests": 9,
+      "passed": 9
+    },
+    "CT-55": {
+      "status": "PASSOU",
+      "tests": 14,
+      "passed": 14
+    },
+    "CT-56": {
+      "status": "PASSOU",
+      "tests": 44,
+      "passed": 44
+    },
+    "CT-57": {
+      "status": "PASSOU",
+      "tests": 2,
+      "passed": 2
+    },
+    "CT-58": {
+      "status": "PASSOU",
+      "tests": 15,
+      "passed": 15
+    },
+    "CT-59": {
+      "status": "PASSOU",
+      "tests": 12,
+      "passed": 12
+    },
+    "CT-60": {
+      "status": "PASSOU",
+      "tests": 8,
+      "passed": 8
+    },
+    "CT-61": {
+      "status": "PASSOU",
+      "tests": 34,
+      "passed": 34
+    },
+    "CT-62": {
+      "status": "PASSOU",
+      "tests": 19,
+      "passed": 19
+    },
+    "CT-63": {
+      "status": "PASSOU",
+      "tests": 11,
+      "passed": 11
+    },
+    "CT-64": {
+      "status": "PASSOU",
+      "tests": 3,
+      "passed": 3
+    },
+    "CT-65": {
+      "status": "PASSOU",
+      "tests": 95,
+      "passed": 95
+    },
+    "CT-66": {
+      "status": "PASSOU",
+      "tests": 34,
+      "passed": 34
+    },
+    "CT-67": {
+      "status": "PASSOU",
+      "tests": 239,
+      "passed": 239
     }
   }
 }

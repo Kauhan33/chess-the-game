@@ -203,8 +203,18 @@ def test_casa_que_perde_o_estado_volta_a_cor_base(screen):
     assert pixel_at(screen, square_to_world(4, 4)) != selected
 
 
+@pytest.fixture(params=["padrão", "GENERIC"])
+def smoothscale_backend(request):
+    """GENERIC é o que o pygame usa em máquina sem SSE, como Mac ARM. Força-se aqui para testar em qualquer uma."""
+    previous = pygame.transform.get_smoothscale_backend()
+    if request.param == "GENERIC":
+        pygame.transform.set_smoothscale_backend("GENERIC")
+    yield request.param
+    pygame.transform.set_smoothscale_backend(previous)
+
+
 @ct36
-def test_sombra_cai_no_sentido_da_luz_e_escurece_o_tabuleiro(screen):
+def test_sombra_cai_no_sentido_da_luz_e_escurece_o_tabuleiro(screen, smoothscale_backend):
     renderer = Renderer3D(Camera((0, 0, *SIZE)))
     matrix = ColorMatrix()
     tall = box(0.5, 2.0, 0.5)

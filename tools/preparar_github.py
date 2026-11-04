@@ -145,7 +145,9 @@ def _find_or_create_project() -> dict:
 def create_board(tasks: dict, repository: str, issue_urls: dict[str, str]) -> str:
     project = _find_or_create_project()
     number, project_id = str(project["number"]), project["id"]
-    _gh(["gh", "project", "link", number, "--owner", "@me", "--repo", repository.split("/")[-1]])
+    # Aqui o dono precisa ser o nome de verdade: o gh monta "dono/repo" e não resolve "@me" nesse caso.
+    owner, repository_name = repository.split("/")
+    _gh(["gh", "project", "link", number, "--owner", owner, "--repo", repository_name])
     options, field_id = _configure_status_field(number, tasks["colunas"])
     for task in tasks["tarefas"]:
         added = json.loads(_gh(["gh", "project", "item-add", number, "--owner", "@me",

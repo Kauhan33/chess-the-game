@@ -5,9 +5,9 @@
 O enunciado pede evidência de uso de metodologia ágil, com prints mostrando a evolução das tarefas ao longo do semestre. Este capítulo registra só o que aconteceu de fato.
 
 - O histórico real do projeto começa em 2026-11-03, conforme o `git log` abaixo. Não existe histórico anterior a essa data.
-- O quadro no GitHub Projects ainda não foi criado, porque o repositório ainda não foi publicado. Por isso, ainda não há nenhum print de quadro.
-- O script `tools/preparar_github.py` deixa o quadro pronto para ser criado, com as tarefas abaixo, quando o grupo autorizar a publicação.
-- Os prints precisam ser capturados pelo grupo ao longo do uso. Eles não podem ser gerados depois, nem reconstruídos com datas passadas.
+- O quadro foi criado em 2026-11-04 no GitHub Projects, com o script `tools/preparar_github.py`: https://github.com/users/Kauhan33/projects/1. As tarefas que já estavam prontas nasceram na coluna "Concluído", e a issue de cada uma avisa que a data dela não é a data do trabalho.
+- Portanto, o quadro só registra evolução real a partir dessa data. O projeto não tem prints anteriores a ela.
+- Os próximos prints precisam ser capturados pelo grupo ao longo do uso, com `tools/capturar_kanban.py`. Eles não podem ser gerados depois, nem reconstruídos com datas passadas.
 
 ## 9.2 Colunas e tarefas
 
@@ -56,20 +56,20 @@ Tabela gerada do `git log`, com as datas e as mensagens originais dos commits.
 
 ## 9.4 Prints do quadro
 
-Espaços reservados. Nenhum destes prints existe ainda. O grupo deve substituir cada item pela imagem real, com a data real da captura.
+O primeiro print é real, do dia em que o quadro foi criado. Os demais são espaços reservados: o grupo deve substituir cada item pela imagem real, com a data real da captura.
+
+![Quadro em 2026-11-04, logo depois de criado](img/kanban/2026-11-04.png)
 
 | Momento | Situação |
 |---|---|
-| Quadro logo depois de criado | A capturar pelo grupo |
+| Quadro logo depois de criado | Capturado em 2026-11-04 |
 | Tarefas de correção do QA em andamento | A capturar pelo grupo |
 | Documentação em revisão | A capturar pelo grupo |
 | Slides da apresentação em andamento | A capturar pelo grupo |
 | Quadro antes da entrega final | A capturar pelo grupo |
 
-Para criar o quadro:
+Para capturar um print novo, com a data de hoje no nome do arquivo:
 
 ```
-python tools/preparar_github.py              # só mostra o que faria
-gh auth refresh -s project                   # dá ao token o escopo necessário
-python tools/preparar_github.py --executar   # cria etiquetas, marcos, issues e quadro
+python tools/capturar_kanban.py
 ```

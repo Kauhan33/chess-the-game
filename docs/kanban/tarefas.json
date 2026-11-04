@@ -27,17 +27,17 @@
     {"id": "T07", "titulo": "Testar a interface por eventos, casos CT-40 a CT-49", "coluna": "Concluído", "marco": "E4", "etiquetas": ["interface", "testes"], "evidencia": "commit 02e2248"},
     {"id": "T08", "titulo": "Travar em 60 FPS reais e eliminar o quadro lento ao iniciar", "coluna": "Concluído", "marco": "E4", "etiquetas": ["interface"], "evidencia": "commit c5c150b"},
     {"id": "T09", "titulo": "Auditar o código e atacar o jogo (QA), casos CT-50 em diante", "coluna": "Concluído", "marco": "E4", "etiquetas": ["testes"], "evidencia": "commit 86de291"},
-    {"id": "T10", "titulo": "Escrever requisitos, telas, UML, arquitetura, testes e PDF", "coluna": "Em Andamento (WIP)", "marco": "E4", "etiquetas": ["documentação"], "evidencia": "em execução, sem commit"},
+    {"id": "T10", "titulo": "Escrever requisitos, telas, UML, arquitetura, testes e PDF", "coluna": "Concluído", "marco": "E4", "etiquetas": ["documentação"], "evidencia": "commit 632c766"},
     {"id": "T11", "titulo": "Aplicar as correções apontadas pelo QA", "coluna": "Concluído", "marco": "E4", "etiquetas": ["testes"], "evidencia": "commit 86de291"},
-    {"id": "T12", "titulo": "Gerar a documentação final depois das correções", "coluna": "Em Andamento (WIP)", "marco": "E4", "etiquetas": ["documentação"], "evidencia": "em execução, sem commit"},
-    {"id": "T13", "titulo": "Publicar o repositório no GitHub, com autorização do grupo", "coluna": "Backlog / A Fazer", "marco": "E4", "etiquetas": ["gestão"]},
-    {"id": "T14", "titulo": "Confirmar pelo CI: Python 3.10, Linux e macOS (RNF02)", "coluna": "Backlog / A Fazer", "marco": "E4", "etiquetas": ["testes"]},
-    {"id": "T15", "titulo": "Criar o quadro no GitHub Projects e capturar os prints", "coluna": "Backlog / A Fazer", "marco": "E4", "etiquetas": ["gestão"]},
+    {"id": "T12", "titulo": "Gerar a documentação final depois das correções", "coluna": "Concluído", "marco": "E4", "etiquetas": ["documentação"], "evidencia": "documentação gerada em 2026-11-04, com os resultados da seção 7.2"},
+    {"id": "T13", "titulo": "Publicar o repositório no GitHub, com autorização do grupo", "coluna": "Concluído", "marco": "E4", "etiquetas": ["gestão"], "evidencia": "commit 632c766, enviado em 2026-11-04"},
+    {"id": "T14", "titulo": "Confirmar pelo CI: Python 3.10, Linux e macOS (RNF02)", "coluna": "Em Andamento (WIP)", "marco": "E4", "etiquetas": ["testes"], "evidencia": "workflow enviado, aguardando a primeira execução"},
+    {"id": "T15", "titulo": "Criar o quadro no GitHub Projects e capturar os prints", "coluna": "Em Andamento (WIP)", "marco": "E4", "etiquetas": ["gestão"], "evidencia": "quadro criado em 2026-11-04; prints a capturar pelo grupo"},
     {"id": "T16", "titulo": "Conferir a capa e entregar o PDF de requisitos e telas", "coluna": "Backlog / A Fazer", "marco": "E1", "etiquetas": ["documentação"]},
     {"id": "T17", "titulo": "Entregar o PDF de casos de uso", "coluna": "Backlog / A Fazer", "marco": "E2", "etiquetas": ["documentação"]},
     {"id": "T18", "titulo": "Entregar o PDF de classes e sequência", "coluna": "Backlog / A Fazer", "marco": "E3", "etiquetas": ["documentação"]},
     {"id": "T19", "titulo": "Entregar a documentação unificada e o código", "coluna": "Backlog / A Fazer", "marco": "E4", "etiquetas": ["documentação"]},
-    {"id": "T20", "titulo": "Montar os slides e dividir a fala entre os integrantes", "coluna": "Backlog / A Fazer", "marco": "E5", "etiquetas": ["apresentação"]},
+    {"id": "T20", "titulo": "Montar os slides e dividir a fala entre os integrantes", "coluna": "Em Revisão", "marco": "E5", "etiquetas": ["apresentação"], "evidencia": "slides prontos para o grupo revisar"},
     {"id": "T21", "titulo": "Ensaiar a demonstração e a defesa técnica", "coluna": "Backlog / A Fazer", "marco": "E5", "etiquetas": ["apresentação"]}
   ]
 }

@@ -21,11 +21,11 @@ Cada teste ligado a um caso formal leva `@pytest.mark.ct("CT-xx")`. Um caso pode
 ## 7.2 Ambiente e execução
 
 <!-- GERADO:execucao -->
-- **Data e hora da execução:** 2026-11-04 06:22:06
-- **Commit testado:** `c5c150b`. As medições de FPS são do commit `c5c150b`.
+- **Data e hora da execução:** 2026-11-04 15:04:13
+- **Commit testado:** `632c766` (com alterações locais em `xadrez/` ou `tests/`). As medições de FPS são do commit `c5c150b`.
 - **Ambiente:** Python 3.12.10, Windows 11, pytest 9.2.0, pygame 2.6.1, numpy 2.5.3
 - **Modo:** completo, com os testes `slow`
-- **Total:** 916 testes: 916 passaram, 0 falharam, 0 foram pulados. Destes, 488 estão vinculados a 38 casos de teste.
+- **Total:** 1508 testes: 1508 passaram, 0 falharam, 0 foram pulados. Destes, 1073 estão vinculados a 56 casos de teste.
 <!-- FIM:execucao -->
 
 Para repetir:
@@ -86,7 +86,7 @@ O enunciado pede no mínimo 6 casos detalhados, validando colisão, alternância
 | Caso | Entrada | Procedimento | Resultado Esperado | Resultado Obtido |
 |---|---|---|---|---|
 | **CT-30** Matrizes: translação, rotação, escala e composição (RF15, RF16, UC02) | Pontos e vetores conhecidos, ângulos de 90 graus, câmeras, luz e sombra planar. | Aplicar `translation`, `scaling`, `rotation_*`, `compose`, `look_at`, `perspective`, `viewport` e `planar_shadow`. Comparar com o resultado calculado à mão. | Translação não afeta direção (w = 0), rotação preserva distâncias, `compose` aplica o último argumento primeiro, near e far vão às faces do cubo NDC e o y da tela inverte. | Conforme o esperado (PASSOU: 24 de 24 testes) |
-| **CT-31** Câmera: ida e volta mundo, tela e casa em vários ângulos (RF16, UC02, UC06) | As 64 casas, 6 valores de yaw, 3 de pitch e vários viewports. | Projetar o centro da casa para pixel e voltar com `pick_square`. Testar também cliques fora do tabuleiro e na cabeça de uma peça. | A volta dá a mesma casa em toda combinação. Clique fora devolve `None`. Clique na cabeça escolhe a peça. Com duas peças sob o raio, vence a da frente. | Conforme o esperado (PASSOU: 81 de 81 testes) |
+| **CT-31** Câmera: ida e volta mundo, tela e casa em vários ângulos (RF16, UC02, UC06) | As 64 casas, 6 valores de yaw, 3 de pitch e vários viewports. | Projetar o centro da casa para pixel e voltar com `pick_square`. Testar também cliques fora do tabuleiro e na cabeça de uma peça. | A volta dá a mesma casa em toda combinação. Clique fora devolve `None`. Clique na cabeça escolhe a peça. Com duas peças sob o raio, vence a da frente. | Conforme o esperado (PASSOU: 83 de 83 testes) |
 | **CT-32** Matriz de cores: estado vira cor, com prioridade (RF09, UC06) | Matriz 8x8 vazia e cada `CellState` em uma casa, em instantes diferentes. | Chamar `set` e `rgb(time)` e comparar as cores. | a1 é escura. Cada estado muda só a sua casa. Prioridade menor não sobrescreve e `NONE` limpa. Casa inválida é ignorada. Só ameaça e xeque pulsam, como função pura do tempo. | Conforme o esperado (PASSOU: 20 de 20 testes) |
 | **CT-33** Partículas: gravidade, reflexão no piso e tempo de vida (RF15, UC02) | Partícula única com posição, velocidade e restituição conhecidas, e emissão acima da capacidade. | Chamar `update(dt)` e comparar velocidade, posição, cor e contagem de vivas. | A gravidade acelera para baixo e o arrasto reduz a velocidade. No piso, v' = v - (1 + e)(v.n)n, e nada atravessa. A partícula morre ao fim da vida. A capacidade nunca é ultrapassada. Mesma semente, mesma simulação. | Conforme o esperado (PASSOU: 12 de 12 testes) |
 | **CT-34** Malhas: normais para fora e faces válidas (RF15, UC02) | As 6 peças de `build_piece_meshes` e os construtores `lathe`, `box`, `extrude` e `merge`. | Verificar índices, volume, normais, arestas e altura. | Faces válidas e volume positivo. Malhas fechadas, sem aresta solta. Normais para fora. No máximo 160 faces por peça. Peças apoiadas na mesa e dentro da casa. | Conforme o esperado (PASSOU: 40 de 40 testes) |
@@ -107,6 +107,29 @@ O enunciado pede no mínimo 6 casos detalhados, validando colisão, alternância
 | **CT-47** Revanche troca cores e mantém o placar; menu volta ao início (RF13, UC09) | Tela de vitória, botões "Revanche com cores trocadas" e "Voltar ao menu". | Clicar, jogar nova partida e ler cores, pontos e motor. | Na revanche, as cores trocam, o placar fica e o histórico zera, com câmera padrão e sem partículas. Pelo menu, começa um motor novo com placar zerado. | Conforme o esperado (PASSOU: 4 de 4 testes) |
 | **CT-48** Promoção pelo diálogo (RF05, UC05) | `4k3/1P6/8/8/8/8/8/4K3 w - - 0 1` e a posição equivalente das pretas. Clique, setas com Enter, teclas 1 a 4 e Esc. | Clicar em b7 e b8 e escolher a peça. | O diálogo abre antes de jogar. A peça escolhida entra em b8, nas 4 opções e nos 3 meios de entrada. Esc cancela sem jogar e limpa a seleção. | Conforme o esperado (PASSOU: 9 de 9 testes) |
 | **CT-49** Redimensionar a janela mantém o clique correto (RNF07, RF16, UC02) | Janelas de 1024x640, 1920x1080, 800x600 e 1600x700, em sequência e com a pausa aberta. | Redimensionar por evento, clicar em e2 e e4 e nos botões. | O viewport acompanha a janela, os cliques caem nas casas certas e a jogada acontece. Botões e sobreposição seguem no lugar certo. | Conforme o esperado (PASSOU: 7 de 7 testes) |
+
+### Ataques do QA
+
+| Caso | Entrada | Procedimento | Resultado Esperado | Resultado Obtido |
+|---|---|---|---|---|
+| **CT-50** Partidas aleatórias contra gerador e detector independentes (RF04, RF05, RF06, UC02, UC07) | Partidas aleatórias com semente fixa, com milhares de lances. | Jogar lances sorteados pelo motor e conferir cada posição com um gerador de lances e um detector de ataque escritos à parte, sem usar o motor. | O conjunto de lances legais é igual ao do modelo independente. Um rei por cor, nenhum peão na 1ª ou 8ª, FEN de ida e volta, undo restaura tudo, roque nunca volta e SAN aponta uma única jogada. | Conforme o esperado (PASSOU: 7 de 7 testes) |
+| **CT-51** Bordas de promoção, en passant e roque (RF05, RF06, UC02, UC05) | Promoção com captura, xeque e mate; en passant que expõe o rei; roque com torre capturada e outra na casa original. | Montar cada posição por FEN e tentar a jogada pelo motor. | Cada jogada é aceita ou recusada conforme a regra oficial, com o erro certo. | Conforme o esperado (PASSOU: 23 de 23 testes) |
+| **CT-52** Precedência entre fins de jogo no mesmo lance (RF07, UC07) | Mate, afogamento e tripla repetição no lance que completaria os 50 lances. | Jogar o lance decisivo pelo motor. | Vale a regra que encerra primeiro: o mate vence os 50 lances. | Conforme o esperado (PASSOU: 10 de 10 testes) |
+| **CT-53** Tripla repetição, roque perdido e en passant (RF07, UC07) | Sequências que repetem a posição com e sem direito de roque, e com en passant legal e ilegal. | Repetir lances e conferir quando o empate é declarado. | Só contam como iguais as posições com a mesma vez, os mesmos direitos de roque e o mesmo en passant legal. | Conforme o esperado (PASSOU: 4 de 4 testes) |
+| **CT-54** Material insuficiente por captura e promoção subpotente (RF07, UC07) | Finais com R x R, R+B x R, R+C x R e bispos de mesma cor ou de cores diferentes. | Chegar à posição por captura, en passant ou promoção subpotente. | Empate imediato só quando nenhum dos lados consegue dar mate. | Conforme o esperado (PASSOU: 9 de 9 testes) |
+| **CT-55** Relógio, desistência, série, revanche e pretas primeiro (RF07, RF11, RF12, RF13, UC03, UC08, UC09) | Tempo contra rei só, tempo exato, dt zero, negativo, NaN e infinito, desistência na pausa, sete revanches, FEN com as Pretas primeiro. | Chamar o motor em cada situação e conferir resultado e placar. | Tempo esgotado contra rei só é empate. Pontos da série nunca contam duas vezes. dt inválido não altera o relógio. | Conforme o esperado (PASSOU: 14 de 14 testes) |
+| **CT-56** Entradas absurdas e FEN malformadas (RF04, RNF07, UC02) | 13 formatos de casa absurdos em play e 29 FEN malformadas. | Chamar play com cada entrada e from_fen com cada FEN. | play devolve erro, sem exceção e sem alterar o estado. FEN inválida levanta ValueError claro. | Conforme o esperado (PASSOU: 44 de 44 testes) |
+| **CT-57** Macaco: eventos aleatórios com invariantes (RNF07, UC02, UC03) | Cliques, teclas, roda, texto com emoji e caracteres de controle, janelas de 1x1 a 3000x200, dt inválidos, com semente fixa. | Enviar eventos aleatórios ao App.step, em todas as cenas, e conferir as invariantes a cada quadro. | Nenhuma exceção. Histórico sempre legal, tabuleiro e relógio parados com sobreposição que congela, uma cena ativa. | Conforme o esperado (PASSOU: 2 de 2 testes) |
+| **CT-58** Corridas entre relógio, voo, pausa, promoção e fim (RF05, RF07, RF12, UC02, UC03, UC05) | Tempo acabando com a promoção aberta, lance e tempo no mesmo quadro, pausa durante o voo, Esc em cada estado. | Dirigir cada roteiro por eventos reais. | O estado final é coerente, sem peça fantasma, sem lance depois do fim e sem cena presa. | Conforme o esperado (PASSOU: 15 de 15 testes) |
+| **CT-59** Clique: o que se vê é o que se aciona (RF08, RF16, UC02, UC06) | Posição inicial, cada pixel do tabuleiro, peão e2 atrás do rei, clique na cabeça de peça alta selecionada. | Comparar, pixel a pixel, a peça pintada com a casa que o clique aciona, e clicar nos casos do relatório de QA. | Menos de 2% de divergência, tanto em pixels de peça quanto em pixels de chão. O 1º lance e2 é clicável, e clicar de novo na peça selecionada desmarca. | Conforme o esperado (PASSOU: 12 de 12 testes) |
+| **CT-60** Clique duplo e eventos no mesmo quadro (RF12, RNF07, UC03, UC08, UC09) | Clique duplo em Propor empate, Reiniciar e Retomar. Dois Enter em Revanche no mesmo quadro. Redimensionar ao trocar de cena. | Enviar os dois eventos sem intervalo de tempo real. | O 2º clique não aciona o que apareceu embaixo do mouse. As cores trocam uma vez só. A cena nova já nasce no tamanho certo. | Conforme o esperado (PASSOU: 8 de 8 testes) |
+| **CT-61** Nomes: caracteres perigosos, largura e ajuda (RF01, RNF07, UC01) | Seletores de variação (largura zero), emoji, coreano, 16 W, 16 Ç, nome só de espaços, H fechando a ajuda. | Digitar no campo por TEXTINPUT e iniciar a partida. | O jogo não cai. Caractere que a fonte não desenha é recusado. O nome cabe nas placas. A tecla que fecha a ajuda não vira texto. | Conforme o esperado (PASSOU: 34 de 34 testes) |
+| **CT-62** Janelas e números extremos (RF16, RNF07, UC02) | F3 e F4 em oito tamanhos até 1x1, dt NaN e infinito, roda de um milhão de passos, jogada no meio da volta à vista padrão. | Aplicar cada entrada no App.step. | Nenhuma exceção, zoom no limite, e a vista padrão termina mesmo com jogada no meio. | Conforme o esperado (PASSOU: 19 de 19 testes) |
+| **CT-63** Fim de jogo, revanche, menu e HUD (RF11, RF13, RF14, UC04, UC09) | R no voo do mate, T na queda do rei, relógio com mais de 1 hora, nomes longos nas confirmações, ciclo menu, partida, fim, menu. | Dirigir cada roteiro por eventos e olhar o estado da cena. | A tela de vitória não é pulada, o aviso não é trocado, o relógio não invade a etiqueta, o título não corta a ação, nomes e opções sobrevivem ao ciclo. | Conforme o esperado (PASSOU: 11 de 11 testes) |
+| **CT-64** Vazamento de memória (RNF01, RNF07, UC09) | 200 revanches seguidas e 5 minutos simulados de partida. | Medir com tracemalloc e conferir os caches e as partículas. | Memória estável, caches e partículas sempre dentro do limite. | Conforme o esperado (PASSOU: 3 de 3 testes) |
+| **CT-65** Sem rede, sem execução dinâmica, sem escrita (RNF05, RNF07, UC02) | Todos os módulos do jogo e das ferramentas. | Analisar o código-fonte pela árvore sintática. | O jogo não importa rede nem subprocess, não usa eval nem exec e não escreve em disco. Só as ferramentas de documentação chamam programas externos. | Conforme o esperado (PASSOU: 95 de 95 testes) |
+| **CT-66** PNG, autoria, e-mails e caminhos pessoais (RNF05, UC01) | Imagens de docs/, arquivos versionados e autoria dos commits. | Ler os pedaços dos PNG, procurar e-mails e caminhos pessoais e conferir a autoria. | Os PNG não têm metadados de texto, e não há e-mail nem caminho pessoal no que o git publica. | Conforme o esperado (PASSOU: 34 de 34 testes) |
+| **CT-67** Python 3.10 e portabilidade (RNF02, UC01) | Todos os módulos do projeto. | Analisar com ast.parse(feature_version=(3, 10)) e procurar biblioteca padrão nova e caminho fixo de sistema. | Todos os módulos são sintaxe válida de Python 3.10, sem API nova nem caminho fixo. A execução real em 3.10, Linux e macOS fica com o CI. | Conforme o esperado (PASSOU: 239 de 239 testes) |
 <!-- FIM:casos -->
 
 ## 7.5 Cobertura
@@ -116,10 +139,10 @@ Medida com `pytest-cov`, com ramos, na mesma execução dos casos acima. A meta 
 <!-- GERADO:cobertura -->
 | Camada | Linhas cobertas | Ramos cobertos | Cobertura |
 |---|---|---|---|
-| `xadrez/core` | 844 de 844 | 212 de 212 | 100,00% |
-| `xadrez/graphics` | 1626 de 1631 | 241 de 248 | 99,36% |
-| `xadrez/ui` | 2541 de 2556 | 470 de 490 | 98,85% |
-| **Total** | 5014 de 5034 | 923 de 950 | **99,21%** |
+| `xadrez/core` | 847 de 847 | 214 de 214 | 100,00% |
+| `xadrez/graphics` | 1634 de 1638 | 240 de 246 | 99,47% |
+| `xadrez/ui` | 2625 de 2636 | 503 de 516 | 99,24% |
+| **Total** | 5110 de 5125 | 958 de 978 | **99,43%** |
 <!-- FIM:cobertura -->
 
 ## 7.6 Validação dos requisitos não funcionais
@@ -132,11 +155,12 @@ Medida com `pytest-cov`, com ramos, na mesma execução dos casos acima. A meta 
 | **RNF03** Responsividade: resposta visual à entrada em até 1 quadro | A casa sob o mouse e a seleção mudam no mesmo quadro do evento. | Testes `test_hover_marca_o_cursor_no_mesmo_quadro`, `test_clique_seleciona_e_preenche_a_matriz_de_cores`: 2 de 2 passaram. | Atendido |
 | **RNF04** Estética e acessibilidade: paleta coerente e estados por cor e por forma | Textos com contraste de pelo menos 4,5:1. Caminho, captura e ameaça têm forma além de cor. | Testes `test_contraste_dos_textos_passa_de_4_5_para_1`, `test_caminho_e_captura_tem_forma_alem_de_cor`, `test_pecas_ameacadas_aparecem_na_matriz_com_forma_e_tint`: 16 de 16 passaram. | Atendido |
 | **RNF05** Arquitetura em camadas, com motor testável sem interface | `core` não importa pygame, numpy nem `graphics`; `graphics` não importa `core`. | Testes `test_camada_nao_importa_o_que_nao_deve`: 2 de 2 passaram. | Atendido |
-| **RNF06** Qualidade: cobertura de pelo menos 90% em `core` | Cobertura de pelo menos 90% em `xadrez/core`, com ramos. | Cobertura medida de 100,00% em `xadrez/core` (844 linhas e 212 ramos). | Atendido |
+| **RNF06** Qualidade: cobertura de pelo menos 90% em `core` | Cobertura de pelo menos 90% em `xadrez/core`, com ramos. | Cobertura medida de 100,00% em `xadrez/core` (847 linhas e 214 ramos). | Atendido |
 | **RNF07** Robustez: entrada inválida e redimensionamento nunca derrubam o jogo | Entrada inválida vira erro tratado. Nenhum tamanho de janela derruba o jogo. | Testes `test_invalid_origin_never_raises_and_changes_nothing`, `test_invalid_target_never_raises_and_changes_nothing`, `test_tamanho_extremo_na_partida_nao_derruba`, `test_redimensionar_mantem_o_clique_correto`: 43 de 43 passaram. | Atendido |
 <!-- FIM:rnf -->
 
 <!-- GERADO:maquina -->
+O FPS em janela real depende da máquina. Máquina usada: Intel Core i5-13600KF, NVIDIA GeForce RTX 5070, 48 GB de memória, Windows 11 Pro. O pipeline 3D roda na CPU, em numpy e pygame. A GPU não faz as contas de desenho. Na mesma medição, o trabalho médio por quadro foi de 4,84 ms, e a troca do menu para a partida levou 26 ms.
 <!-- FIM:maquina -->
 
 Custo do quadro sem janela e sem a espera do `display.flip`:
@@ -172,6 +196,9 @@ Depois de o jogo ficar pronto, uma auditoria tentou quebrá-lo numa cópia conge
 | QA-05 | R durante o voo do mate pulava a tela de vitória | Média |
 | QA-06 | Caractere que a fonte não desenha entrava no nome | Média |
 | QA-07 a QA-19 | Casos raros, como dois Enter no mesmo quadro, relógio com mais de 1 hora e dt NaN | Baixa |
+| CI-01 | No macOS ARM, as sombras praticamente sumiam | Alta |
 
 Todos foram corrigidos, e os testes que provavam cada um continuam na suíte, nos casos CT-50 a CT-67. A lição para o projeto: os testes anteriores procuravam um pixel em que o clique desse certo, por isso não viam QA-02 e QA-03. O teste CT-59 compara, pixel a pixel, a peça pintada com a casa que o clique aciona.
+
+O defeito CI-01 não veio da auditoria: apareceu quando o CI rodou no macOS, porque só ali ele acontece. Sem SSE, o pygame usa o backend `GENERIC` do `smoothscale`, que escreve errado quando o destino é uma subsuperfície. A correção é não passar destino nesses casos, em `xadrez/graphics/renderer.py`. O defeito foi reproduzido no Windows forçando esse backend, e o teste da sombra agora roda nos dois, em qualquer máquina.
 

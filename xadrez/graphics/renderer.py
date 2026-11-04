@@ -330,18 +330,13 @@ class _ShadowLayer:
     def __init__(self):
         self._capacity = (0, 0)
         self._painted: pygame.Surface | None = None
-        self._blurred: pygame.Surface | None = None
-        self._soft: pygame.Surface | None = None
         self._full: pygame.Surface | None = None
         self.mask: pygame.Surface | None = None
 
     def _ensure_surfaces(self, capacity: tuple[int, int]) -> None:
         if capacity == self._capacity:
             return
-        half = _divided_size(capacity, _SHADOW_PAINT_DIVISOR)
-        self._painted = pygame.Surface(half, 0, _SURFACE_DEPTH)
-        self._blurred = pygame.Surface(_divided_size(capacity, _SHADOW_BLUR_DIVISOR), 0, _SURFACE_DEPTH)
-        self._soft = pygame.Surface(half, 0, _SURFACE_DEPTH)
+        self._painted = pygame.Surface(_divided_size(capacity, _SHADOW_PAINT_DIVISOR), 0, _SURFACE_DEPTH)
         self._full = pygame.Surface(capacity, 0, _SURFACE_DEPTH)
         self._capacity = capacity
 
@@ -350,14 +345,14 @@ class _ShadowLayer:
         self._ensure_surfaces(capacity)
         half = _divided_size(bounds.size, _SHADOW_PAINT_DIVISOR)
         painted = self._painted.subsurface((0, 0), half)
-        blurred = self._blurred.subsurface((0, 0), _divided_size(bounds.size, _SHADOW_BLUR_DIVISOR))
-        soft = self._soft.subsurface((0, 0), half)
         self.mask = self._full.subsurface((0, 0), bounds.size)
         painted.fill((255, 255, 255))
         for polygon in ((outlines_on_screen - bounds.topleft) / _SHADOW_PAINT_DIVISOR).tolist():
             pygame.draw.polygon(painted, _SHADOW_GRAY, polygon)
-        pygame.transform.smoothscale(painted, blurred.get_size(), blurred)
-        pygame.transform.smoothscale(blurred, half, soft)
+        # `smoothscale` sem destino, de propósito: em máquina sem SSE (Mac ARM), o pygame usa o backend
+        # GENERIC, que escreve errado quando o destino é uma subsuperfície, e a sombra sumia.
+        blurred = pygame.transform.smoothscale(painted, _divided_size(bounds.size, _SHADOW_BLUR_DIVISOR))
+        soft = pygame.transform.smoothscale(blurred, half)
         pygame.transform.scale(soft, bounds.size, self.mask)
 
 
@@ -576,7 +571,8 @@ class Renderer3D:
             scale = _BOARD_SUPERSAMPLE
             canvas = pygame.transform.scale(region, (bounds.w * scale, bounds.h * scale))
             self.polygons_drawn += _rasterize(canvas, (quads - bounds.topleft) * scale, colors)
-            pygame.transform.smoothscale(canvas, bounds.size, region)
+            # Sem destino: `region` é subsuperfície, o que o backend GENERIC não trata bem (ver _ShadowLayer).
+            region.blit(pygame.transform.smoothscale(canvas, bounds.size), (0, 0))
         self._board_layer_rgb = None if self._board_rgb is None else np.array(self._board_rgb)
         self._layer_revision = self.camera.revision
 

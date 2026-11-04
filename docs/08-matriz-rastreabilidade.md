@@ -2,42 +2,42 @@
 
 Arquivo gerado por `tools/relatorio_testes.py`. Não edite à mão: os vínculos ficam em `docs/testes/casos.json`, e a situação vem da execução real.
 
-Execução de 2026-11-04 06:22:06, commit `c5c150b`.
+Execução de 2026-11-04 15:04:13, commit `632c766`.
 
 ## 8.1 Requisito, caso de uso e caso de teste
 
 | RF | Requisito | Casos de uso | Casos de teste | Situação |
 |---|---|---|---|---|
-| **RF01** | Identificar os 2 jogadores e escolher modo (tempo e câmera) no menu | UC01 | CT-40 | PASSOU |
+| **RF01** | Identificar os 2 jogadores e escolher modo (tempo e câmera) no menu | UC01 | CT-40, CT-61 | PASSOU |
 | **RF02** | Montar o tabuleiro 8x8 na posição oficial | UC01 | CT-01 | PASSOU |
 | **RF03** | Alternar turnos, começando pelas brancas, e recusar jogada fora do turno | UC02 | CT-02, CT-03, CT-43 | PASSOU |
-| **RF04** | Validar o movimento estrito das 6 peças, com colisão de caminho e captura | UC02 | CT-04, CT-05, CT-06, CT-07, CT-08, CT-17 | PASSOU |
-| **RF05** | Aceitar as jogadas especiais: roque, en passant e promoção | UC02, UC05 | CT-09, CT-10, CT-11, CT-17, CT-48 | PASSOU |
-| **RF06** | Validar xeque: nenhuma jogada pode deixar o próprio rei em xeque | UC02, UC07 | CT-12, CT-17 | PASSOU |
-| **RF07** | Detectar fim de jogo: xeque-mate, afogamento, empates, tempo e desistência | UC07, UC08 | CT-13, CT-14, CT-15, CT-16, CT-46 | PASSOU |
-| **RF08** | Permitir selecionar e mover por mouse e por teclado | UC02, UC06 | CT-41, CT-42 | PASSOU |
+| **RF04** | Validar o movimento estrito das 6 peças, com colisão de caminho e captura | UC02 | CT-04, CT-05, CT-06, CT-07, CT-08, CT-17, CT-50, CT-56 | PASSOU |
+| **RF05** | Aceitar as jogadas especiais: roque, en passant e promoção | UC02, UC05 | CT-09, CT-10, CT-11, CT-17, CT-48, CT-50, CT-51, CT-58 | PASSOU |
+| **RF06** | Validar xeque: nenhuma jogada pode deixar o próprio rei em xeque | UC02, UC07 | CT-12, CT-17, CT-50, CT-51 | PASSOU |
+| **RF07** | Detectar fim de jogo: xeque-mate, afogamento, empates, tempo e desistência | UC07, UC08 | CT-13, CT-14, CT-15, CT-16, CT-46, CT-52, CT-53, CT-54, CT-55, CT-58 | PASSOU |
+| **RF08** | Permitir selecionar e mover por mouse e por teclado | UC02, UC06 | CT-41, CT-42, CT-59 | PASSOU |
 | **RF09** | Indicar caminhos válidos por matriz de cores (seleção, movimento, captura, último lance) | UC06 | CT-32, CT-41 | PASSOU |
 | **RF10** | Dar feedback visual de peças sob ameaça e de rei em xeque | UC06, UC07 | CT-19, CT-44 | PASSOU |
-| **RF11** | Exibir HUD com jogadores, vez, cronômetro, pontuação, capturas e lances | UC02 | CT-08, CT-16, CT-18 | PASSOU |
-| **RF12** | Pausar e retomar, congelando o relógio e a entrada | UC03 | CT-20, CT-45 | PASSOU |
-| **RF13** | Reiniciar, pedir revanche e voltar ao menu, mantendo o placar da série | UC04, UC09 | CT-18, CT-21, CT-47 | PASSOU |
-| **RF14** | Exibir tela de fim de jogo com vencedor, motivo e animação de vitória | UC07, UC09 | CT-46 | PASSOU |
+| **RF11** | Exibir HUD com jogadores, vez, cronômetro, pontuação, capturas e lances | UC02 | CT-08, CT-16, CT-18, CT-55, CT-63 | PASSOU |
+| **RF12** | Pausar e retomar, congelando o relógio e a entrada | UC03 | CT-20, CT-45, CT-55, CT-58, CT-60 | PASSOU |
+| **RF13** | Reiniciar, pedir revanche e voltar ao menu, mantendo o placar da série | UC04, UC09 | CT-18, CT-21, CT-47, CT-55, CT-63 | PASSOU |
+| **RF14** | Exibir tela de fim de jogo com vencedor, motivo e animação de vitória | UC07, UC09 | CT-46, CT-63 | PASSOU |
 | **RF15** | Animar movimentos e capturas com transformações e partículas | UC02 | CT-30, CT-33, CT-34, CT-35, CT-36 | PASSOU |
-| **RF16** | Girar, orbitar e aproximar a câmera, com clique correto em qualquer ângulo | UC02, UC06 | CT-30, CT-31, CT-49 | PASSOU |
+| **RF16** | Girar, orbitar e aproximar a câmera, com clique correto em qualquer ângulo | UC02, UC06 | CT-30, CT-31, CT-49, CT-59, CT-62 | PASSOU |
 
 ## 8.2 Caso de uso, requisito e caso de teste
 
 | Caso de uso | Requisitos | Casos de teste | Situação |
 |---|---|---|---|
-| **UC01** Iniciar Partida | RF01, RF02 | CT-01, CT-40, CT-46 | PASSOU |
-| **UC02** Executar Jogada | RF03, RF04, RF05, RF06, RF08, RF11, RF15, RF16 | CT-02, CT-03, CT-04, CT-05, CT-06, CT-07, CT-08, CT-09, CT-10, CT-11, CT-12, CT-17, CT-30, CT-31, CT-33, CT-34, CT-35, CT-36, CT-41, CT-42, CT-43, CT-46, CT-49 | PASSOU |
-| **UC03** Pausar Jogo | RF12 | CT-20, CT-45 | PASSOU |
-| **UC04** Reiniciar Partida | RF13 | CT-21 | PASSOU |
-| **UC05** Promover Peão | RF05 | CT-11, CT-48 | PASSOU |
-| **UC06** Consultar Caminhos e Ameaças | RF08, RF09, RF10, RF16 | CT-19, CT-31, CT-32, CT-41, CT-44 | PASSOU |
-| **UC07** Verificar Xeque e Fim de Jogo | RF06, RF07, RF10, RF14 | CT-12, CT-13, CT-14, CT-15, CT-16, CT-18, CT-44, CT-46 | PASSOU |
-| **UC08** Encerrar Partida | RF07 | CT-15 | PASSOU |
-| **UC09** Pedir Revanche ou Voltar ao Menu | RF13, RF14 | CT-18, CT-21, CT-47 | PASSOU |
+| **UC01** Iniciar Partida | RF01, RF02 | CT-01, CT-40, CT-46, CT-61, CT-66, CT-67 | PASSOU |
+| **UC02** Executar Jogada | RF03, RF04, RF05, RF06, RF08, RF11, RF15, RF16 | CT-02, CT-03, CT-04, CT-05, CT-06, CT-07, CT-08, CT-09, CT-10, CT-11, CT-12, CT-17, CT-30, CT-31, CT-33, CT-34, CT-35, CT-36, CT-41, CT-42, CT-43, CT-46, CT-49, CT-50, CT-51, CT-56, CT-57, CT-58, CT-59, CT-62, CT-65 | PASSOU |
+| **UC03** Pausar Jogo | RF12 | CT-20, CT-45, CT-55, CT-57, CT-58, CT-60 | PASSOU |
+| **UC04** Reiniciar Partida | RF13 | CT-21, CT-63 | PASSOU |
+| **UC05** Promover Peão | RF05 | CT-11, CT-48, CT-51, CT-58 | PASSOU |
+| **UC06** Consultar Caminhos e Ameaças | RF08, RF09, RF10, RF16 | CT-19, CT-31, CT-32, CT-41, CT-44, CT-59 | PASSOU |
+| **UC07** Verificar Xeque e Fim de Jogo | RF06, RF07, RF10, RF14 | CT-12, CT-13, CT-14, CT-15, CT-16, CT-18, CT-44, CT-46, CT-50, CT-52, CT-53, CT-54 | PASSOU |
+| **UC08** Encerrar Partida | RF07 | CT-15, CT-55, CT-60 | PASSOU |
+| **UC09** Pedir Revanche ou Voltar ao Menu | RF13, RF14 | CT-18, CT-21, CT-47, CT-55, CT-60, CT-63, CT-64 | PASSOU |
 
 ## 8.3 Caso de teste, requisito e caso de uso
 
@@ -81,3 +81,21 @@ Execução de 2026-11-04 06:22:06, commit `c5c150b`.
 | **CT-47** Revanche troca cores e mantém o placar; menu volta ao início | RF13 | UC09 | PASSOU |
 | **CT-48** Promoção pelo diálogo | RF05 | UC05 | PASSOU |
 | **CT-49** Redimensionar a janela mantém o clique correto | RNF07, RF16 | UC02 | PASSOU |
+| **CT-50** Partidas aleatórias contra gerador e detector independentes | RF04, RF05, RF06 | UC02, UC07 | PASSOU |
+| **CT-51** Bordas de promoção, en passant e roque | RF05, RF06 | UC02, UC05 | PASSOU |
+| **CT-52** Precedência entre fins de jogo no mesmo lance | RF07 | UC07 | PASSOU |
+| **CT-53** Tripla repetição, roque perdido e en passant | RF07 | UC07 | PASSOU |
+| **CT-54** Material insuficiente por captura e promoção subpotente | RF07 | UC07 | PASSOU |
+| **CT-55** Relógio, desistência, série, revanche e pretas primeiro | RF07, RF11, RF12, RF13 | UC03, UC08, UC09 | PASSOU |
+| **CT-56** Entradas absurdas e FEN malformadas | RF04, RNF07 | UC02 | PASSOU |
+| **CT-57** Macaco: eventos aleatórios com invariantes | RNF07 | UC02, UC03 | PASSOU |
+| **CT-58** Corridas entre relógio, voo, pausa, promoção e fim | RF05, RF07, RF12 | UC02, UC03, UC05 | PASSOU |
+| **CT-59** Clique: o que se vê é o que se aciona | RF08, RF16 | UC02, UC06 | PASSOU |
+| **CT-60** Clique duplo e eventos no mesmo quadro | RF12, RNF07 | UC03, UC08, UC09 | PASSOU |
+| **CT-61** Nomes: caracteres perigosos, largura e ajuda | RF01, RNF07 | UC01 | PASSOU |
+| **CT-62** Janelas e números extremos | RF16, RNF07 | UC02 | PASSOU |
+| **CT-63** Fim de jogo, revanche, menu e HUD | RF11, RF13, RF14 | UC04, UC09 | PASSOU |
+| **CT-64** Vazamento de memória | RNF01, RNF07 | UC09 | PASSOU |
+| **CT-65** Sem rede, sem execução dinâmica, sem escrita | RNF05, RNF07 | UC02 | PASSOU |
+| **CT-66** PNG, autoria, e-mails e caminhos pessoais | RNF05 | UC01 | PASSOU |
+| **CT-67** Python 3.10 e portabilidade | RNF02 | UC01 | PASSOU |

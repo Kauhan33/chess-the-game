@@ -332,7 +332,7 @@ Cada prazo parte do prazo anterior, não de "agora". Assim, um atraso pequeno é
 
 **Onde está.** `FramePacer` em `xadrez/ui/frame_pacer.py`. `App.run_frame` e `App.step` em `xadrez/ui/app.py`.
 
-**Por que isso foi necessário.** `pygame.time.Clock.tick(60)` trabalha em milissegundos inteiros. Medido em janela real, ele dava 59,1 FPS. Depois do `FramePacer`, a mesma demonstração deu 60,0 FPS médios em 1289 quadros, com intervalo médio de 16,66 ms. Os números completos estão na seção 7.6.
+**Por que isso foi necessário.** `pygame.time.Clock.tick(60)` trabalha em milissegundos inteiros. Medido em janela real, ele dava 59,1 FPS. Depois do `FramePacer`, a mesma demonstração deu 60,0 FPS médios em 1286 quadros, com intervalo médio de 16,66 ms. Os números completos estão na seção 7.6.
 
 **O que mantém o quadro barato.** Com a câmera em movimento, o renderizador redesenha os polígonos. Com ela parada, o tabuleiro vira uma camada pronta e cada peça vira um sprite, feitos aos poucos: no máximo 8 sprites por quadro. O texto do HUD também fica em cache.
 

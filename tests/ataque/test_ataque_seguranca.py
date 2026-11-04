@@ -28,7 +28,7 @@ FORBIDDEN_IMPORTS = {
     "subprocess", "multiprocessing", "pickle", "marshal", "shelve", "dbm", "sqlite3", "tempfile", "webbrowser",
 }
 # Geram a documentação: chamam Java, navegador, pytest e gh de propósito, e nada disso vai no jogo.
-DOCUMENT_TOOLS = {"gerar_documentacao.py", "gerar_pdf.py", "gerar_uml.py", "preparar_github.py", "relatorio_testes.py"}
+DOCUMENT_TOOLS = {"capturar_kanban.py", "gerar_documentacao.py", "gerar_pdf.py", "gerar_uml.py", "preparar_github.py", "relatorio_testes.py"}
 FORBIDDEN_CALLS = {"eval", "exec", "compile", "__import__", "open"}
 WRITE_METHODS = {"write_text", "write_bytes", "mkdir", "unlink", "rmdir", "rename", "touch"}
 NEWER_STDLIB = {"tomllib", "wsgiref.types", "asyncio.taskgroups"}

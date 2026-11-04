@@ -16,6 +16,8 @@ Dois achados surgiram depois, ao trazer estes testes para o projeto com a docume
 do diagrama nos metadados dos PNG (resolvido com `-nometadata`) e `tools/gerar_pdf.py` tinha caminho fixo de sistema (resolvido
 lendo `ProgramFiles` do ambiente).
 
+Depois de publicar, o CI achou mais um, que nenhuma execução no Windows mostraria: no macOS ARM, as sombras praticamente sumiam (CI-01). A explicação e a correção estão na seção 7.8 do plano de testes.
+
 ## 1. Resumo
 
 | Severidade | Quantos | IDs |
