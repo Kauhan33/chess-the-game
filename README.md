@@ -48,7 +48,7 @@ O CI em `.github/workflows/testes.yml` roda os testes em Python 3.10 e 3.12, no 
 
 ### Executável, sem instalar Python (Windows)
 
-`tools/gerar_executavel.py` gera `dist/ChessTheGame.exe`, um arquivo único que abre o jogo em uma máquina sem Python. A pasta `dist/` não vai para o repositório, então é preciso gerar o arquivo uma vez:
+No Windows, o jeito mais simples é baixar o `ChessTheGame.exe` na [página de releases](https://github.com/Kauhan33/chess-the-game/releases/latest): um arquivo único, que abre o jogo sem precisar de Python. Para gerar esse arquivo a partir do código, com `tools/gerar_executavel.py`:
 
 ```
 pip install pyinstaller pillow
