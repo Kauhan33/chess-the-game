@@ -16,17 +16,13 @@ As colunas são as pedidas no enunciado. A fonte das tarefas é `docs/kanban/tar
 <!-- GERADO:kanban -->
 | Coluna | ID | Tarefa | Marco | Evidência |
 |---|---|---|---|---|
-| Backlog / A Fazer | T13 | Publicar o repositório no GitHub, com autorização do grupo | E4 | ainda não feita |
-| Backlog / A Fazer | T14 | Confirmar pelo CI: Python 3.10, Linux e macOS (RNF02) | E4 | ainda não feita |
-| Backlog / A Fazer | T15 | Criar o quadro no GitHub Projects e capturar os prints | E4 | ainda não feita |
 | Backlog / A Fazer | T16 | Conferir a capa e entregar o PDF de requisitos e telas | E1 | ainda não feita |
 | Backlog / A Fazer | T17 | Entregar o PDF de casos de uso | E2 | ainda não feita |
 | Backlog / A Fazer | T18 | Entregar o PDF de classes e sequência | E3 | ainda não feita |
 | Backlog / A Fazer | T19 | Entregar a documentação unificada e o código | E4 | ainda não feita |
-| Backlog / A Fazer | T20 | Montar os slides e dividir a fala entre os integrantes | E5 | ainda não feita |
 | Backlog / A Fazer | T21 | Ensaiar a demonstração e a defesa técnica | E5 | ainda não feita |
-| Em Andamento (WIP) | T10 | Escrever requisitos, telas, UML, arquitetura, testes e PDF | E4 | em execução, sem commit |
-| Em Andamento (WIP) | T12 | Gerar a documentação final depois das correções | E4 | em execução, sem commit |
+| Em Andamento (WIP) | T15 | Criar o quadro no GitHub Projects e capturar os prints | E4 | quadro criado em 2026-11-04; prints a capturar pelo grupo |
+| Em Revisão | T20 | Montar os slides e dividir a fala entre os integrantes | E5 | slides prontos para o grupo revisar |
 | Concluído | T01 | Definir design, contratos e identificadores | E4 | commit 714b188 |
 | Concluído | T02 | Implementar o motor de regras oficiais | E4 | commit 411f20f |
 | Concluído | T03 | Testar o motor, com perft e casos CT-01 a CT-21 | E4 | commit 411f20f |
@@ -36,7 +32,11 @@ As colunas são as pedidas no enunciado. A fonte das tarefas é `docs/kanban/tar
 | Concluído | T07 | Testar a interface por eventos, casos CT-40 a CT-49 | E4 | commit 02e2248 |
 | Concluído | T08 | Travar em 60 FPS reais e eliminar o quadro lento ao iniciar | E4 | commit c5c150b |
 | Concluído | T09 | Auditar o código e atacar o jogo (QA), casos CT-50 em diante | E4 | commit 86de291 |
+| Concluído | T10 | Escrever requisitos, telas, UML, arquitetura, testes e PDF | E4 | commit 632c766 |
 | Concluído | T11 | Aplicar as correções apontadas pelo QA | E4 | commit 86de291 |
+| Concluído | T12 | Gerar a documentação final depois das correções | E4 | documentação gerada em 2026-11-04, com os resultados da seção 7.2 |
+| Concluído | T13 | Publicar o repositório no GitHub, com autorização do grupo | E4 | commit 632c766, enviado em 2026-11-04 |
+| Concluído | T14 | Confirmar pelo CI: Python 3.10, Linux e macOS (RNF02) | E4 | CI aprovado nas 6 combinações, commit bf74717 |
 <!-- FIM:kanban -->
 
 ## 9.3 Evolução real pelo git
@@ -52,6 +52,8 @@ Tabela gerada do `git log`, com as datas e as mensagens originais dos commits.
 | 2026-11-04 01:55 | `02e2248` | feat(ui): menu, partida, HUD, pausa, promocao e tela de vitoria |
 | 2026-11-04 01:56 | `c5c150b` | fix(ui): trava em 60 FPS reais e elimina o quadro lento ao iniciar a partida |
 | 2026-11-04 14:09 | `86de291` | fix: corrige os defeitos provados pelo QA e acrescenta os testes de ataque |
+| 2026-11-04 14:53 | `632c766` | docs: documentacao completa, UML, plano de testes e novo nome do jogo |
+| 2026-11-04 15:29 | `bf74717` | fix(graphics): corrige as sombras que sumiam no macOS ARM |
 <!-- FIM:evolucao -->
 
 ## 9.4 Prints do quadro

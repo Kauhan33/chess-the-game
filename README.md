@@ -44,7 +44,7 @@ pip install -r requirements.txt
 python main.py
 ```
 
-O desenvolvimento e as medições foram feitos em Python 3.12 no Windows 11. Python 3.10, Linux e macOS ainda não foram executados: o CI em `.github/workflows/testes.yml` cobre essas combinações e roda quando o repositório estiver publicado. O capítulo 7 traz a situação atualizada.
+O CI em `.github/workflows/testes.yml` roda os testes em Python 3.10 e 3.12, no Windows, no Linux e no macOS, e todas as combinações passaram. Ele roda sem janela: o jogo só foi aberto em janela real e medido em Python 3.12 no Windows 11. O capítulo 7 traz os detalhes.
 
 ### Executável, sem instalar Python (Windows)
 
@@ -119,6 +119,7 @@ A regra de dependência é `ui -> core` e `ui -> graphics`. `core` e `graphics` 
 | [8. Matriz de rastreabilidade](docs/08-matriz-rastreabilidade.md) | RF, UC e CT cruzados |
 | [9. Kanban](docs/09-kanban.md) | Tarefas e evolução real pelo git |
 | [10. Roteiro da apresentação](docs/10-roteiro-apresentacao.md) | Divisão da fala, demonstração lance a lance e perguntas prováveis |
+| [11. Guia de estudo](docs/11-guia-de-estudo.md) | O que cada integrante precisa ler e explicar, com experimentos testados |
 
 ### Gerar a documentação de novo
 

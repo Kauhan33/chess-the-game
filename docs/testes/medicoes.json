@@ -9,22 +9,22 @@
   },
   "janela_real": {
     "ferramenta": "tools/demo_automatica.py",
-    "commit": "632c766",
+    "commit": "bf74717",
     "resolucao": "1280x720",
     "fps_medio": 60.0,
     "quadros": 1286,
     "intervalo_medio_ms": 16.66,
-    "intervalo_p95_ms": 17.42,
-    "intervalo_p99_ms": 20.47,
-    "intervalo_max_ms": 42.31,
-    "trabalho_medio_ms": 5.21,
+    "intervalo_p95_ms": 17.28,
+    "intervalo_p99_ms": 20.4,
+    "intervalo_max_ms": 42.26,
+    "trabalho_medio_ms": 5.12,
     "quadros_acima_de_25_ms": 2,
     "percentual_acima_de_25_ms": 0.16,
-    "troca_menu_partida_ms": 29
+    "troca_menu_partida_ms": 28
   },
   "sem_janela": {
     "ferramenta": "tools/benchmark_ui.py",
-    "commit": "632c766",
+    "commit": "bf74717",
     "resolucao": "1280x720",
     "observacao": "App.step completo com HUD, sem display.flip.",
     "cenarios": [
@@ -32,39 +32,39 @@
         "nome": "Partida inteira com câmera parada",
         "quadros": 1902,
         "media_ms": 2.12,
-        "p95_ms": 3.5,
-        "p99_ms": 5.17,
-        "max_ms": 6.49,
+        "p95_ms": 3.53,
+        "p99_ms": 5.01,
+        "max_ms": 6.34,
         "acima_de_16_67": 0
       },
       {
         "nome": "Partida inteira com giro por turno",
         "quadros": 3438,
-        "media_ms": 4.38,
-        "p95_ms": 7.54,
-        "p99_ms": 10.34,
-        "max_ms": 14.37,
+        "media_ms": 4.24,
+        "p95_ms": 7.37,
+        "p99_ms": 10.19,
+        "max_ms": 14.15,
         "acima_de_16_67": 0
       },
       {
         "nome": "Câmera em giro contínuo (pior caso)",
         "quadros": 600,
-        "media_ms": 7.06,
-        "p95_ms": 7.6,
-        "p99_ms": 9.77,
-        "max_ms": 10.59,
+        "media_ms": 6.92,
+        "p95_ms": 7.36,
+        "p99_ms": 9.64,
+        "max_ms": 10.57,
         "acima_de_16_67": 0
       },
       {
         "nome": "Tela de vitória com fogos",
         "quadros": 600,
-        "media_ms": 6.9,
-        "p95_ms": 7.37,
-        "p99_ms": 9.86,
-        "max_ms": 10.81,
+        "media_ms": 6.7,
+        "p95_ms": 7.19,
+        "p99_ms": 9.66,
+        "max_ms": 10.24,
         "acima_de_16_67": 0
       }
     ]
   },
-  "pendencias_portabilidade": "Python 3.10, Linux e macOS não foram executados localmente. O CI em .github/workflows/testes.yml cobre essas combinações, mas só roda quando o repositório for publicado."
+  "pendencias_portabilidade": "O CI confirmou as 6 combinações no commit bf74717: Python 3.10 e 3.12 em Windows, Linux e macOS, com 1506 testes aprovados em cada uma, sem os testes slow (https://github.com/Kauhan33/chess-the-game/actions/runs/41887664468). O CI roda sem janela real."
 }

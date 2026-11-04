@@ -31,7 +31,7 @@
     {"id": "T11", "titulo": "Aplicar as correções apontadas pelo QA", "coluna": "Concluído", "marco": "E4", "etiquetas": ["testes"], "evidencia": "commit 86de291"},
     {"id": "T12", "titulo": "Gerar a documentação final depois das correções", "coluna": "Concluído", "marco": "E4", "etiquetas": ["documentação"], "evidencia": "documentação gerada em 2026-11-04, com os resultados da seção 7.2"},
     {"id": "T13", "titulo": "Publicar o repositório no GitHub, com autorização do grupo", "coluna": "Concluído", "marco": "E4", "etiquetas": ["gestão"], "evidencia": "commit 632c766, enviado em 2026-11-04"},
-    {"id": "T14", "titulo": "Confirmar pelo CI: Python 3.10, Linux e macOS (RNF02)", "coluna": "Em Andamento (WIP)", "marco": "E4", "etiquetas": ["testes"], "evidencia": "workflow enviado, aguardando a primeira execução"},
+    {"id": "T14", "titulo": "Confirmar pelo CI: Python 3.10, Linux e macOS (RNF02)", "coluna": "Concluído", "marco": "E4", "etiquetas": ["testes"], "evidencia": "CI aprovado nas 6 combinações, commit bf74717"},
     {"id": "T15", "titulo": "Criar o quadro no GitHub Projects e capturar os prints", "coluna": "Em Andamento (WIP)", "marco": "E4", "etiquetas": ["gestão"], "evidencia": "quadro criado em 2026-11-04; prints a capturar pelo grupo"},
     {"id": "T16", "titulo": "Conferir a capa e entregar o PDF de requisitos e telas", "coluna": "Backlog / A Fazer", "marco": "E1", "etiquetas": ["documentação"]},
     {"id": "T17", "titulo": "Entregar o PDF de casos de uso", "coluna": "Backlog / A Fazer", "marco": "E2", "etiquetas": ["documentação"]},

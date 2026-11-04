@@ -21,12 +21,14 @@ Cada teste ligado a um caso formal leva `@pytest.mark.ct("CT-xx")`. Um caso pode
 ## 7.2 Ambiente e execução
 
 <!-- GERADO:execucao -->
-- **Data e hora da execução:** 2026-11-04 15:04:13
-- **Commit testado:** `632c766` (com alterações locais em `xadrez/` ou `tests/`). As medições de FPS são do commit `c5c150b`.
+- **Data e hora da execução:** 2026-11-04 16:21:07
+- **Commit testado:** `bf74717`. As medições de FPS são do commit `bf74717`.
 - **Ambiente:** Python 3.12.10, Windows 11, pytest 9.2.0, pygame 2.6.1, numpy 2.5.3
 - **Modo:** completo, com os testes `slow`
-- **Total:** 1508 testes: 1508 passaram, 0 falharam, 0 foram pulados. Destes, 1073 estão vinculados a 56 casos de teste.
+- **Total:** 1514 testes: 1514 passaram, 0 falharam, 0 foram pulados. Destes, 1079 estão vinculados a 56 casos de teste.
 <!-- FIM:execucao -->
+
+Depois dessa execução, o código do jogo não mudou. Foi acrescentado 1 teste de clique ao CT-31, que passa a rodar no CI a cada envio.
 
 Para repetir:
 
@@ -91,7 +93,7 @@ O enunciado pede no mínimo 6 casos detalhados, validando colisão, alternância
 | **CT-33** Partículas: gravidade, reflexão no piso e tempo de vida (RF15, UC02) | Partícula única com posição, velocidade e restituição conhecidas, e emissão acima da capacidade. | Chamar `update(dt)` e comparar velocidade, posição, cor e contagem de vivas. | A gravidade acelera para baixo e o arrasto reduz a velocidade. No piso, v' = v - (1 + e)(v.n)n, e nada atravessa. A partícula morre ao fim da vida. A capacidade nunca é ultrapassada. Mesma semente, mesma simulação. | Conforme o esperado (PASSOU: 12 de 12 testes) |
 | **CT-34** Malhas: normais para fora e faces válidas (RF15, UC02) | As 6 peças de `build_piece_meshes` e os construtores `lathe`, `box`, `extrude` e `merge`. | Verificar índices, volume, normais, arestas e altura. | Faces válidas e volume positivo. Malhas fechadas, sem aresta solta. Normais para fora. No máximo 160 faces por peça. Peças apoiadas na mesa e dentro da casa. | Conforme o esperado (PASSOU: 40 de 40 testes) |
 | **CT-35** Animação: interpolação e easing (RF15, UC02) | As 4 curvas de easing, `Tween` e as animações de voo, captura, promoção e queda do rei. | Avançar com `update(dt)` e ler `value` e `model_matrix`. | Toda curva vai de 0 a 1. A peça viaja em arco e pousa exatamente no alvo. A capturada encolhe girando. A promovida passa um pouco do tamanho. O rei tomba sem tirar a borda da base do lugar. | Conforme o esperado (PASSOU: 20 de 20 testes) |
-| **CT-36** Render: corte de faces traseiras e ordem de pintura (RF15, UC02) | Cenas de teste em superfície sem janela, com a câmera parada e em movimento. | Desenhar com `Renderer3D` e ler os pixels da superfície. | Faces de costas e atrás do plano near saem. O objeto da frente cobre o de trás em qualquer ordem de envio. Sombras sobrepostas não escurecem em dobro. Partícula só soma luz. Peça em escala zero não quebra. | Conforme o esperado (PASSOU: 44 de 44 testes) |
+| **CT-36** Render: corte de faces traseiras e ordem de pintura (RF15, UC02) | Cenas de teste em superfície sem janela, com a câmera parada e em movimento. | Desenhar com `Renderer3D` e ler os pixels da superfície. | Faces de costas e atrás do plano near saem. O objeto da frente cobre o de trás em qualquer ordem de envio. Sombras sobrepostas não escurecem em dobro. Partícula só soma luz. Peça em escala zero não quebra. | Conforme o esperado (PASSOU: 45 de 45 testes) |
 
 ### Interface
 
@@ -127,9 +129,9 @@ O enunciado pede no mínimo 6 casos detalhados, validando colisão, alternância
 | **CT-62** Janelas e números extremos (RF16, RNF07, UC02) | F3 e F4 em oito tamanhos até 1x1, dt NaN e infinito, roda de um milhão de passos, jogada no meio da volta à vista padrão. | Aplicar cada entrada no App.step. | Nenhuma exceção, zoom no limite, e a vista padrão termina mesmo com jogada no meio. | Conforme o esperado (PASSOU: 19 de 19 testes) |
 | **CT-63** Fim de jogo, revanche, menu e HUD (RF11, RF13, RF14, UC04, UC09) | R no voo do mate, T na queda do rei, relógio com mais de 1 hora, nomes longos nas confirmações, ciclo menu, partida, fim, menu. | Dirigir cada roteiro por eventos e olhar o estado da cena. | A tela de vitória não é pulada, o aviso não é trocado, o relógio não invade a etiqueta, o título não corta a ação, nomes e opções sobrevivem ao ciclo. | Conforme o esperado (PASSOU: 11 de 11 testes) |
 | **CT-64** Vazamento de memória (RNF01, RNF07, UC09) | 200 revanches seguidas e 5 minutos simulados de partida. | Medir com tracemalloc e conferir os caches e as partículas. | Memória estável, caches e partículas sempre dentro do limite. | Conforme o esperado (PASSOU: 3 de 3 testes) |
-| **CT-65** Sem rede, sem execução dinâmica, sem escrita (RNF05, RNF07, UC02) | Todos os módulos do jogo e das ferramentas. | Analisar o código-fonte pela árvore sintática. | O jogo não importa rede nem subprocess, não usa eval nem exec e não escreve em disco. Só as ferramentas de documentação chamam programas externos. | Conforme o esperado (PASSOU: 95 de 95 testes) |
-| **CT-66** PNG, autoria, e-mails e caminhos pessoais (RNF05, UC01) | Imagens de docs/, arquivos versionados e autoria dos commits. | Ler os pedaços dos PNG, procurar e-mails e caminhos pessoais e conferir a autoria. | Os PNG não têm metadados de texto, e não há e-mail nem caminho pessoal no que o git publica. | Conforme o esperado (PASSOU: 34 de 34 testes) |
-| **CT-67** Python 3.10 e portabilidade (RNF02, UC01) | Todos os módulos do projeto. | Analisar com ast.parse(feature_version=(3, 10)) e procurar biblioteca padrão nova e caminho fixo de sistema. | Todos os módulos são sintaxe válida de Python 3.10, sem API nova nem caminho fixo. A execução real em 3.10, Linux e macOS fica com o CI. | Conforme o esperado (PASSOU: 239 de 239 testes) |
+| **CT-65** Sem rede, sem execução dinâmica, sem escrita (RNF05, RNF07, UC02) | Todos os módulos do jogo e das ferramentas. | Analisar o código-fonte pela árvore sintática. | O jogo não importa rede nem subprocess, não usa eval nem exec e não escreve em disco. Só as ferramentas de documentação chamam programas externos. | Conforme o esperado (PASSOU: 96 de 96 testes) |
+| **CT-66** PNG, autoria, e-mails e caminhos pessoais (RNF05, UC01) | Imagens de docs/, arquivos versionados e autoria dos commits. | Ler os pedaços dos PNG, procurar e-mails e caminhos pessoais e conferir a autoria. | Os PNG não têm metadados de texto, e não há e-mail nem caminho pessoal no que o git publica. | Conforme o esperado (PASSOU: 35 de 35 testes) |
+| **CT-67** Python 3.10 e portabilidade (RNF02, UC01) | Todos os módulos do projeto. | Analisar com ast.parse(feature_version=(3, 10)) e procurar biblioteca padrão nova e caminho fixo de sistema. | Todos os módulos são sintaxe válida de Python 3.10, sem API nova nem caminho fixo. A execução real em 3.10, Linux e macOS fica com o CI. | Conforme o esperado (PASSOU: 242 de 242 testes) |
 <!-- FIM:casos -->
 
 ## 7.5 Cobertura
@@ -140,9 +142,9 @@ Medida com `pytest-cov`, com ramos, na mesma execução dos casos acima. A meta 
 | Camada | Linhas cobertas | Ramos cobertos | Cobertura |
 |---|---|---|---|
 | `xadrez/core` | 847 de 847 | 214 de 214 | 100,00% |
-| `xadrez/graphics` | 1634 de 1638 | 240 de 246 | 99,47% |
+| `xadrez/graphics` | 1627 de 1631 | 240 de 246 | 99,47% |
 | `xadrez/ui` | 2625 de 2636 | 503 de 516 | 99,24% |
-| **Total** | 5110 de 5125 | 958 de 978 | **99,43%** |
+| **Total** | 5103 de 5118 | 958 de 978 | **99,43%** |
 <!-- FIM:cobertura -->
 
 ## 7.6 Validação dos requisitos não funcionais
@@ -150,8 +152,8 @@ Medida com `pytest-cov`, com ramos, na mesma execução dos casos acima. A meta 
 <!-- GERADO:rnf -->
 | Requisito | Critério de aceite | Evidência real | Situação |
 |---|---|---|---|
-| **RNF01** Desempenho: 60 FPS travados em 1280x720 | Média de 60 FPS em 1280x720, em janela real, com intervalo entre quadros perto de 16,67 ms. | `tools/demo_automatica.py`, janela real em 1280x720, com `display.flip`: 60,0 FPS médios em 1289 quadros, intervalo médio de 16,66 ms, p95 de 17,22 ms, p99 de 20,01 ms, máximo de 40,29 ms. 2 quadros passaram de 25 ms (0,16%). Testes `test_media_fica_em_60_fps_mesmo_com_sono_atrasado`: 1 de 1 passaram. | Atendido nesta máquina |
-| **RNF02** Portabilidade: Python 3.10+ em Windows, Linux e macOS | Suíte passa em Python 3.10+ no Windows, no Linux e no macOS. | Executado: Python 3.12.10 em Windows 11. Python 3.10, Linux e macOS não foram executados localmente. O CI em .github/workflows/testes.yml cobre essas combinações, mas só roda quando o repositório for publicado. Testes `test_source_parses_as_python_310`: 10 de 10 passaram. | Parcial: pendente do CI |
+| **RNF01** Desempenho: 60 FPS travados em 1280x720 | Média de 60 FPS em 1280x720, em janela real, com intervalo entre quadros perto de 16,67 ms. | `tools/demo_automatica.py`, janela real em 1280x720, com `display.flip`: 60,0 FPS médios em 1286 quadros, intervalo médio de 16,66 ms, p95 de 17,28 ms, p99 de 20,40 ms, máximo de 42,26 ms. 2 quadros passaram de 25 ms (0,16%). Testes `test_media_fica_em_60_fps_mesmo_com_sono_atrasado`: 1 de 1 passaram. | Atendido nesta máquina |
+| **RNF02** Portabilidade: Python 3.10+ em Windows, Linux e macOS | Suíte passa em Python 3.10+ no Windows, no Linux e no macOS. | Executado: Python 3.12.10 em Windows 11. O CI confirmou as 6 combinações no commit bf74717: Python 3.10 e 3.12 em Windows, Linux e macOS, com 1506 testes aprovados em cada uma, sem os testes slow (https://github.com/Kauhan33/chess-the-game/actions/runs/41887664468). O CI roda sem janela real. Testes `test_source_parses_as_python_310`: 10 de 10 passaram. | Atendido nos testes. Janela real só no Windows |
 | **RNF03** Responsividade: resposta visual à entrada em até 1 quadro | A casa sob o mouse e a seleção mudam no mesmo quadro do evento. | Testes `test_hover_marca_o_cursor_no_mesmo_quadro`, `test_clique_seleciona_e_preenche_a_matriz_de_cores`: 2 de 2 passaram. | Atendido |
 | **RNF04** Estética e acessibilidade: paleta coerente e estados por cor e por forma | Textos com contraste de pelo menos 4,5:1. Caminho, captura e ameaça têm forma além de cor. | Testes `test_contraste_dos_textos_passa_de_4_5_para_1`, `test_caminho_e_captura_tem_forma_alem_de_cor`, `test_pecas_ameacadas_aparecem_na_matriz_com_forma_e_tint`: 16 de 16 passaram. | Atendido |
 | **RNF05** Arquitetura em camadas, com motor testável sem interface | `core` não importa pygame, numpy nem `graphics`; `graphics` não importa `core`. | Testes `test_camada_nao_importa_o_que_nao_deve`: 2 de 2 passaram. | Atendido |
@@ -160,25 +162,25 @@ Medida com `pytest-cov`, com ramos, na mesma execução dos casos acima. A meta 
 <!-- FIM:rnf -->
 
 <!-- GERADO:maquina -->
-O FPS em janela real depende da máquina. Máquina usada: Intel Core i5-13600KF, NVIDIA GeForce RTX 5070, 48 GB de memória, Windows 11 Pro. O pipeline 3D roda na CPU, em numpy e pygame. A GPU não faz as contas de desenho. Na mesma medição, o trabalho médio por quadro foi de 4,84 ms, e a troca do menu para a partida levou 26 ms.
+O FPS em janela real depende da máquina. Máquina usada: Intel Core i5-13600KF, NVIDIA GeForce RTX 5070, 48 GB de memória, Windows 11 Pro. O pipeline 3D roda na CPU, em numpy e pygame. A GPU não faz as contas de desenho. Na mesma medição, o trabalho médio por quadro foi de 5,12 ms, e a troca do menu para a partida levou 28 ms.
 <!-- FIM:maquina -->
 
 Custo do quadro sem janela e sem a espera do `display.flip`:
 
 <!-- GERADO:benchmark -->
-`tools/benchmark_ui.py`, commit `c5c150b`, 1280x720. App.step completo com HUD, sem display.flip.
+`tools/benchmark_ui.py`, commit `bf74717`, 1280x720. App.step completo com HUD, sem display.flip.
 
 | Cenário | Quadros | Média | p95 | p99 | Máximo | Acima de 16,67 ms |
 |---|---|---|---|---|---|---|
-| Partida inteira com câmera parada | 1902 | 1,99 ms | 3,28 ms | 4,70 ms | 5,44 ms | 0 |
-| Partida inteira com giro por turno | 3438 | 4,22 ms | 7,17 ms | 10,67 ms | 15,12 ms | 0 |
-| Câmera em giro contínuo (pior caso) | 600 | 7,04 ms | 7,94 ms | 10,72 ms | 12,08 ms | 0 |
-| Tela de vitória com fogos | 600 | 6,84 ms | 7,46 ms | 10,08 ms | 11,21 ms | 0 |
+| Partida inteira com câmera parada | 1902 | 2,12 ms | 3,53 ms | 5,01 ms | 6,34 ms | 0 |
+| Partida inteira com giro por turno | 3438 | 4,24 ms | 7,37 ms | 10,19 ms | 14,15 ms | 0 |
+| Câmera em giro contínuo (pior caso) | 600 | 6,92 ms | 7,36 ms | 9,64 ms | 10,57 ms | 0 |
+| Tela de vitória com fogos | 600 | 6,70 ms | 7,19 ms | 9,66 ms | 10,24 ms | 0 |
 <!-- FIM:benchmark -->
 
 ## 7.7 O que não foi testado
 
-- **Python 3.10, Linux e macOS:** não foram executados localmente. O CI em `.github/workflows/testes.yml` cobre essas combinações, mas só roda quando o repositório for publicado.
+- **Janela real em Linux e macOS:** os testes passaram nesses sistemas, em Python 3.10 e 3.12, pelo CI em `.github/workflows/testes.yml` ([execução](https://github.com/Kauhan33/chess-the-game/actions/runs/41887664468)). Mas o CI roda sem janela. O jogo só foi aberto em janela real, com FPS medido, no Windows.
 - **Máquinas mais fracas:** o FPS foi medido em uma única máquina.
 - **Testes com usuários:** não há registro de teste organizado com pessoas de fora do grupo. Clareza e conforto são decisões de projeto, sem medição.
 - **Interface em janela real:** os testes de interface rodam com o SDL sem janela. Em janela real, roda a demonstração automática, que joga uma partida e mede os quadros, mas não confere as regras.

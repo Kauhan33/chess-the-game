@@ -121,6 +121,16 @@ def test_clique_escolhe_a_peca_da_frente_quando_duas_se_cobrem():
 
 
 @ct31
+def test_clique_escolhe_a_peca_da_frente_mesmo_com_a_de_tras_antes_na_lista():
+    """Vista das pretas, a ordem da lista é a contrária à da profundidade: quem decide é a distância ao olho."""
+    camera = Camera()
+    x, _, z = square_to_world(4, 1)
+    pixels, _ = camera.project([(x, 1.5, z)])
+    assert camera.pick_piece(*pixels[0], [_king_at(4, 2)]) == (4, 2), "sozinha, a de trás também aparece neste pixel"
+    assert camera.pick_piece(*pixels[0], [_king_at(4, 2), _king_at(4, 1)]) == (4, 1)
+
+
+@ct31
 def test_clique_que_erra_as_pecas_cai_na_casa_do_tabuleiro():
     camera = Camera()
     pixels, _ = camera.project([square_to_world(4, 4)])

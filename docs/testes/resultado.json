@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-04T15:04:13",
+  "generated_at": "2026-11-04T16:21:07",
   "info": {
     "is_quick": false,
     "python": "3.12.10",
@@ -7,11 +7,11 @@
     "pytest": "9.2.0",
     "pygame": "2.6.1",
     "numpy": "2.5.3",
-    "commit": "632c766",
-    "has_local_changes": true
+    "commit": "bf74717",
+    "has_local_changes": false
   },
   "totals": {
-    "passed": 1508,
+    "passed": 1514,
     "failed": 0,
     "skipped": 0
   },
@@ -159,8 +159,8 @@
     },
     "CT-36": {
       "status": "PASSOU",
-      "tests": 44,
-      "passed": 44
+      "tests": 45,
+      "passed": 45
     },
     "CT-40": {
       "status": "PASSOU",
@@ -289,18 +289,18 @@
     },
     "CT-65": {
       "status": "PASSOU",
-      "tests": 95,
-      "passed": 95
+      "tests": 96,
+      "passed": 96
     },
     "CT-66": {
       "status": "PASSOU",
-      "tests": 34,
-      "passed": 34
+      "tests": 35,
+      "passed": 35
     },
     "CT-67": {
       "status": "PASSOU",
-      "tests": 239,
-      "passed": 239
+      "tests": 242,
+      "passed": 242
     }
   }
 }
