@@ -10,6 +10,7 @@ import pygame
 from xadrez.core import GameEngine
 from xadrez.graphics import IVORY, build_piece_meshes
 from xadrez.ui.board_view import BoardView
+from xadrez.ui.frame_pacer import FramePacer
 from xadrez.ui.game_over_scene import GameOverScene
 from xadrez.ui.game_scene import GameScene
 from xadrez.ui.match import MatchOptions
@@ -45,7 +46,7 @@ class App:
         self.screen = pygame.display.set_mode(size, self._flags)
         self.size = self.screen.get_size()
         pygame.display.set_caption(WINDOW_TITLE)
-        self.clock = pygame.time.Clock()
+        self.pacer = FramePacer(FPS)
         self.theme = Theme()
         self.theme.set_window_size(self.size)
         self.meshes = build_piece_meshes()
@@ -116,13 +117,19 @@ class App:
             self.scene.update(0.0)
 
     def run_frame(self) -> None:
-        """Um quadro em tempo real: espera o relógio de 60 FPS, desenha e mostra na janela."""
-        dt = self.clock.tick(FPS) / 1000.0
-        self.fps = self.clock.get_fps()
+        """Um quadro em tempo real: espera o prazo de 60 FPS, desenha e mostra na janela."""
+        dt = self.pacer.wait()
+        self.fps = self.pacer.fps
         self.step(dt)
         pygame.display.flip()
 
+    def preload(self) -> None:
+        """Desenha uma partida invisível: a primeira partida real já encontra os fundos prontos, sem quadro lento."""
+        options = MatchOptions()
+        self.game_scene(options.create_engine(), options).draw(self.screen)
+
     def run(self) -> None:
+        self.preload()
         while self.running:
             self.run_frame()
         pygame.quit()

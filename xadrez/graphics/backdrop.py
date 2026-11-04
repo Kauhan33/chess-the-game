@@ -5,10 +5,13 @@ suaves saem caros por polígono e, sem textura perspectiva, a mesa não depende 
 """
 from __future__ import annotations
 
+from functools import lru_cache
+
 import numpy as np
 import pygame
 
 _SEED = 21
+_CACHED_SIZES = 8
 _WALNUT_DARK = np.array((30.0, 18.0, 12.0))
 _WALNUT_LIGHT = np.array((84.0, 52.0, 33.0))
 _LAMP_TINT = np.array((1.0, 0.88, 0.72))
@@ -48,7 +51,9 @@ def _lamp_pool(width: int, height: int) -> np.ndarray:
     return _POOL_FLOOR + _POOL_GAIN * np.exp(-(x[None, :] ** 2 + y[:, None] ** 2) * 2.2)
 
 
+@lru_cache(maxsize=_CACHED_SIZES)
 def render_backdrop(width: int, height: int) -> pygame.Surface:
+    """Gerar a madeira custa cerca de 126 ms em 960x720. A superfície é compartilhada: copie antes de alterá-la."""
     rng = np.random.default_rng(_SEED)
     pattern = _walnut_pattern(rng, width, height)[..., None]
     wood = _WALNUT_DARK + (_WALNUT_LIGHT - _WALNUT_DARK) * pattern

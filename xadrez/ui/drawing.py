@@ -89,7 +89,7 @@ def render_soft_shadow(size: tuple[int, int], margin: int, peak_alpha: int) -> p
 def render_panel_ground(size: tuple[int, int]) -> pygame.Surface:
     """Chão do painel: a mesma nogueira do fundo 3D, mais escura, com o filete de latão do tabuleiro na divisa."""
     width, height = _usable_size(size)
-    ground = render_backdrop(width, height)
+    ground = render_backdrop(width, height).copy()
     ground.fill((_PANEL_BRIGHTNESS,) * 3, special_flags=pygame.BLEND_RGB_MULT)
     return ground
 

@@ -47,8 +47,8 @@ class RealTimeFrames:
     def __call__(self) -> None:
         if self._has_stop_request():
             raise Interrupted
-        dt = self.app.clock.tick(60) / 1000.0
-        self.app.fps = self.app.clock.get_fps()
+        dt = self.app.pacer.wait()
+        self.app.fps = self.app.pacer.fps
         started = time.perf_counter()
         self.app.step(dt)
         pygame.display.flip()
@@ -107,6 +107,7 @@ def main() -> None:
     parser.add_argument("--size", type=parse_size, default=(1280, 720))
     args = parser.parse_args()
     app = App(args.size, seed=5)
+    app.preload()
     frames = RealTimeFrames(app)
     try:
         run_demo(Autoplayer(app, frames), LONG_GAME if args.longa else SHORT_GAME)
