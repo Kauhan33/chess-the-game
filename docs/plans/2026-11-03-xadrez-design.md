@@ -122,6 +122,22 @@ Regras combinadas: empate por 50 lances e por tripla repetição são automátic
 esgotado perde, salvo se o adversário só tiver o rei (empate); vitória vale 1 ponto na
 série e empate vale 0,5; pontuação de material soma os valores das peças capturadas.
 
+### Decisões do motor que a interface precisa respeitar
+
+- `legal_moves_from` devolve 4 jogadas para a mesma casa na promoção: tire as repetidas ao desenhar.
+- `play` responde `PROMOTION_REQUIRED` só se a jogada for legal; peão cravado recebe
+  `LEAVES_KING_IN_CHECK` antes, então o diálogo de promoção não abre à toa.
+- `tick` devolve o resultado só no quadro em que o tempo acaba e depois `None`.
+  `remaining` vale `math.inf` em `TimeControl.UNLIMITED`.
+- `resign` e `agree_draw` valem também durante a pausa.
+- `restart` e `rematch` voltam ao FEN do construtor, ou à posição oficial se não houver.
+- `material_balance` são os pontos capturados das brancas menos os das pretas.
+- `attackers_of(sq)` devolve os inimigos da peça na casa; com a casa vazia, os adversários de quem joga.
+- Também exportados: `STARTING_FEN`, `AppliedMove`, `has_legal_moves`, `leaves_king_in_check`,
+  `legal_en_passant_moves`, `position_key`, `move_to_san`. Atributos extras: `Board.grid`
+  (`[file][rank]`), `Move.captured_square`, `Piece.symbol`, `Square.is_dark`, `GameResult.is_draw`,
+  `TimeControl.is_unlimited`, `ChessClock.add_increment`, `GameEngine.time_control`.
+
 ## 5. Contrato de `xadrez.graphics`
 
 ```python
