@@ -228,18 +228,33 @@ sprites são refeitos em alguns quadros.
 ## 6. Contrato de `xadrez.ui`
 
 ```python
-class Scene(ABC):   # handle_event(event), update(dt), draw(surface), next_scene
-class App:          # janela 1280x720 redimensionável, relógio a 60 FPS, troca de cenas; run()
+class Scene(ABC):   # handle_event(event), update(dt), draw(surface), resize(size), next_scene
+class App:          # janela 1280x720 redimensionável, relógio a 60 FPS, troca de cenas
+                    # run(); run_frame() em tempo real; step(dt) determinístico, para testes e ferramentas
+                    # menu_scene(), game_scene(), game_over_scene(): as cenas se chamam em ciclo, então passam pelo App
 class MenuScene     # nomes dos 2 jogadores, controle de tempo, giro de câmera, ajuda de controles
-class GameScene     # tabuleiro 3D + HUD; seleção, promoção, pausa, reinício, animações
+class GameScene     # tabuleiro 3D + HUD; seleção, promoção, pausa, reinício, animações; pick_at(pixel)
 class GameOverScene # vencedor, motivo, placar da série, fogos; revanche ou menu
-class Hud; widgets: Button, TextInput, Selector
+class Hud; widgets: Button, TextInput, Selector, FocusGroup
 theme.py            # paleta e tipografia, com fallback de fontes do sistema
+drawing.py          # placas de cantos cortados, brilho e chão de madeira
+board_view.py       # BoardView: apresentação 3D, animações, partículas e câmera da partida
+overlays.py         # pausa e confirmações (ChoiceOverlay), PromotionDialog, HelpOverlay
+debug_panels.py     # PerformancePanel (F3) e DidacticPanel (F4)
+match.py            # MatchOptions e formatação de relógio e placar
+autoplay.py         # Autoplayer: joga por eventos reais; serve a testes, benchmark, captura e demonstração
 ```
 
+`GameScene.pick_at` decide a casa do clique: chama `BoardView.pick` (que usa `pick_piece`), mas, com
+uma peça selecionada, um destino válido sob o raio tem preferência sobre o cilindro de uma peça
+alta na frente dele. O cilindro é mais largo que a cintura da peça e tomaria o clique em uma casa
+que o jogador está vendo. O chão do painel usa `render_backdrop`, importado direto de
+`xadrez.graphics.backdrop`.
+
 Controles: mouse (clique seleciona e move; botão direito arrasta e orbita; roda dá
-zoom) e teclado (setas movem o cursor; Enter ou Espaço confirma; Esc cancela; P pausa;
-R reinicia com confirmação; T liga o giro por turno; F3 mostra FPS).
+zoom) e teclado (setas movem o cursor, relativas à visão atual; Enter ou Espaço confirma; Esc
+cancela a seleção e, sem seleção, abre a pausa; P pausa; R reinicia com confirmação; T liga o giro
+por turno; V volta à vista padrão; H ou F1 mostra a ajuda; F3 mostra FPS; F4 abre o modo didático).
 
 ## 7. Identificadores
 
