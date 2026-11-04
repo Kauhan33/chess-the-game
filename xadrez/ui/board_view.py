@@ -32,6 +32,7 @@ from xadrez.graphics import (
     square_to_world,
     translation,
 )
+from xadrez.graphics.camera import PickablePiece
 from xadrez.ui import theme as tokens
 
 Cell = tuple[int, int]
@@ -50,6 +51,7 @@ _SPARK_COLORS = {Color.WHITE: (240, 228, 200), Color.BLACK: (170, 140, 116)}
 _ORBIT_SENSITIVITY_YAW = 0.006
 _ORBIT_SENSITIVITY_PITCH = 0.004
 _ZOOM_STEP = 0.92
+_MAX_ZOOM_STEPS = 1000
 _VIEW_RESET_SECONDS = 0.6
 _SHAKE_SECONDS = 0.34
 _SHAKE_AMPLITUDE = 0.07
@@ -143,7 +145,7 @@ class BoardView:
         self._rng = np.random.default_rng(seed)
         self._board: Board | None = None
         self._placed: list[_PlacedPiece] = []
-        self._pickable: list[tuple[int, int, float]] = []
+        self._pickable: list[PickablePiece] = []
         self._view_reset: _ViewReset | None = None
         self.shake_square: Cell | None = None
         self._shake_elapsed = 0.0
@@ -181,9 +183,10 @@ class BoardView:
         self.scene_polygons = _BOARD_SQUARE_COUNT + sum(len(piece.mesh.faces) for piece in self._placed)
 
     def _place(self, cell: Cell, mesh: Mesh, color: Color, hidden: set[Cell]) -> None:
-        self._pickable.append((*cell, mesh.height))
+        matrix = piece_matrix(*cell, PIECE_FACING[color])
+        self._pickable.append((*cell, mesh, matrix))
         if cell not in hidden:
-            self._placed.append(_PlacedPiece(cell, mesh, piece_matrix(*cell, PIECE_FACING[color]), PIECE_COLORS[color]))
+            self._placed.append(_PlacedPiece(cell, mesh, matrix, PIECE_COLORS[color]))
 
     def _hidden_squares(self) -> set[Cell]:
         hidden = {flight.target for flight in self._flights}
@@ -197,7 +200,7 @@ class BoardView:
     def piece_height_at(self, square: Cell) -> float:
         """Altura da peça na casa, ou zero se a casa estiver vazia."""
         cell = tuple(square)
-        return next((height for file, rank, height in self._pickable if (file, rank) == cell), 0.0)
+        return next((mesh.height for file, rank, mesh, _ in self._pickable if (file, rank) == cell), 0.0)
 
     def _resync(self) -> None:
         if self._board is not None:
@@ -213,8 +216,10 @@ class BoardView:
         return self.camera.is_moving or self._view_reset is not None
 
     def face(self, color: Color) -> None:
-        self._view_reset = None
-        if not self._is_facing(SIDE_YAW[color]):
+        if self._view_reset is not None:
+            # A volta à vista padrão termina a inclinação e o zoom, agora para o lado de quem joga.
+            self._view_reset = _ViewReset(self.camera, SIDE_YAW[color])
+        elif not self._is_facing(SIDE_YAW[color]):
             self.camera.orbit_to(SIDE_YAW[color])
 
     def restore_default_view(self, color: Color) -> None:
@@ -233,11 +238,17 @@ class BoardView:
 
     def zoom(self, wheel_steps: int) -> None:
         self._view_reset = None
-        self.camera.zoom_by(_ZOOM_STEP**wheel_steps)
+        steps = max(-_MAX_ZOOM_STEPS, min(wheel_steps, _MAX_ZOOM_STEPS))
+        self.camera.zoom_by(_ZOOM_STEP**steps)
 
     def pick(self, position: tuple[int, int]) -> Cell | None:
-        """Casa sob o pixel: testa o volume das peças e, se nada for tocado, o plano do tabuleiro."""
-        return self.camera.pick_piece(position[0], position[1], self._pickable)
+        """Casa sob o pixel: testa a silhueta das peças e, se nenhuma aparecer ali, o plano do tabuleiro."""
+        pieces = [(*piece[:3], self._lifted(piece)) for piece in self._pickable]
+        return self.camera.pick_piece(position[0], position[1], pieces)
+
+    def _lifted(self, piece: PickablePiece) -> np.ndarray:
+        file, rank, _, matrix = piece
+        return _SELECTED_LIFT @ matrix if (file, rank) == self.lifted_square else matrix
 
     # Animações -----------------------------------------------------------------------------------
 

@@ -28,15 +28,11 @@ def _candidate_points(view: BoardView, square: tuple[int, int]) -> list[tuple[fl
     return [(x + dx, 0.0, z + dz) for dx, dz in _FLOOR_OFFSETS]
 
 
-def click_point(view: BoardView, square: tuple[int, int], pick=None) -> tuple[int, int]:
-    """Pixel que aciona a casa neste ângulo de câmera: acha um ponto visível da peça ou da casa.
-
-    `pick` é quem responde qual casa um pixel aciona. O padrão é o volume das peças, sem seleção.
-    """
-    answer = view.pick if pick is None else pick
+def click_point(view: BoardView, square: tuple[int, int]) -> tuple[int, int]:
+    """Pixel que aciona a casa neste ângulo de câmera: acha um ponto visível da peça ou da casa."""
     candidates = [_project(view, point) for point in _candidate_points(view, square)]
     for pixel in candidates:
-        if answer(pixel) == tuple(square):
+        if view.pick(pixel) == tuple(square):
             return pixel
     return candidates[0]
 
@@ -103,8 +99,7 @@ class Autoplayer:
         raise TimeoutError("A animação não terminou no limite de quadros.")
 
     def click_square(self, square: tuple[int, int]) -> None:
-        pick = getattr(self.app.scene, "pick_at", None)
-        post_click(click_point(self.view, tuple(square), pick))
+        post_click(click_point(self.view, tuple(square)))
         self.frames(1)
 
     def click_widget(self, widget) -> None:

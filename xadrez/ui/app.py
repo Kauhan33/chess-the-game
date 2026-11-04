@@ -37,11 +37,17 @@ def _enable_dpi_awareness() -> None:
         pass
 
 
+def _bounded_frame_time(dt: float) -> float:
+    """Zero para valor negativo ou NaN, porque `dt > 0` falha nos dois. Teto para o infinito e para saltos."""
+    return min(dt, MAX_FRAME_SECONDS) if dt > 0 else 0.0
+
+
 class App:
     def __init__(self, size: tuple[int, int] = WINDOW_SIZE, seed: int | None = None):
         _enable_dpi_awareness()
         pygame.init()
         self._flags = pygame.RESIZABLE
+        self._windowed_size: tuple[int, int] | None = None
         self.seed = seed
         self.screen = pygame.display.set_mode(size, self._flags)
         self.size = self.screen.get_size()
@@ -77,7 +83,7 @@ class App:
         for event in pygame.event.get():
             self._dispatch(event)
         self._follow_window_size()
-        self.scene.update(min(max(dt, 0.0), MAX_FRAME_SECONDS))
+        self.scene.update(_bounded_frame_time(dt))
         self._apply_scene_change()
         self.scene.draw(self.screen)
         elapsed_ms = (time.perf_counter() - started) * 1000.0
@@ -88,8 +94,25 @@ class App:
             self.running = False
         elif event.type == pygame.VIDEORESIZE:
             self._apply_resize(event.size)
+        elif event.type == pygame.KEYDOWN and event.key == pygame.K_F11:
+            self._toggle_fullscreen()
         else:
             self.scene.handle_event(event)
+
+    def _toggle_fullscreen(self) -> None:
+        """Tela cheia para o projetor da apresentação, na resolução da tela. Volta ao tamanho de antes."""
+        if self._windowed_size is None:
+            self._windowed_size = self.size
+            self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+        else:
+            self.screen = pygame.display.set_mode(self._windowed_size, self._flags)
+            # Saindo da tela cheia, o SDL pode manter o tamanho dela até a segunda chamada.
+            if self.screen.get_size() != self._windowed_size:
+                self.screen = pygame.display.set_mode(self._windowed_size, self._flags)
+            self._windowed_size = None
+        # O aviso de redimensionamento desta troca chegaria depois e forçaria o tamanho da troca anterior.
+        pygame.event.clear(pygame.VIDEORESIZE)
+        self._adopt_size(self.screen.get_size())
 
     def _apply_resize(self, requested: tuple[int, int]) -> None:
         size = (max(requested[0], 1), max(requested[1], 1))
@@ -114,6 +137,8 @@ class App:
     def _apply_scene_change(self) -> None:
         if self.scene.next_scene is not None:
             self.scene = self.scene.next_scene
+            # A janela pode ter mudado de tamanho no mesmo quadro em que a cena nova foi criada.
+            self.scene.resize(self.size)
             self.scene.update(0.0)
 
     def run_frame(self) -> None:

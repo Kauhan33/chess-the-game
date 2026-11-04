@@ -109,6 +109,8 @@ _FONT_STACKS = {
 _DEFAULT_FONT_GROWTH = 1.25
 _TABULAR_DIGITS = "0123456789"
 _TEXT_CACHE_LIMIT = 1600
+# Área de uso privado do Unicode: a fonte não tem, então sai o glifo de substituição dela.
+_MISSING_GLYPH_PROBE = chr(0xE000)
 _PLATE_CACHE_LIMIT = 320
 
 
@@ -166,6 +168,7 @@ class Theme:
         self._font_paths: dict[str, str | None] = {}
         self._fonts: dict[tuple[str, int], pygame.font.Font] = {}
         self._texts: OrderedDict[tuple, pygame.Surface] = OrderedDict()
+        self._glyphs: dict[tuple, bool] = {}
         self._plates: dict[tuple, pygame.Surface] = {}
         self._grounds: dict[tuple[int, int], pygame.Surface] = {}
 
@@ -206,7 +209,9 @@ class Theme:
         if surface is not None:
             self._texts.move_to_end(key)
             return surface
-        surface = self.font(role, size).render(content or " ", True, color)
+        font = self.font(role, size)
+        # Texto sem largura (vazio ou só com seletor de variação) faz o `render` levantar erro.
+        surface = font.render(content if font.size(content)[0] > 0 else " ", True, color)
         return self._remember_text(key, surface)
 
     def _remember_text(self, key: tuple, surface: pygame.Surface) -> pygame.Surface:
@@ -251,9 +256,15 @@ class Theme:
         return surface
 
     def has_glyph(self, char: str, role: str, size: int) -> bool:
-        """Diz se a fonte desenha o caractere, para não aceitar nome que viraria quadradinho."""
-        metrics = self.font(role, size).metrics(char)
-        return bool(metrics) and metrics[0] is not None
+        """Diz se a fonte desenha o caractere, para não aceitar nome que viraria quadradinho.
+
+        `font.metrics` devolve as medidas do glifo de substituição, então não serve para saber. A
+        comparação é com o desenho de um caractere que nenhuma fonte de texto comum tem.
+        """
+        key = (char, role, size)
+        if key not in self._glyphs:
+            self._glyphs[key] = _draws_own_glyph(self.font(role, size), char)
+        return self._glyphs[key]
 
     def plate(self, size: tuple[int, int], style: PlateStyle) -> pygame.Surface:
         key = (size, style, self.scale)
@@ -279,6 +290,19 @@ class Theme:
         if outline is None:
             outline = self._plates[key] = drawing.render_outline(size, color, self.px(cut), self.px(2))
         return outline
+
+
+def _draws_own_glyph(font: pygame.font.Font, char: str) -> bool:
+    if char.isspace():
+        return True
+    metrics = font.metrics(char)
+    if not metrics or metrics[0] is None or font.size(char)[0] == 0:
+        return False
+    return _glyph_pixels(font, char) != _glyph_pixels(font, _MISSING_GLYPH_PROBE)
+
+
+def _glyph_pixels(font: pygame.font.Font, char: str) -> bytes:
+    return pygame.image.tobytes(font.render(char, False, (255, 255, 255)), "RGBA")
 
 
 def _ellipsize(content: str, font: pygame.font.Font, max_width: int) -> str:

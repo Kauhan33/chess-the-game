@@ -7,7 +7,8 @@ from typing import Iterable
 import numpy as np
 
 from xadrez.graphics.animation import Tween, ease_in_out_cubic
-from xadrez.graphics.matrix import look_at, perspective, square_to_world, viewport, world_to_square
+from xadrez.graphics.matrix import look_at, perspective, square_to_world, transform_points, viewport, world_to_square
+from xadrez.graphics.mesh import Mesh
 from xadrez.graphics.vector import Vector3D
 
 NEAR_PLANE = 0.5
@@ -25,7 +26,11 @@ _DEFAULT_AIM_LEAD = 0.5
 # Abaixo desta proporção (viewport estreito), o campo de visão vertical abre para o
 # tabuleiro não ser cortado nas laterais.
 _MIN_FULL_FOV_ASPECT = 1.35
-_PIECE_PICK_RADIUS = 0.36
+# Folga do cilindro envolvente, para cobrir a peça selecionada, que fica levantada, e o tremor.
+_PIECE_BOUNDS_MARGIN = 0.16
+
+# Peça que pode ser clicada: file, rank, malha e matriz de modelo.
+PickablePiece = tuple[int, int, Mesh, np.ndarray]
 
 
 class Camera:
@@ -202,45 +207,61 @@ class Camera:
         hit = self.pick_plane(sx, sy)
         return None if hit is None else world_to_square(*hit)
 
-    def pick_piece(self, sx: float, sy: float, pieces: Iterable[tuple[int, int, float]]) -> tuple[int, int] | None:
-        """Casa da peça mais próxima sob o pixel, ou da casa do tabuleiro se não houver peça.
+    def pick_piece(self, sx: float, sy: float, pieces: Iterable[PickablePiece]) -> tuple[int, int] | None:
+        """Casa da peça que aparece sob o pixel, ou do tabuleiro, se nenhuma aparecer.
 
-        Vista de cima em ângulo, a cabeça de uma peça cobre a casa de trás. Sem este teste,
-        clicar nela selecionaria a casa errada. `pieces` traz (file, rank, altura), e cada
-        peça é tratada como um cilindro vertical.
+        Vista em ângulo, a cabeça de uma peça cobre a casa de trás, e a peça da frente cobre parte
+        da de trás. Para acionar o que o jogador vê, cada malha é projetada e o pixel é testado
+        contra as faces dela: é a silhueta. O teste segue a ordem inversa da pintura, da peça mais
+        próxima do olho para a mais distante. Um cilindro envolvente descarta antes o que está
+        longe do raio, porque projetar 32 malhas a cada movimento do mouse seria desperdício.
         """
         if not self._contains_pixel(sx, sy):
             return None
         origin, direction = self.screen_ray(sx, sy)
-        hits = [(_ray_hits_cylinder(origin, direction, file, rank, height), file, rank) for file, rank, height in pieces]
-        hits = [hit for hit in hits if hit[0] is not None]
-        if not hits:
-            return self.pick_square(sx, sy)
-        _, file, rank = min(hits)
-        return file, rank
+        candidates = [piece for piece in pieces if _ray_touches_bounds(origin, direction, piece)]
+        candidates.sort(key=self._squared_distance_to_eye)
+        for file, rank, mesh, model_matrix in candidates:
+            screen_points, _ = self.project(transform_points(model_matrix, mesh.vertices))
+            if _pixel_inside_any_face(sx, sy, screen_points[mesh.faces]):
+                return file, rank
+        return self.pick_square(sx, sy)
+
+    def _squared_distance_to_eye(self, piece: PickablePiece) -> float:
+        offset = piece[3][:3, 3] - self.eye
+        return float(offset @ offset)
 
 
-def _ray_hits_cylinder(origin: Vector3D, direction: Vector3D, file: int, rank: int, height: float) -> float | None:
-    """Menor t em que o raio entra no cilindro vertical da peça, ou None.
+def _ray_touches_bounds(origin: Vector3D, direction: Vector3D, piece: PickablePiece) -> bool:
+    """O raio passa pelo cilindro vertical que envolve a peça?
 
     Em (x, z), o cilindro é o círculo |p - c|^2 = r^2. Trocar p por o + t d dá a
     equação de segundo grau a t^2 + 2 b t + c = 0. Depois confere se y está na altura.
     """
+    file, rank, mesh, _ = piece
     center_x, _, center_z = square_to_world(file, rank)
     offset_x, offset_z = origin.x - center_x, origin.z - center_z
+    radius = mesh.radius + _PIECE_BOUNDS_MARGIN
     a = direction.x**2 + direction.z**2
     b = offset_x * direction.x + offset_z * direction.z
-    c = offset_x**2 + offset_z**2 - _PIECE_PICK_RADIUS**2
+    c = offset_x**2 + offset_z**2 - radius**2
     discriminant = b * b - a * c
-    if a < _RAY_PARALLEL_LIMIT or discriminant < 0.0:
-        return None
-    entry = (-b - math.sqrt(discriminant)) / a
-    exit_ = (-b + math.sqrt(discriminant)) / a
-    if direction.y >= 0.0:
-        return None
+    if a < _RAY_PARALLEL_LIMIT or discriminant < 0.0 or direction.y >= 0.0:
+        return False
     # O raio desce: entre a entrada e a saída do cilindro, ele toca a faixa 0 <= y <= altura?
-    highest = origin.y + direction.y * entry
-    lowest = origin.y + direction.y * exit_
-    if highest < 0.0 or lowest > height:
-        return None
-    return max(entry, (height - origin.y) / direction.y)
+    highest = origin.y + direction.y * (-b - math.sqrt(discriminant)) / a
+    lowest = origin.y + direction.y * (-b + math.sqrt(discriminant)) / a
+    return highest >= 0.0 and lowest <= mesh.height + _PIECE_BOUNDS_MARGIN
+
+
+def _pixel_inside_any_face(sx: float, sy: float, quads: np.ndarray) -> bool:
+    """Teste do ponto em polígono convexo, para (F, 4, 2) faces projetadas de uma vez.
+
+    O produto vetorial 2D de cada aresta com o vetor até o pixel diz de que lado ele está. Dentro
+    da face, os quatro têm o mesmo sinal, seja qual for o sentido em que ela aparece. A aresta
+    nula do triângulo (último vértice repetido) dá zero e não atrapalha.
+    """
+    edges = np.roll(quads, -1, axis=1) - quads
+    to_pixel = np.array((sx, sy)) - quads
+    sides = edges[..., 0] * to_pixel[..., 1] - edges[..., 1] * to_pixel[..., 0]
+    return bool(((sides >= 0.0).all(axis=1) | (sides <= 0.0).all(axis=1)).any())

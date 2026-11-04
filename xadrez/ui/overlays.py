@@ -41,7 +41,7 @@ CONTROL_HINTS = (
     ControlHint("Roda", "Aproxima e afasta a câmera"),
     ControlHint("Setas", "Movem o cursor, conforme a visão"),
     ControlHint("Enter", "Confirma, como o clique (ou Espaço)"),
-    ControlHint("Esc", "Cancela a seleção"),
+    ControlHint("Esc", "Cancela a seleção ou abre a pausa"),
     ControlHint("P", "Pausa a partida"),
     ControlHint("R", "Reinicia, depois de confirmar"),
     ControlHint("T", "Liga ou desliga o giro por turno"),
@@ -49,6 +49,7 @@ CONTROL_HINTS = (
     ControlHint("H", "Mostra esta ajuda (ou F1)"),
     ControlHint("F3", "Mostra FPS e polígonos"),
     ControlHint("F4", "Modo didático: matrizes ao vivo"),
+    ControlHint("F11", "Liga ou desliga a tela cheia"),
 )
 _HELP_ROW_HEIGHT = 30
 _HELP_CLOSE_KEYS = (pygame.K_ESCAPE, pygame.K_h, pygame.K_F1, pygame.K_RETURN, pygame.K_KP_ENTER)

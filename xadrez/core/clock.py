@@ -54,8 +54,8 @@ class ChessClock:
         return self._elapsed[color]
 
     def tick(self, color: Color, dt: float) -> None:
-        # `not dt > 0` também descarta NaN, que falharia em `dt <= 0` e corromperia o relógio.
-        if not dt > 0:
+        # A forma negada também descarta NaN, e o limite descarta infinito: inf - inf daria NaN.
+        if not 0 < dt < math.inf:
             return
         self._elapsed[color] += dt
         self._remaining[color] = max(0.0, self._remaining[color] - dt)

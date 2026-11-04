@@ -74,11 +74,15 @@ class GameOverScene(Scene):
         self.resize(app.size)
 
     def rematch(self) -> None:
+        # Dois Enter no mesmo quadro chegam antes da troca de cena: a segunda revanche destrocaria as cores.
+        if self.next_scene is not None:
+            return
         self.engine.rematch()
         self.next_scene = self.app.game_scene(self.engine, self.options, self.view)
 
     def go_to_menu(self) -> None:
-        self.next_scene = self.app.menu_scene(self.options)
+        if self.next_scene is None:
+            self.next_scene = self.app.menu_scene(self.options)
 
     def handle_event(self, event: pygame.event.Event) -> None:
         self.focus.handle_event(event)

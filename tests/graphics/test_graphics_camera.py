@@ -4,10 +4,17 @@ import math
 import numpy as np
 import pytest
 
-from xadrez.graphics import Camera, square_to_world
+from xadrez.graphics import Camera, build_piece_meshes, piece_matrix, square_to_world
 from xadrez.graphics.camera import MAX_DISTANCE, MAX_PITCH, MIN_DISTANCE, MIN_PITCH
 
 ct31 = pytest.mark.ct("CT-31")
+
+KING = build_piece_meshes()["king"]
+
+
+def _king_at(file, rank):
+    return file, rank, KING, piece_matrix(file, rank, 0.0)
+
 
 YAWS = (0.0, 0.7, math.pi / 2, 2.1, math.pi, 4.4)
 PITCHES = (math.radians(28), math.radians(52), math.radians(78))
@@ -101,7 +108,7 @@ def test_clicar_na_cabeca_da_peca_escolhe_a_casa_dela():
     head = (x, 1.0, z)
     pixels, _ = camera.project([head])
     assert camera.pick_square(*pixels[0]) != (4, 1)
-    assert camera.pick_piece(*pixels[0], [(4, 1, 1.4)]) == (4, 1)
+    assert camera.pick_piece(*pixels[0], [_king_at(4, 1)]) == (4, 1)
 
 
 @ct31
@@ -109,7 +116,7 @@ def test_clique_escolhe_a_peca_da_frente_quando_duas_se_cobrem():
     camera = Camera()
     x, _, z = square_to_world(4, 1)
     pixels, _ = camera.project([(x, 0.9, z)])
-    pieces = [(4, 1, 1.4), (4, 2, 1.4), (4, 3, 1.4)]
+    pieces = [_king_at(4, 3), _king_at(4, 1), _king_at(4, 2)]
     assert camera.pick_piece(*pixels[0], pieces) == (4, 1)
 
 
@@ -117,7 +124,26 @@ def test_clique_escolhe_a_peca_da_frente_quando_duas_se_cobrem():
 def test_clique_que_erra_as_pecas_cai_na_casa_do_tabuleiro():
     camera = Camera()
     pixels, _ = camera.project([square_to_world(4, 4)])
-    assert camera.pick_piece(*pixels[0], [(0, 0, 1.0)]) == (4, 4)
+    assert camera.pick_piece(*pixels[0], [_king_at(0, 0)]) == (4, 4)
+
+
+@ct31
+def test_clique_ao_lado_da_cintura_da_peca_cai_na_casa_de_tras():
+    """O chão visível ao lado da cintura está dentro do cilindro envolvente, mas fora da silhueta."""
+    camera = Camera()
+    x, _, z = square_to_world(4, 2)
+    pixels, _ = camera.project([(x + 0.3, 0.0, z + 0.3)])
+    assert camera.pick_piece(*pixels[0], [_king_at(4, 1)]) == (4, 2)
+
+
+@ct31
+def test_clique_na_silhueta_acerta_em_qualquer_angulo():
+    camera = Camera()
+    x, _, z = square_to_world(4, 1)
+    for yaw in (0.0, 0.8, math.pi, -2.2):
+        camera.orbit_by(yaw - camera.yaw)
+        pixels, _ = camera.project([(x, 0.8, z)])
+        assert camera.pick_piece(*pixels[0], [_king_at(4, 1)]) == (4, 1)
 
 
 @ct31

@@ -44,6 +44,7 @@ class GameEngine:
     def _begin_game(self) -> None:
         """Monta uma partida nova com os mesmos jogadores; só o placar da série sobrevive."""
         self.board = Board.from_fen(self._start_fen)
+        self.first_turn = self.board.turn
         self.clock = ChessClock(self.time_control)
         self.state = GameState.IN_PROGRESS
         self.result: GameResult | None = None
@@ -52,7 +53,10 @@ class GameEngine:
         for player in self.players.values():
             player.captured.clear()
         self._record_position()
-        self._finish_if_over()
+        self.result = self._detect_board_result()
+        if self.result is not None:
+            # Posição montada que já nasce encerrada: ninguém jogou, então ninguém ganha ponto.
+            self.state = GameState.FINISHED
 
     @property
     def turn(self) -> Color:

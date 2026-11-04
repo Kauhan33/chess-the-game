@@ -6,7 +6,7 @@ que ele devolveu, nunca um texto decidido aqui.
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING
 
 import pygame
@@ -27,6 +27,8 @@ if TYPE_CHECKING:
 
 Cell = tuple[int, int]
 
+_DOUBLE_CLICK_SECONDS = 0.25
+_DOUBLE_CLICK_PIXELS = 6
 _MOUSE_MODE = "mouse"
 _KEYBOARD_MODE = "keyboard"
 _MATE_ENDING_SECONDS = 2.2
@@ -72,6 +74,8 @@ class GameScene(Scene):
         self._mouse_pos: tuple[int, int] | None = None
         self._hover_key: tuple | None = None
         self._is_orbiting = False
+        self._guarded_click: tuple[int, int] | None = None
+        self._click_guard_left = 0.0
         self._ending_left: float | None = None
         self._firework_left = 0.0
         self._rotation_button = Button(self._rotation_label(), self._toggle_rotation, hint="T", font_size=16)
@@ -191,6 +195,8 @@ class GameScene(Scene):
     def handle_event(self, event: pygame.event.Event) -> None:
         if event.type == pygame.MOUSEMOTION:
             self._mouse_pos = event.pos
+        if event.type == pygame.MOUSEBUTTONDOWN and self._is_double_click_echo(event.pos):
+            return
         if event.type == pygame.KEYDOWN and self._handle_panel_key(event.key):
             return
         if self.modals:
@@ -208,6 +214,17 @@ class GameScene(Scene):
             self._is_orbiting = False
         elif event.type == pygame.MOUSEWHEEL:
             self.view.zoom(event.y)
+
+    def _is_double_click_echo(self, position: tuple[int, int]) -> bool:
+        """Depois que uma sobreposição abre ou fecha, o 2º clique de um clique duplo acertaria o que apareceu ali."""
+        if self._click_guard_left <= 0.0 or self._guarded_click is None:
+            return False
+        reach = max(abs(position[0] - self._guarded_click[0]), abs(position[1] - self._guarded_click[1]))
+        return reach <= _DOUBLE_CLICK_PIXELS
+
+    def _arm_click_guard(self) -> None:
+        self._guarded_click = self._mouse_pos
+        self._click_guard_left = _DOUBLE_CLICK_SECONDS
 
     def _handle_panel_key(self, key: int) -> bool:
         if key == pygame.K_F3:
@@ -245,22 +262,9 @@ class GameScene(Scene):
         if event.button == 3:
             self._is_orbiting = self.hud.viewport.collidepoint(event.pos)
         elif event.button == 1 and self._ending_left is None:
-            cell = self.pick_at(event.pos)
+            cell = self.view.pick(event.pos)
             self._set_cursor(cell)
             self._activate_square(cell)
-
-    def pick_at(self, position: tuple[int, int]) -> Cell | None:
-        """Casa que um clique neste pixel aciona.
-
-        O volume de clique de uma peça é um cilindro, mais largo que a cintura dela. Assim, a casa
-        visível atrás de uma peça alta cairia dentro do cilindro. Se o raio pousa em um destino
-        válido da peça selecionada, é esse destino que o jogador está vendo destacado e quer.
-        """
-        cell = self.view.pick(position)
-        if self.selection is None or cell in self.targets:
-            return cell
-        floor = self.view.camera.pick_square(*position)
-        return floor if floor in self.targets else cell
 
     def _move_cursor(self, screen_step: Cell) -> None:
         """As setas seguem o que se vê: com a câmera do lado das pretas, "para cima" é fileira menor."""
@@ -440,12 +444,14 @@ class GameScene(Scene):
         key = (self._mouse_pos, self.view.camera.revision)
         if key != self._hover_key:
             self._hover_key = key
-            self._set_cursor(self.pick_at(self._mouse_pos))
+            self._set_cursor(self.view.pick(self._mouse_pos))
 
     # Sobreposições -------------------------------------------------------------------------------
 
     def _push_modal(self, overlay: Overlay) -> None:
         self._is_orbiting = False
+        self.hud.release_buttons()
+        self._arm_click_guard()
         overlay.layout(self.app.size)
         self.modals.append(overlay)
         if overlay.freezes_clock:
@@ -456,11 +462,13 @@ class GameScene(Scene):
             self.modals.pop()
         if not any(overlay.freezes_clock for overlay in self.modals):
             self.engine.resume()
+        self._arm_click_guard()
         self._hover_key = None
 
     def _close_all_modals(self) -> None:
         self.modals.clear()
         self.engine.resume()
+        self._arm_click_guard()
         self._hover_key = None
 
     def open_pause(self) -> None:
@@ -486,7 +494,7 @@ class GameScene(Scene):
             self._push_modal(HelpOverlay(self.app.theme, self._pop_modal))
 
     def confirm_restart(self) -> None:
-        if self._ending_left is not None:
+        if self._ending_left is not None or self.engine.result is not None:
             return
         lines = ["O tabuleiro volta ao início.", "O placar da série é mantido."]
         self._confirm("Reiniciar a partida?", lines, "Reiniciar", self.restart)
@@ -498,8 +506,8 @@ class GameScene(Scene):
 
     def _confirm_resign(self) -> None:
         player, opponent = self.engine.current_player, self.engine.players[self.engine.turn.opposite]
-        lines = [f"A vitória vai para {opponent.name}."]
-        self._confirm(f"{player.name} desiste?", lines, "Desistir", self._resign, STYLE_DANGER)
+        lines = [f"{player.name} entrega a partida.", f"A vitória vai para {opponent.name}."]
+        self._confirm("Desistir da partida?", lines, "Desistir", self._resign, STYLE_DANGER)
 
     def _resign(self) -> None:
         self._begin_ending(self.engine.resign())
@@ -508,8 +516,8 @@ class GameScene(Scene):
         player, opponent = self.engine.current_player, self.engine.players[self.engine.turn.opposite]
         self._push_modal(ChoiceOverlay(
             self.app.theme,
-            f"{player.name} propõe empate",
-            [f"{opponent.name}, você aceita?"],
+            "Proposta de empate",
+            [f"{player.name} propõe empate.", f"{opponent.name}, você aceita?"],
             [Button("Aceitar empate", self._accept_draw, STYLE_PRIMARY), Button("Recusar", self._refuse_draw)],
             on_cancel=self._refuse_draw,
             initial_focus=1,
@@ -544,7 +552,10 @@ class GameScene(Scene):
         return "Giro ligado" if self.auto_rotate else "Giro desligado"
 
     def _toggle_rotation(self) -> None:
+        if self._ending_left is not None:
+            return
         self.auto_rotate = not self.auto_rotate
+        self.options = replace(self.options, auto_rotate=self.auto_rotate)
         self._rotation_button.label = self._rotation_label()
         self.notices.show(f"Giro por turno {'ligado' if self.auto_rotate else 'desligado'}.", NOTICE_TURN, 1.6)
         if self.auto_rotate:
@@ -560,6 +571,7 @@ class GameScene(Scene):
         return any(overlay.freezes_clock for overlay in self.modals)
 
     def update(self, dt: float) -> None:
+        self._click_guard_left -= dt
         if not self.is_frozen:
             self._advance_world(dt)
         for overlay in self.modals:
@@ -567,7 +579,8 @@ class GameScene(Scene):
         self.hud.update(dt)
 
     def _advance_world(self, dt: float) -> None:
-        result = self.engine.tick(dt)
+        # O tabuleiro fica bloqueado no voo: quem vai jogar só começa a gastar tempo quando a peça pousa.
+        result = None if self.view.is_flying else self.engine.tick(dt)
         if result is not None:
             self._begin_ending(result)
         self.view.update(dt)

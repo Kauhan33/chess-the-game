@@ -31,6 +31,9 @@ _SHEET_HEADER_HEIGHT = 25
 _SHEET_MIN_HEIGHT = 48
 _LAMP_FADE_SECONDS = 0.28
 _LOW_TIME_SECONDS = 30.0
+_CLOCK_FONT_SIZE = 60
+_HOURS_CLOCK_FONT_SIZE = 44
+_MINUTES_CLOCK_LENGTH = len("00:00")
 _GLOW_MARGIN = 26
 _GLOW_PEAK_ALPHA = 92
 _SHEET_PLATE = PlateStyle(tokens.PAPER, (224, 210, 178), tokens.PAPER_RULE, 1)
@@ -162,7 +165,7 @@ class PlayerCard:
         theme = self._theme
         pad = theme.px(11)
         color = colors.low_clock if info.is_low_time else colors.clock
-        digits = theme.tabular(info.clock, tokens.ROLE_NUMERIC, theme.px(60), color)
+        digits = theme.tabular(info.clock, tokens.ROLE_NUMERIC, theme.px(clock_font_size(info.clock)), color)
         top = pad + theme.px(40)
         bottom = self.rect.height - pad - theme.px(28)
         center_y = (top + bottom) // 2
@@ -267,7 +270,7 @@ class ScoreSheet:
         self._draw_rules(surface, header, row_height, row_count, has_moves=bool(history))
         self._draw_header(surface, header)
         if history:
-            self._draw_moves(surface, history, header, row_height, row_count)
+            self._draw_moves(surface, history, first_color, header, row_height, row_count)
         else:
             self._draw_empty_hint(surface, header, row_height, first_color)
         return surface
@@ -301,23 +304,26 @@ class ScoreSheet:
         hint = theme.text(f"As {first_color.label} começam.", tokens.ROLE_SERIF, theme.px(17), tokens.INK_SOFT)
         surface.blit(hint, hint.get_rect(midleft=(white_x, header + row_height // 2)))
 
-    def _draw_moves(self, surface: pygame.Surface, history: Sequence[str], header: int, row_height: int,
-                    row_count: int) -> None:
-        total_rows = (len(history) + 1) // 2
+    def _draw_moves(self, surface: pygame.Surface, history: Sequence[str], first_color: Color, header: int,
+                    row_height: int, row_count: int) -> None:
+        # Se as Pretas começam (posição montada), a 1ª linha fica com a coluna das Brancas vazia.
+        skipped = 1 if first_color is Color.BLACK else 0
+        total_rows = (len(history) + skipped + 1) // 2
         first_row = max(total_rows - row_count, 0)
         for row in range(first_row, total_rows):
             y = header + (row - first_row) * row_height
-            self._draw_row(surface, history, row, y, row_height)
+            self._draw_row(surface, history, row, y, row_height, skipped)
 
-    def _draw_row(self, surface: pygame.Surface, history: Sequence[str], row: int, y: int, row_height: int) -> None:
+    def _draw_row(self, surface: pygame.Surface, history: Sequence[str], row: int, y: int, row_height: int,
+                  skipped: int) -> None:
         theme = self._theme
         margin_x, white_x, black_x = self._column_x()
         center_y = y + row_height // 2
         number = theme.text(str(row + 1), tokens.ROLE_LABEL, theme.px(14), tokens.INK_SOFT)
         surface.blit(number, number.get_rect(midright=(margin_x - theme.px(5), center_y)))
         last_index = len(history) - 1
-        for index, x in ((row * 2, white_x), (row * 2 + 1, black_x)):
-            if index > last_index:
+        for index, x in ((row * 2 - skipped, white_x), (row * 2 + 1 - skipped, black_x)):
+            if not 0 <= index <= last_index:
                 continue
             if index == last_index:
                 self._draw_current_mark(surface, x, y, row_height, history[index])
@@ -336,6 +342,11 @@ class ScoreSheet:
             margin = self._theme.px(5)
             surface.blit(self._shadow, (self.rect.x - margin + self._theme.px(1), self.rect.y - margin + self._theme.px(2)))
         surface.blit(self._surface, self.rect.topleft)
+
+
+def clock_font_size(clock: str) -> int:
+    """Com hora (1:02:05), o relógio é mais largo: encolhe para não invadir a etiqueta da vez."""
+    return _CLOCK_FONT_SIZE if len(clock) <= _MINUTES_CLOCK_LENGTH else _HOURS_CLOCK_FONT_SIZE
 
 
 def side_panel_rect(theme: Theme, size: tuple[int, int]) -> pygame.Rect:
@@ -400,6 +411,12 @@ class Hud:
             x, y = left + column * (button_width + gap), top + row * (button_height + gap)
             button.rect = pygame.Rect(x, y, button_width, button_height)
 
+    def release_buttons(self) -> None:
+        """Com uma sobreposição aberta, o botão nunca receberia o soltar do mouse e ficaria preso."""
+        for button in self.buttons:
+            button.is_pressed = False
+            button.is_hovered = False
+
     def handle_event(self, event: pygame.event.Event) -> bool:
         """Devolve se o painel consumiu o evento, para o clique não atravessar até o tabuleiro."""
         consumed = False
@@ -413,7 +430,7 @@ class Hud:
         self._advance_lamp(dt)
         for color, card in self.cards.items():
             card.refresh(self._card_info(color))
-        self.sheet.refresh(self.engine.history, self.engine.turn)
+        self.sheet.refresh(self.engine.history, self.engine.first_turn)
 
     def _advance_lamp(self, dt: float) -> None:
         step = dt / _LAMP_FADE_SECONDS

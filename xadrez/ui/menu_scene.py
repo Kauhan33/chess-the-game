@@ -43,6 +43,7 @@ _FORM_PADDING = 30
 _FIELD_HEIGHT = 44
 _FIELD_GAP = 30
 _BUTTON_HEIGHT = 54
+_QUIT_BUTTON_WIDTH = 92
 _HINT_ROW_HEIGHT = 24
 _MIN_HEIGHT_FOR_HINTS = 660
 _SPIN_SPEED = math.radians(14)
@@ -67,9 +68,11 @@ class MenuScene(Scene):
         self.camera_selector = Selector("Câmera", CAMERA_OPTIONS, _index_of(CAMERA_OPTIONS, options.auto_rotate))
         self.start_button = Button("Iniciar partida", self.start_match, STYLE_PRIMARY, font_size=22)
         self.help_button = Button("Ver todos os controles", self.open_help, hint="F1")
+        self.quit_button = Button("Sair", self.quit_game)
         self.focus = FocusGroup([self.white_input, self.black_input, self.time_selector, self.camera_selector,
-                                 self.start_button, self.help_button])
+                                 self.start_button, self.help_button, self.quit_button])
         self.modal: Overlay | None = None
+        self._help_just_closed = False
         pygame.key.start_text_input()
         self.camera = Camera((0, 0, 1, 1), yaw=math.radians(-28), pitch=math.radians(24), distance=8.4,
                              fov_y=math.radians(30), target=self._spotlight_target())
@@ -108,10 +111,17 @@ class MenuScene(Scene):
 
     def _close_help(self) -> None:
         self.modal = None
+        self._help_just_closed = True
+
+    def quit_game(self) -> None:
+        self.app.running = False
 
     def handle_event(self, event: pygame.event.Event) -> None:
         if self.modal is not None:
             self.modal.handle_event(event)
+            return
+        # H fecha a ajuda, e o SDL entrega a mesma tecla como texto logo em seguida: não é digitação.
+        if event.type == pygame.TEXTINPUT and self._help_just_closed:
             return
         if event.type == pygame.KEYDOWN and event.key == pygame.K_F1:
             self.open_help()
@@ -119,6 +129,7 @@ class MenuScene(Scene):
         self.focus.handle_event(event)
 
     def update(self, dt: float) -> None:
+        self._help_just_closed = False
         self.camera.orbit_by(_SPIN_SPEED * dt)
         for widget in (self.white_input, self.black_input):
             widget.update(dt)
@@ -194,7 +205,10 @@ class MenuScene(Scene):
         y += field_height + theme.px(18)
         self.start_button.rect = pygame.Rect(left, y, width, theme.px(_BUTTON_HEIGHT))
         y += theme.px(_BUTTON_HEIGHT) + theme.px(9)
-        self.help_button.rect = pygame.Rect(left, y, width, theme.px(36))
+        quit_width = min(theme.px(_QUIT_BUTTON_WIDTH), width // 3)
+        row_gap = theme.px(8)
+        self.help_button.rect = pygame.Rect(left, y, max(width - quit_width - row_gap, 1), theme.px(36))
+        self.quit_button.rect = pygame.Rect(left + width - quit_width, y, max(quit_width, 1), theme.px(36))
 
 
 def _index_of(options, value) -> int:

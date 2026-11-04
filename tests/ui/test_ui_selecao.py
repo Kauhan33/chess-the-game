@@ -148,31 +148,31 @@ def test_clique_na_cabeca_da_peca_escolhe_a_peca_e_nao_a_casa_de_tras(app):
     assert scene.selection == cell("e1")
 
 
-def _floor_pixel_behind_tall_piece(scene):
-    """Chão de e3 visto das Brancas: o raio passa pelo volume de clique do rei em e2."""
+def _floor_pixel_near_tall_piece(scene, x_offset):
+    """Chão de e3 visto das Brancas, passando perto do rei em e2. Com deslocamento, o raio passa ao lado da cintura."""
     x, _, z = square_to_world(*cell("e3"))
-    pixels, _ = scene.view.camera.project([(x, 0.0, z + 0.3)])
+    pixels, _ = scene.view.camera.project([(x + x_offset, 0.0, z + 0.3)])
     return round(float(pixels[0, 0])), round(float(pixels[0, 1]))
 
 
-def test_destino_visivel_atras_de_peca_alta_recebe_o_clique(app):
+def test_destino_visivel_ao_lado_de_peca_alta_recebe_o_clique(app):
     scene, player = start_game(app, QUEEN_BEHIND_KING, auto_rotate=False)
     click(player, "a3")
-    floor = _floor_pixel_behind_tall_piece(scene)
-    assert scene.view.pick(floor) == cell("e2")
-    assert scene.pick_at(floor) == cell("e3")
+    floor = _floor_pixel_near_tall_piece(scene, x_offset=0.3)
+    assert scene.view.pick(floor) == cell("e3")
     post_click(floor)
     player.frames(1)
     player.settle()
     assert scene.engine.board.piece_at(cell("e3")).kind.value == "queen"
 
 
-def test_sem_selecao_o_clique_continua_escolhendo_a_peca(app):
-    scene, _ = start_game(app, QUEEN_BEHIND_KING, auto_rotate=False)
-    assert scene.pick_at(_floor_pixel_behind_tall_piece(scene)) == cell("e2")
+def test_pixel_que_mostra_a_peca_aciona_a_peca_mesmo_com_destino_atras(app):
+    scene, player = start_game(app, QUEEN_BEHIND_KING, auto_rotate=False)
+    click(player, "a3")
+    assert scene.view.pick(_floor_pixel_near_tall_piece(scene, x_offset=0.0)) == cell("e2")
 
 
-def test_durante_o_voo_o_clique_fica_bloqueado_mas_cursor_e_relogio_continuam(app):
+def test_durante_o_voo_o_clique_fica_bloqueado_e_o_relogio_espera_o_pouso(app):
     scene, player = start_game(app)
     click(player, "e2")
     click(player, "e4")
@@ -183,6 +183,9 @@ def test_durante_o_voo_o_clique_fica_bloqueado_mas_cursor_e_relogio_continuam(ap
     assert scene.notices.kind != "warning"
     hover(player, "d5")
     assert scene.cursor == cell("d5")
+    assert scene.engine.clock.remaining(Color.BLACK) == clock_before
+    player.settle()
+    player.frames(2)
     assert scene.engine.clock.remaining(Color.BLACK) < clock_before
 
 

@@ -1,6 +1,7 @@
 """Controles de tela: botão, campo de texto e seletor, todos operáveis por mouse e por teclado."""
 from __future__ import annotations
 
+from itertools import islice
 from typing import Callable, Sequence
 
 import pygame
@@ -137,8 +138,10 @@ class TextInput:
         return True
 
     def handle_text(self, content: str) -> None:
-        accepted = "".join(char for char in content if char.isprintable() and self._accepts(char))
-        self.text = (self.text + accepted)[: self.max_length]
+        room = max(self.max_length - len(self.text), 0)
+        # `islice` para no limite: uma colagem enorme não paga o filtro de cada caractere.
+        allowed = (char for char in content if char.isprintable() and self._accepts(char))
+        self.text += "".join(islice(allowed, room))
         self._time = 0.0
 
     def update(self, dt: float) -> None:

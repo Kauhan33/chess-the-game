@@ -23,14 +23,16 @@ def test_tempo_esgotado_encerra_sem_tombar_o_rei(app):
     assert isinstance(app.scene, GameOverScene)
 
 
-def test_tempo_esgotado_com_a_peca_no_ar_nao_recomeca_o_fim(app):
-    scene, player = start_game(app, time_control=TimeControl(0.005))
+def test_voo_nao_gasta_tempo_e_o_tempo_esgotado_depois_do_pouso_encerra(app):
+    scene, player = start_game(app, time_control=TimeControl(0.005), auto_rotate=False)
     player.click_square((4, 1))
     player.click_square((4, 3))
-    player.seconds(0.32)
-    assert scene.engine.result.reason is EndReason.TIMEOUT
     assert scene.view.is_flying
-    player.seconds(0.9)
+    player.settle()
+    assert scene.engine.result is None, "o voo não pode gastar o tempo de quem vai jogar"
+    player.seconds(0.4)
+    assert scene.engine.result.reason is EndReason.TIMEOUT
+    player.seconds(1.0)
     assert isinstance(app.scene, GameOverScene)
 
 

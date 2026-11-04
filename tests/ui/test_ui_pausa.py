@@ -162,8 +162,8 @@ def test_empate_por_acordo_passa_pela_confirmacao_do_outro_jogador(app):
     _open_pause(scene, player)
     _click_entry(scene, player, DRAW)
     overlay = scene.modals[-1]
-    assert "Jogador 1" in overlay.title
-    assert any("Jogador 2" in line for line in overlay.lines)
+    assert "Jogador 1 propõe" in overlay.lines[0]
+    assert "Jogador 2" in overlay.lines[1]
     assert scene.engine.result is None
     _click_entry(scene, player, ACCEPT)
     assert scene.engine.result.reason is EndReason.AGREEMENT
@@ -197,7 +197,7 @@ def test_desistir_pede_confirmacao_e_da_a_vitoria_ao_outro(app):
     scene, player = start_game(app)
     _open_pause(scene, player)
     _click_entry(scene, player, RESIGN)
-    assert "Jogador 1 desiste" in scene.modals[-1].title
+    assert "Jogador 1" in scene.modals[-1].lines[0]
     assert scene.engine.result is None
     _click_entry(scene, player, ACCEPT)
     assert scene.engine.result.winner is Color.BLACK
