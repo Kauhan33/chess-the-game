@@ -175,7 +175,7 @@ janela e sem `display.flip`:
 Em 1920x1080, a partida com câmera parada ficou em 3,98 ms de média e 8,09 ms de p99. Com giro por
 turno, 6,77 ms de média e 13,58 ms de p99, com 32 de 3438 quadros acima de 16,67 ms.
 
-`tools/demo_automatica.py`, janela real em 1280x720, com `display.flip`: 59,1 FPS de média em 1287
+**Medição antiga, anterior ao `FramePacer`.** `tools/demo_automatica.py`, janela real em 1280x720, com `display.flip`: 59,1 FPS de média em 1287
 quadros, 16,93 ms de intervalo médio entre quadros e 4,90 ms de trabalho médio por quadro. Dois
 quadros passaram de 25 ms. A medição sem janela aponta como causa as duas trocas de tela, cerca de
 190 ms cada uma, porque o fundo de madeira é gerado de novo quando o tamanho do tabuleiro muda.

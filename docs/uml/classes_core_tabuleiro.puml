@@ -1,0 +1,89 @@
+@startuml classes_core_tabuleiro
+!pragma layout smetana
+!include _estilo.iuml
+title Camada core: Board, jogadas e regras de posição
+hide empty members
+
+class Board {
+  +grid: list[list[Piece | None]]
+  +turn: Color
+  +castling_rights: frozenset[str]
+  +en_passant_target: Square | None
+  +halfmove_clock: int
+  +fullmove_number: int
+  -_king_squares: dict[Color, Square | None]
+  -_applied: list[AppliedMove]
+  --
+  {static} +initial(): Board
+  {static} +from_fen(fen): Board
+  +to_fen(): str
+  +piece_at(square): Piece | None
+  +place(square, piece)
+  +remove(square): Piece | None
+  +pieces(color=None): Iterator
+  +king_square(color): Square | None
+  +is_attacked(square, by_color): bool
+  +attackers_of(square, by_color): list[Square]
+  +apply(move): AppliedMove
+  +undo()
+}
+
+class AppliedMove <<NamedTuple>> {
+  +move: Move
+  +piece: Piece
+  +captured: Piece | None
+  +captured_square: Square | None
+  +rook_path: tuple | None
+  +castling_rights: frozenset[str]
+  +en_passant_target: Square | None
+  +halfmove_clock: int
+  +fullmove_number: int
+}
+
+class Move <<frozen>> {
+  +origin: Square
+  +target: Square
+  +promotion: PieceType | None
+  +is_castling: bool
+  +is_en_passant: bool
+  +is_double_push: bool
+  +uci: str
+  +captured_square: Square
+}
+
+class Square <<NamedTuple>> {
+  +file: int
+  +rank: int
+  +name: str
+  +is_dark: bool
+  {static} +from_name(name): Square
+  +is_valid(): bool
+}
+
+class rules <<module>> {
+  +is_in_check(board, color=None): bool
+  +legal_moves(board, color=None): list[Move]
+  +legal_moves_from(board, square): list[Move]
+  +leaves_king_in_check(board, move): bool
+  +has_legal_moves(board): bool
+  +is_checkmate(board): bool
+  +is_stalemate(board): bool
+  +has_insufficient_material(board): bool
+  +legal_en_passant_moves(board): list[Move]
+  +position_key(board): str
+  +perft(board, depth): int
+}
+
+class notation <<module>> {
+  +move_to_san(board, move): str
+}
+
+abstract class Piece
+
+Board *-- "0..64$p" Piece : grid 8x8
+Board *-- "0..*$p" AppliedMove : pilha de desfazer
+AppliedMove -right- "1$p" Move
+Move -right- "2$p" Square
+rules .right.> Board : apply e undo
+notation .down.> rules
+@enduml

@@ -1,4 +1,4 @@
-# Xadrez The Game: design e contratos
+# Chess - The Game: design e contratos
 
 Documento-base do projeto A3 de Computação Gráfica e Realidade Virtual, Grupo 09.
 É a fonte única de arquitetura, nomes e IDs (RF, RNF, UC, CT). Se o código
@@ -233,7 +233,7 @@ class App:          # janela 1280x720 redimensionável, relógio a 60 FPS, troca
                     # run(); run_frame() em tempo real; step(dt) determinístico, para testes e ferramentas
                     # menu_scene(), game_scene(), game_over_scene(): as cenas se chamam em ciclo, então passam pelo App
 class MenuScene     # nomes dos 2 jogadores, controle de tempo, giro de câmera, ajuda de controles
-class GameScene     # tabuleiro 3D + HUD; seleção, promoção, pausa, reinício, animações; pick_at(pixel)
+class GameScene     # tabuleiro 3D + HUD; seleção, promoção, pausa, reinício, animações
 class GameOverScene # vencedor, motivo, placar da série, fogos; revanche ou menu
 class Hud; widgets: Button, TextInput, Selector, FocusGroup
 theme.py            # paleta e tipografia, com fallback de fontes do sistema
@@ -245,11 +245,10 @@ match.py            # MatchOptions e formatação de relógio e placar
 autoplay.py         # Autoplayer: joga por eventos reais; serve a testes, benchmark, captura e demonstração
 ```
 
-`GameScene.pick_at` decide a casa do clique: chama `BoardView.pick` (que usa `pick_piece`), mas, com
-uma peça selecionada, um destino válido sob o raio tem preferência sobre o cilindro de uma peça
-alta na frente dele. O cilindro é mais largo que a cintura da peça e tomaria o clique em uma casa
-que o jogador está vendo. O chão do painel usa `render_backdrop`, importado direto de
-`xadrez.graphics.backdrop`.
+`BoardView.pick` decide a casa do clique com `Camera.pick_piece`, que testa o pixel contra a silhueta
+projetada de cada malha, da peça mais próxima do olho para a mais distante. Assim, o que o jogador vê
+é o que ele aciona (achados QA-02 e QA-03, que derrubaram a primeira versão, baseada em cilindros). O
+chão do painel usa `render_backdrop`, importado direto de `xadrez.graphics.backdrop`.
 
 Controles: mouse (clique seleciona e move; botão direito arrasta e orbita; roda dá
 zoom) e teclado (setas movem o cursor, relativas à visão atual; Enter ou Espaço confirma; Esc
@@ -344,6 +343,24 @@ ataques do QA a partir de CT-50.
 | CT-47 | Revanche troca cores e mantém o placar; menu volta ao início | RF13 |
 | CT-48 | Promoção pelo diálogo | RF05 |
 | CT-49 | Redimensionar a janela mantém o clique correto | RNF07, RF16 |
+| CT-50 | Partidas aleatórias contra gerador e detector independentes | RF04, RF05, RF06 |
+| CT-51 | Bordas de promoção, en passant e roque | RF05, RF06 |
+| CT-52 | Precedência entre fins de jogo no mesmo lance | RF07 |
+| CT-53 | Tripla repetição, roque perdido e en passant | RF07 |
+| CT-54 | Material insuficiente por captura e promoção subpotente | RF07 |
+| CT-55 | Relógio, desistência, série, revanche e pretas primeiro | RF07, RF11, RF12, RF13 |
+| CT-56 | Entradas absurdas e FEN malformadas | RF04, RNF07 |
+| CT-57 | Macaco: eventos aleatórios com invariantes | RNF07 |
+| CT-58 | Corridas entre relógio, voo, pausa, promoção e fim | RF05, RF07, RF12 |
+| CT-59 | Clique: o que se vê é o que se aciona | RF08, RF16 |
+| CT-60 | Clique duplo e eventos no mesmo quadro | RF12, RNF07 |
+| CT-61 | Nomes: caracteres perigosos, largura e ajuda | RF01, RNF07 |
+| CT-62 | Janelas e números extremos | RF16, RNF07 |
+| CT-63 | Fim de jogo, revanche, menu e HUD | RF11, RF13, RF14 |
+| CT-64 | Vazamento de memória | RNF01, RNF07 |
+| CT-65 | Sem rede, sem execução dinâmica, sem escrita | RNF05, RNF07 |
+| CT-66 | PNG, autoria, e-mails e caminhos pessoais | RNF05 |
+| CT-67 | Python 3.10 e portabilidade | RNF02 |
 
 ## 8. Divisão do time
 

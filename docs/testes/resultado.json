@@ -1,0 +1,216 @@
+{
+  "generated_at": "2026-11-04T06:22:06",
+  "info": {
+    "is_quick": false,
+    "python": "3.12.10",
+    "system": "Windows 11",
+    "pytest": "9.2.0",
+    "pygame": "2.6.1",
+    "numpy": "2.5.3",
+    "commit": "c5c150b",
+    "has_local_changes": false
+  },
+  "totals": {
+    "passed": 916,
+    "failed": 0,
+    "skipped": 0
+  },
+  "coverage_percent": {
+    "core": 100.0,
+    "graphics": 99.36,
+    "ui": 98.85,
+    "total": 99.21
+  },
+  "cases": {
+    "CT-01": {
+      "status": "PASSOU",
+      "tests": 3,
+      "passed": 3
+    },
+    "CT-02": {
+      "status": "PASSOU",
+      "tests": 1,
+      "passed": 1
+    },
+    "CT-03": {
+      "status": "PASSOU",
+      "tests": 3,
+      "passed": 3
+    },
+    "CT-04": {
+      "status": "PASSOU",
+      "tests": 10,
+      "passed": 10
+    },
+    "CT-05": {
+      "status": "PASSOU",
+      "tests": 11,
+      "passed": 11
+    },
+    "CT-06": {
+      "status": "PASSOU",
+      "tests": 8,
+      "passed": 8
+    },
+    "CT-07": {
+      "status": "PASSOU",
+      "tests": 3,
+      "passed": 3
+    },
+    "CT-08": {
+      "status": "PASSOU",
+      "tests": 10,
+      "passed": 10
+    },
+    "CT-09": {
+      "status": "PASSOU",
+      "tests": 23,
+      "passed": 23
+    },
+    "CT-10": {
+      "status": "PASSOU",
+      "tests": 7,
+      "passed": 7
+    },
+    "CT-11": {
+      "status": "PASSOU",
+      "tests": 15,
+      "passed": 15
+    },
+    "CT-12": {
+      "status": "PASSOU",
+      "tests": 11,
+      "passed": 11
+    },
+    "CT-13": {
+      "status": "PASSOU",
+      "tests": 7,
+      "passed": 7
+    },
+    "CT-14": {
+      "status": "PASSOU",
+      "tests": 4,
+      "passed": 4
+    },
+    "CT-15": {
+      "status": "PASSOU",
+      "tests": 30,
+      "passed": 30
+    },
+    "CT-16": {
+      "status": "PASSOU",
+      "tests": 6,
+      "passed": 6
+    },
+    "CT-17": {
+      "status": "PASSOU",
+      "tests": 24,
+      "passed": 24
+    },
+    "CT-18": {
+      "status": "PASSOU",
+      "tests": 5,
+      "passed": 5
+    },
+    "CT-19": {
+      "status": "PASSOU",
+      "tests": 10,
+      "passed": 10
+    },
+    "CT-20": {
+      "status": "PASSOU",
+      "tests": 6,
+      "passed": 6
+    },
+    "CT-21": {
+      "status": "PASSOU",
+      "tests": 7,
+      "passed": 7
+    },
+    "CT-30": {
+      "status": "PASSOU",
+      "tests": 24,
+      "passed": 24
+    },
+    "CT-31": {
+      "status": "PASSOU",
+      "tests": 81,
+      "passed": 81
+    },
+    "CT-32": {
+      "status": "PASSOU",
+      "tests": 20,
+      "passed": 20
+    },
+    "CT-33": {
+      "status": "PASSOU",
+      "tests": 12,
+      "passed": 12
+    },
+    "CT-34": {
+      "status": "PASSOU",
+      "tests": 40,
+      "passed": 40
+    },
+    "CT-35": {
+      "status": "PASSOU",
+      "tests": 20,
+      "passed": 20
+    },
+    "CT-36": {
+      "status": "PASSOU",
+      "tests": 44,
+      "passed": 44
+    },
+    "CT-40": {
+      "status": "PASSOU",
+      "tests": 2,
+      "passed": 2
+    },
+    "CT-41": {
+      "status": "PASSOU",
+      "tests": 3,
+      "passed": 3
+    },
+    "CT-42": {
+      "status": "PASSOU",
+      "tests": 3,
+      "passed": 3
+    },
+    "CT-43": {
+      "status": "PASSOU",
+      "tests": 5,
+      "passed": 5
+    },
+    "CT-44": {
+      "status": "PASSOU",
+      "tests": 3,
+      "passed": 3
+    },
+    "CT-45": {
+      "status": "PASSOU",
+      "tests": 5,
+      "passed": 5
+    },
+    "CT-46": {
+      "status": "PASSOU",
+      "tests": 2,
+      "passed": 2
+    },
+    "CT-47": {
+      "status": "PASSOU",
+      "tests": 4,
+      "passed": 4
+    },
+    "CT-48": {
+      "status": "PASSOU",
+      "tests": 9,
+      "passed": 9
+    },
+    "CT-49": {
+      "status": "PASSOU",
+      "tests": 7,
+      "passed": 7
+    }
+  }
+}

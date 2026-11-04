@@ -1,0 +1,92 @@
+@startuml classes_core_pecas
+!pragma layout smetana
+!include _estilo.iuml
+title Camada core: hierarquia de Piece
+hide empty members
+
+abstract class Piece {
+  {static} +kind: PieceType
+  +color: Color
+  +symbol: str
+  --
+  {abstract} +attacks(board, square)
+  +pseudo_legal_moves(board, square): list[Move]
+}
+
+abstract class SlidingPiece {
+  {static} +directions: tuple
+  --
+  +attacks(board, square): list[Square]
+}
+
+class Rook {
+  {static} +kind: PieceType
+  {static} +directions: tuple
+}
+class Bishop {
+  {static} +kind: PieceType
+  {static} +directions: tuple
+}
+class Queen {
+  {static} +kind: PieceType
+  {static} +directions: tuple
+}
+class Knight {
+  {static} +kind: PieceType
+  +attacks(board, square)
+}
+class King {
+  {static} +kind: PieceType
+  +attacks(board, square)
+  +pseudo_legal_moves(board, square)
+  -_castling_moves(board, square)
+  -_can_castle_on(board, side, rank)
+}
+class Pawn {
+  {static} +kind: PieceType
+  +attacks(board, square)
+  +pseudo_legal_moves(board, square)
+  -_advances(board, square)
+  -_captures(board, square)
+  -_can_capture_en_passant(board, target)
+  -_moves_to(origin, target, is_double_push)
+}
+
+enum Color {
+  WHITE
+  BLACK
+  +opposite: Color
+  +label: str
+}
+
+enum PieceType {
+  PAWN
+  KNIGHT
+  BISHOP
+  ROOK
+  QUEEN
+  KING
+  +points: int
+  +symbol: str
+}
+
+Piece <|-- SlidingPiece
+Piece <|-- Knight
+Piece <|-- King
+Piece <|-- Pawn
+SlidingPiece <|-- Rook
+SlidingPiece <|-- Bishop
+SlidingPiece <|-- Queen
+Piece -- "1$p" Color
+Piece -- "1$p" PieceType
+
+note bottom of SlidingPiece
+  attacks() percorre cada direção até a
+  primeira peça: é a colisão de caminho.
+end note
+
+note bottom of Knight
+  O cavalo salta: nenhuma
+  peça bloqueia o caminho.
+end note
+@enduml

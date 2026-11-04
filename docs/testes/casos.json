@@ -1,0 +1,464 @@
+{
+  "ucs": {
+    "UC01": "Iniciar Partida",
+    "UC02": "Executar Jogada",
+    "UC03": "Pausar Jogo",
+    "UC04": "Reiniciar Partida",
+    "UC05": "Promover Peão",
+    "UC06": "Consultar Caminhos e Ameaças",
+    "UC07": "Verificar Xeque e Fim de Jogo",
+    "UC08": "Encerrar Partida",
+    "UC09": "Pedir Revanche ou Voltar ao Menu"
+  },
+  "rf_para_uc": {
+    "RF01": ["UC01"],
+    "RF02": ["UC01"],
+    "RF03": ["UC02"],
+    "RF04": ["UC02"],
+    "RF05": ["UC02", "UC05"],
+    "RF06": ["UC02", "UC07"],
+    "RF07": ["UC07", "UC08"],
+    "RF08": ["UC02", "UC06"],
+    "RF09": ["UC06"],
+    "RF10": ["UC06", "UC07"],
+    "RF11": ["UC02"],
+    "RF12": ["UC03"],
+    "RF13": ["UC04", "UC09"],
+    "RF14": ["UC07", "UC09"],
+    "RF15": ["UC02"],
+    "RF16": ["UC02", "UC06"]
+  },
+  "rnf": {
+    "RNF01": {
+      "criterio": "Média de 60 FPS em 1280x720, em janela real, com intervalo entre quadros perto de 16,67 ms.",
+      "testes": ["test_media_fica_em_60_fps_mesmo_com_sono_atrasado"],
+      "medicao": "fps"
+    },
+    "RNF02": {
+      "criterio": "Suíte passa em Python 3.10+ no Windows, no Linux e no macOS.",
+      "testes": ["test_source_parses_as_python_310"],
+      "medicao": "portabilidade"
+    },
+    "RNF03": {
+      "criterio": "A casa sob o mouse e a seleção mudam no mesmo quadro do evento.",
+      "testes": ["test_hover_marca_o_cursor_no_mesmo_quadro", "test_clique_seleciona_e_preenche_a_matriz_de_cores"]
+    },
+    "RNF04": {
+      "criterio": "Textos com contraste de pelo menos 4,5:1. Caminho, captura e ameaça têm forma além de cor.",
+      "testes": ["test_contraste_dos_textos_passa_de_4_5_para_1", "test_caminho_e_captura_tem_forma_alem_de_cor", "test_pecas_ameacadas_aparecem_na_matriz_com_forma_e_tint"]
+    },
+    "RNF05": {
+      "criterio": "`core` não importa pygame, numpy nem `graphics`; `graphics` não importa `core`.",
+      "testes": ["test_camada_nao_importa_o_que_nao_deve"]
+    },
+    "RNF06": {
+      "criterio": "Cobertura de pelo menos 90% em `xadrez/core`, com ramos.",
+      "testes": [],
+      "medicao": "cobertura_core"
+    },
+    "RNF07": {
+      "criterio": "Entrada inválida vira erro tratado. Nenhum tamanho de janela derruba o jogo.",
+      "testes": ["test_invalid_origin_never_raises_and_changes_nothing", "test_invalid_target_never_raises_and_changes_nothing", "test_tamanho_extremo_na_partida_nao_derruba", "test_redimensionar_mantem_o_clique_correto"]
+    }
+  },
+  "focos_do_enunciado": {
+    "Colisão": ["CT-06", "CT-07", "CT-33"],
+    "Alternância de turnos": ["CT-02", "CT-03", "CT-43"],
+    "Movimentos proibidos": ["CT-05", "CT-12", "CT-43"],
+    "Pontuação": ["CT-08", "CT-18"]
+  },
+  "casos": {
+    "CT-01": {
+      "titulo": "Posição inicial oficial",
+      "rf": ["RF02"], "uc": ["UC01"],
+      "entrada": "Nenhuma: `GameEngine()` e `Board.initial()`.",
+      "procedimento": "Criar o motor e o tabuleiro. Ler o FEN, as peças de cada casa e o estado.",
+      "esperado": "FEN `rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1`, partida em andamento, sem resultado e sem lances."
+    },
+    "CT-02": {
+      "titulo": "Alternância de turnos, brancas começam",
+      "rf": ["RF03"], "uc": ["UC02"],
+      "entrada": "Lances `e2e4` e `e7e5`.",
+      "procedimento": "Conferir a vez antes do primeiro lance e depois de cada um.",
+      "esperado": "Brancas começam. Depois de e4, joga o lado preto. Depois de e5, voltam as brancas, o número do lance passa a 2 e o histórico fica `e4`, `e5`."
+    },
+    "CT-03": {
+      "titulo": "Jogada fora do turno é recusada",
+      "rf": ["RF03"], "uc": ["UC02"],
+      "entrada": "Posição inicial com `e7e5` na vez das brancas. Depois de `e2e4`, `d2d4` na vez das pretas.",
+      "procedimento": "Chamar `play` com a peça de quem não joga e consultar `legal_moves_from` da peça adversária.",
+      "esperado": "Erro `NOT_YOUR_TURN`, posição, vez e histórico inalterados. `legal_moves_from(e7)` vazio na vez das brancas."
+    },
+    "CT-04": {
+      "titulo": "Movimentos válidos de cada peça",
+      "rf": ["RF04"], "uc": ["UC02"],
+      "entrada": "FENs com cada peça sozinha em d4, peões em posições variadas e a sequência `e4 d5 exd5 Qxd5 Nc3 Qa5 Bc4 Bg4 Nf3 Nc6 Rb1`.",
+      "procedimento": "Comparar as casas de `legal_moves_from` com o padrão de cada peça. Jogar a sequência pelo motor.",
+      "esperado": "Cada peça alcança todas as casas do padrão. O peão anda 1 ou 2 casas saindo da fileira inicial, 1 fora dela, e só captura na diagonal. O histórico fica igual à sequência."
+    },
+    "CT-05": {
+      "titulo": "Movimento proibido é recusado",
+      "rf": ["RF04"], "uc": ["UC02"],
+      "entrada": "11 posições: torre em diagonal, bispo em linha reta, dama em L, cavalo em linha reta, rei andando 2 casas, peão para trás, avanço duplo fora da fileira inicial, diagonal sem captura, captura em frente, rei e torre sobre peça própria.",
+      "procedimento": "Chamar `play` e comparar FEN e histórico antes e depois.",
+      "esperado": "Erro `ILLEGAL_MOVE` e estado inalterado nas 11 posições."
+    },
+    "CT-06": {
+      "titulo": "Colisão: peça deslizante é bloqueada por peça no caminho",
+      "rf": ["RF04"], "uc": ["UC02"],
+      "entrada": "FENs com torre, bispo e dama e peças no caminho, a dama cercada da posição inicial e peão com peça à frente.",
+      "procedimento": "Ler `legal_moves_from` e tentar atravessar a peça com `play`.",
+      "esperado": "A peça para antes da própria e na primeira inimiga, nunca além. A dama inicial não tem jogada. Atravessar dá `ILLEGAL_MOVE`. O avanço duplo do peão é bloqueado por peça em qualquer das duas casas."
+    },
+    "CT-07": {
+      "titulo": "Cavalo salta sem colisão",
+      "rf": ["RF04"], "uc": ["UC02"],
+      "entrada": "Posição inicial, cavalo em d4 cercado por peões e cavalo no canto a1.",
+      "procedimento": "Ler `legal_moves_from` e jogar `b1c3`.",
+      "esperado": "b1 alcança a3 e c3 por cima dos peões, e o lance é aceito. O cavalo cercado mantém as 8 casas. No canto, restam b3 e c2."
+    },
+    "CT-08": {
+      "titulo": "Captura atualiza a pontuação de material",
+      "rf": ["RF04", "RF11"], "uc": ["UC02"],
+      "entrada": "Sequência `e2e4 d7d5 e4d5 d8d5 b1c3 d5d2 c1d2`. FENs com torre capturando peão, cavalo, bispo, torre e dama. Captura en passant.",
+      "procedimento": "Conferir `captured`, `material_score` e `material_balance` depois de cada captura.",
+      "esperado": "Peão vale 1, cavalo e bispo 3, torre 5, dama 9. Na sequência, brancas 10, pretas 2 e saldo +8. Lance sem captura não muda nada. En passant vale 1."
+    },
+    "CT-09": {
+      "titulo": "Roque válido e roques proibidos",
+      "rf": ["RF05"], "uc": ["UC02"],
+      "entrada": "FENs de roque pequeno e grande dos dois lados. Rei ou torre que já moveu, peça no caminho, rei em xeque, casa atacada no trajeto ou na chegada, torre capturada.",
+      "procedimento": "Tentar o roque com `play` e, nos válidos, conferir rei, torre, direitos e `undo`.",
+      "esperado": "Roque válido move rei e torre, com SAN `O-O` ou `O-O-O`, e o `undo` restaura tudo. Os proibidos são recusados. Ataque a b1 no roque grande ou à própria torre não impede."
+    },
+    "CT-10": {
+      "titulo": "En passant válido e fora da janela",
+      "rf": ["RF05"], "uc": ["UC02"],
+      "entrada": "Peões lado a lado depois de avanço duplo, janela vencida, avanço simples e en passant que expõe o rei na fileira.",
+      "procedimento": "Tentar a captura logo depois do avanço duplo e um lance depois.",
+      "esperado": "O peão capturado sai da casa ao lado da origem. A captura só vale no lance imediato e só depois de avanço duplo. A que expõe o rei é recusada, e a que elimina o peão que dá xeque é aceita."
+    },
+    "CT-11": {
+      "titulo": "Promoção exige escolha e troca a peça",
+      "rf": ["RF05"], "uc": ["UC02", "UC05"],
+      "entrada": "Peão na 7ª fileira (brancas) ou na 2ª (pretas). Escolhas: nenhuma, dama, torre, bispo, cavalo, rei e peão.",
+      "procedimento": "Chamar `play` com e sem a peça escolhida. Testar também um peão cravado.",
+      "esperado": "Sem escolha, `PROMOTION_REQUIRED` e nada muda. Com escolha válida, a peça é trocada. Rei ou peão como escolha são recusados. Peão cravado recebe `LEAVES_KING_IN_CHECK` antes de qualquer escolha."
+    },
+    "CT-12": {
+      "titulo": "Peça cravada: jogada que expõe o rei é recusada",
+      "rf": ["RF06"], "uc": ["UC02", "UC07"],
+      "entrada": "FENs com cavalo, torre, bispo e peão cravados, rei perto de casa atacada, xeque simples e xeque duplo.",
+      "procedimento": "Ler as jogadas legais e tentar as ilegais com `play`.",
+      "esperado": "Erro `LEAVES_KING_IN_CHECK`, diferente de `ILLEGAL_MOVE`. A peça cravada só anda na linha da cravada. Em xeque, só valem jogadas que o resolvem. No xeque duplo, só o rei move."
+    },
+    "CT-13": {
+      "titulo": "Xeque-mate encerra a partida",
+      "rf": ["RF07"], "uc": ["UC07"],
+      "entrada": "Mate do louco, mate do pastor, mate de corredor, mate sufocado e FEN já em mate. Contraprova: xeque com fuga.",
+      "procedimento": "Jogar até o mate e tentar outro lance depois.",
+      "esperado": "Resultado `CHECKMATE` com o vencedor certo e estado `FINISHED`. Depois do mate, nenhum lance é aceito. Xeque com fuga não encerra."
+    },
+    "CT-14": {
+      "titulo": "Afogamento é empate",
+      "rf": ["RF07"], "uc": ["UC07"],
+      "entrada": "FENs de afogamento, a partida conhecida mais curta que termina assim e uma posição com xeque.",
+      "procedimento": "Jogar o último lance ou carregar o FEN e ler o resultado.",
+      "esperado": "Resultado `STALEMATE` sem vencedor. Sem jogadas, mas em xeque, não é afogamento."
+    },
+    "CT-15": {
+      "titulo": "Empates: material insuficiente, 50 lances, tripla repetição",
+      "rf": ["RF07"], "uc": ["UC07", "UC08"],
+      "entrada": "FENs de material insuficiente, relógio de meio-lance em 99, sequências de repetição e proposta de empate.",
+      "procedimento": "Jogar até a condição e também um lance antes dela. Comparar as chaves de posição.",
+      "esperado": "Empate automático com material insuficiente, nos 100 meios-lances e na 3ª repetição. Mate vence os 50 lances. A repetição distingue vez, roque e en passant legal. `agree_draw` empata por acordo."
+    },
+    "CT-16": {
+      "titulo": "Tempo esgotado encerra a partida",
+      "rf": ["RF07", "RF11"], "uc": ["UC07"],
+      "entrada": "`TimeControl.BLITZ_5` e `tick` de 300 s. FEN `4k3/8/8/8/8/8/4P3/4K3` nos dois lados.",
+      "procedimento": "Avançar o relógio de quem joga e ler o resultado e os pontos.",
+      "esperado": "Quem fica sem tempo perde por `TIMEOUT`. Contra rei sozinho é empate, com 0,5 para cada. Depois do fim, `tick` não faz nada e nenhum lance é aceito."
+    },
+    "CT-17": {
+      "titulo": "Perft: contagem de posições confere com valores de referência",
+      "rf": ["RF04", "RF05", "RF06"], "uc": ["UC02"],
+      "entrada": "6 posições de referência, entre elas a inicial (20, 400, 8902 e 197281 posições) e Kiwipete (até 4085603 na profundidade 4, teste lento).",
+      "procedimento": "Rodar `perft(board, profundidade)` e comparar o total. Conferir o FEN ao final.",
+      "esperado": "Todos os totais iguais aos publicados e tabuleiro restaurado. Um erro em roque, en passant, promoção ou cravada mudaria a contagem."
+    },
+    "CT-18": {
+      "titulo": "Placar da série: vitória vale 1, empate vale 0,5",
+      "rf": ["RF11", "RF13"], "uc": ["UC07", "UC09"],
+      "entrada": "Partidas terminadas em mate, empate e desistência, e revanche com troca de cores.",
+      "procedimento": "Ler `match_points` depois de cada fim e tentar encerrar de novo a mesma partida.",
+      "esperado": "Vitória soma 1, empate soma 0,5 para cada e desistência dá o ponto ao adversário. Os pontos entram uma só vez por partida e acompanham o jogador na troca de cores."
+    },
+    "CT-19": {
+      "titulo": "Cálculo de peças sob ameaça",
+      "rf": ["RF10"], "uc": ["UC06"],
+      "entrada": "FENs com peças atacadas, defendidas, ataque bloqueado, rei em xeque e en passant legal e ilegal.",
+      "procedimento": "Chamar `threatened_pieces(color)` para as duas cores.",
+      "esperado": "Lista as peças atacadas, mesmo defendidas. O rei não entra. Ataque bloqueado não conta. O peão capturável en passant entra enquanto a janela durar, sem repetir. A consulta não altera o jogo."
+    },
+    "CT-20": {
+      "titulo": "Pausa congela o relógio e recusa jogada",
+      "rf": ["RF12"], "uc": ["UC03"],
+      "entrada": "`TimeControl.BLITZ_5`, `tick(10)`, `pause()`, `tick(100)` e uma tentativa de lance.",
+      "procedimento": "Conferir estado e relógio durante a pausa e depois de `resume()`.",
+      "esperado": "Estado `PAUSED`, relógio em 290 s, lance recusado com `GAME_NOT_ACTIVE` e jogadas legais vazias. Pausa e retomada não reabrem partida encerrada."
+    },
+    "CT-21": {
+      "titulo": "Reiniciar e revanche",
+      "rf": ["RF13"], "uc": ["UC04", "UC09"],
+      "entrada": "Partida em andamento e partida terminada. Motor criado com FEN próprio.",
+      "procedimento": "Chamar `restart()` e `rematch()` e ler posição, cores, pontos e contagem de repetição.",
+      "esperado": "`restart` volta à posição de partida com as mesmas cores e o mesmo placar. `rematch` inverte as cores e mantém o placar. Partida abandonada não dá pontos."
+    },
+    "CT-30": {
+      "titulo": "Matrizes: translação, rotação, escala e composição",
+      "rf": ["RF15", "RF16"], "uc": ["UC02"],
+      "entrada": "Pontos e vetores conhecidos, ângulos de 90 graus, câmeras, luz e sombra planar.",
+      "procedimento": "Aplicar `translation`, `scaling`, `rotation_*`, `compose`, `look_at`, `perspective`, `viewport` e `planar_shadow`. Comparar com o resultado calculado à mão.",
+      "esperado": "Translação não afeta direção (w = 0), rotação preserva distâncias, `compose` aplica o último argumento primeiro, near e far vão às faces do cubo NDC e o y da tela inverte."
+    },
+    "CT-31": {
+      "titulo": "Câmera: ida e volta mundo, tela e casa em vários ângulos",
+      "rf": ["RF16"], "uc": ["UC02", "UC06"],
+      "entrada": "As 64 casas, 6 valores de yaw, 3 de pitch e vários viewports.",
+      "procedimento": "Projetar o centro da casa para pixel e voltar com `pick_square`. Testar também cliques fora do tabuleiro e na cabeça de uma peça.",
+      "esperado": "A volta dá a mesma casa em toda combinação. Clique fora devolve `None`. Clique na cabeça escolhe a peça. Com duas peças sob o raio, vence a da frente."
+    },
+    "CT-32": {
+      "titulo": "Matriz de cores: estado vira cor, com prioridade",
+      "rf": ["RF09"], "uc": ["UC06"],
+      "entrada": "Matriz 8x8 vazia e cada `CellState` em uma casa, em instantes diferentes.",
+      "procedimento": "Chamar `set` e `rgb(time)` e comparar as cores.",
+      "esperado": "a1 é escura. Cada estado muda só a sua casa. Prioridade menor não sobrescreve e `NONE` limpa. Casa inválida é ignorada. Só ameaça e xeque pulsam, como função pura do tempo."
+    },
+    "CT-33": {
+      "titulo": "Partículas: gravidade, reflexão no piso e tempo de vida",
+      "rf": ["RF15"], "uc": ["UC02"],
+      "entrada": "Partícula única com posição, velocidade e restituição conhecidas, e emissão acima da capacidade.",
+      "procedimento": "Chamar `update(dt)` e comparar velocidade, posição, cor e contagem de vivas.",
+      "esperado": "A gravidade acelera para baixo e o arrasto reduz a velocidade. No piso, v' = v - (1 + e)(v.n)n, e nada atravessa. A partícula morre ao fim da vida. A capacidade nunca é ultrapassada. Mesma semente, mesma simulação."
+    },
+    "CT-34": {
+      "titulo": "Malhas: normais para fora e faces válidas",
+      "rf": ["RF15"], "uc": ["UC02"],
+      "entrada": "As 6 peças de `build_piece_meshes` e os construtores `lathe`, `box`, `extrude` e `merge`.",
+      "procedimento": "Verificar índices, volume, normais, arestas e altura.",
+      "esperado": "Faces válidas e volume positivo. Malhas fechadas, sem aresta solta. Normais para fora. No máximo 160 faces por peça. Peças apoiadas na mesa e dentro da casa."
+    },
+    "CT-35": {
+      "titulo": "Animação: interpolação e easing",
+      "rf": ["RF15"], "uc": ["UC02"],
+      "entrada": "As 4 curvas de easing, `Tween` e as animações de voo, captura, promoção e queda do rei.",
+      "procedimento": "Avançar com `update(dt)` e ler `value` e `model_matrix`.",
+      "esperado": "Toda curva vai de 0 a 1. A peça viaja em arco e pousa exatamente no alvo. A capturada encolhe girando. A promovida passa um pouco do tamanho. O rei tomba sem tirar a borda da base do lugar."
+    },
+    "CT-36": {
+      "titulo": "Render: corte de faces traseiras e ordem de pintura",
+      "rf": ["RF15"], "uc": ["UC02"],
+      "entrada": "Cenas de teste em superfície sem janela, com a câmera parada e em movimento.",
+      "procedimento": "Desenhar com `Renderer3D` e ler os pixels da superfície.",
+      "esperado": "Faces de costas e atrás do plano near saem. O objeto da frente cobre o de trás em qualquer ordem de envio. Sombras sobrepostas não escurecem em dobro. Partícula só soma luz. Peça em escala zero não quebra."
+    },
+    "CT-40": {
+      "titulo": "Menu inicia partida com nomes e tempo escolhidos",
+      "rf": ["RF01"], "uc": ["UC01"],
+      "entrada": "Eventos reais: nomes `Alfa` e `Bravo` e Blitz pelo mouse. Nomes `Lado Claro` e `Lado Escuro`, Clássica e câmera fixa só pelo teclado.",
+      "procedimento": "Preencher o menu por eventos e acionar \"Iniciar partida\".",
+      "esperado": "Abre `GameScene` com os nomes, o tempo e o modo de câmera escolhidos, nos dois caminhos."
+    },
+    "CT-41": {
+      "titulo": "Clique seleciona e preenche a matriz de cores",
+      "rf": ["RF08", "RF09"], "uc": ["UC02", "UC06"],
+      "entrada": "Posição inicial com clique em e2. Depois de `e2e4 d7d5`, clique em e4.",
+      "procedimento": "Clicar por evento de mouse e ler a matriz e os marcadores.",
+      "esperado": "e2 fica `SELECTED`, e3 e e4 ficam `PATH`, e5 fica `NONE`. Caminho tem ponto e captura tem anel. Clicar no alvo joga e marca `LAST_MOVE` nas duas casas."
+    },
+    "CT-42": {
+      "titulo": "Teclado seleciona e executa jogada",
+      "rf": ["RF08"], "uc": ["UC02"],
+      "entrada": "Teclas: seta para cima, Enter, duas setas para cima e Espaço. Depois, setas com a câmera do lado das pretas e de lado.",
+      "procedimento": "Enviar eventos de teclado e ler o cursor e o histórico.",
+      "esperado": "O cursor nasce em e2, a seleção abre, o cursor chega a e4 e a jogada entra no histórico. As setas seguem o que se vê: do lado das pretas, para cima é fileira menor."
+    },
+    "CT-43": {
+      "titulo": "Clique fora do turno dá aviso e não altera o jogo",
+      "rf": ["RF03"], "uc": ["UC02"],
+      "entrada": "Cliques em e7 na vez das brancas, em e5 e e7 com e2 selecionada, em casa vazia e em lance que expõe o rei.",
+      "procedimento": "Clicar por evento e ler a faixa de avisos, a seleção, o tremor e o FEN.",
+      "esperado": "A faixa mostra a mensagem do motor (por exemplo, \"Essa peça é do adversário.\"), a casa treme, a seleção limpa e o FEN não muda."
+    },
+    "CT-44": {
+      "titulo": "Ameaça e xeque aparecem na matriz de cores",
+      "rf": ["RF10"], "uc": ["UC06", "UC07"],
+      "entrada": "Lances `e2e4 e7e5 g1f3 b8c6 f1c4`, com ameaça a e5 e f7. Lances `e2e4 d7d5 f1b5`, com xeque, seguidos de `c7c6`.",
+      "procedimento": "Jogar por eventos e ler a matriz, os marcadores, os tints e a faixa.",
+      "esperado": "e5 e f7 ficam `THREAT` com triângulo e tint. O rei em e8 e a peça em b5 ficam `CHECK`, e a faixa começa com \"Xeque!\". Depois de `c7c6`, os alertas somem."
+    },
+    "CT-45": {
+      "titulo": "Pausa bloqueia a entrada",
+      "rf": ["RF12"], "uc": ["UC03"],
+      "entrada": "Tecla P, 90 quadros, clique em e2, setas, T, V e R, clique no botão de giro e Retomar, P ou Esc.",
+      "procedimento": "Enviar os eventos com a pausa aberta e depois retomar.",
+      "esperado": "O relógio não anda, nada seleciona, nenhum atalho age e o painel não recebe clique. Ao retomar, relógio e tabuleiro voltam a responder."
+    },
+    "CT-46": {
+      "titulo": "Partida completa por eventos até a tela de vitória",
+      "rf": ["RF07", "RF14"], "uc": ["UC01", "UC02", "UC07"],
+      "entrada": "Partida de 33 meios-lances (termina em `Rd8#`, com `O-O-O` no meio) e mate do pastor com câmera fixa.",
+      "procedimento": "Do menu à vitória, só por eventos de mouse e teclado.",
+      "esperado": "Abre `GameOverScene` com vitória das brancas por `CHECKMATE`, 33 meios-lances no histórico e 1 ponto na série. Com a câmera fixa, o yaw continua 0."
+    },
+    "CT-47": {
+      "titulo": "Revanche troca cores e mantém o placar; menu volta ao início",
+      "rf": ["RF13"], "uc": ["UC09"],
+      "entrada": "Tela de vitória, botões \"Revanche com cores trocadas\" e \"Voltar ao menu\".",
+      "procedimento": "Clicar, jogar nova partida e ler cores, pontos e motor.",
+      "esperado": "Na revanche, as cores trocam, o placar fica e o histórico zera, com câmera padrão e sem partículas. Pelo menu, começa um motor novo com placar zerado."
+    },
+    "CT-48": {
+      "titulo": "Promoção pelo diálogo",
+      "rf": ["RF05"], "uc": ["UC05"],
+      "entrada": "`4k3/1P6/8/8/8/8/8/4K3 w - - 0 1` e a posição equivalente das pretas. Clique, setas com Enter, teclas 1 a 4 e Esc.",
+      "procedimento": "Clicar em b7 e b8 e escolher a peça.",
+      "esperado": "O diálogo abre antes de jogar. A peça escolhida entra em b8, nas 4 opções e nos 3 meios de entrada. Esc cancela sem jogar e limpa a seleção."
+    },
+    "CT-49": {
+      "titulo": "Redimensionar a janela mantém o clique correto",
+      "rf": ["RNF07", "RF16"], "uc": ["UC02"],
+      "entrada": "Janelas de 1024x640, 1920x1080, 800x600 e 1600x700, em sequência e com a pausa aberta.",
+      "procedimento": "Redimensionar por evento, clicar em e2 e e4 e nos botões.",
+      "esperado": "O viewport acompanha a janela, os cliques caem nas casas certas e a jogada acontece. Botões e sobreposição seguem no lugar certo."
+    },
+    "CT-50": {
+      "titulo": "Partidas aleatórias contra gerador e detector independentes",
+      "rf": ["RF04", "RF05", "RF06"], "uc": ["UC02", "UC07"],
+      "entrada": "Partidas aleatórias com semente fixa, com milhares de lances.",
+      "procedimento": "Jogar lances sorteados pelo motor e conferir cada posição com um gerador de lances e um detector de ataque escritos à parte, sem usar o motor.",
+      "esperado": "O conjunto de lances legais é igual ao do modelo independente. Um rei por cor, nenhum peão na 1ª ou 8ª, FEN de ida e volta, undo restaura tudo, roque nunca volta e SAN aponta uma única jogada."
+    },
+    "CT-51": {
+      "titulo": "Bordas de promoção, en passant e roque",
+      "rf": ["RF05", "RF06"], "uc": ["UC02", "UC05"],
+      "entrada": "Promoção com captura, xeque e mate; en passant que expõe o rei; roque com torre capturada e outra na casa original.",
+      "procedimento": "Montar cada posição por FEN e tentar a jogada pelo motor.",
+      "esperado": "Cada jogada é aceita ou recusada conforme a regra oficial, com o erro certo."
+    },
+    "CT-52": {
+      "titulo": "Precedência entre fins de jogo no mesmo lance",
+      "rf": ["RF07"], "uc": ["UC07"],
+      "entrada": "Mate, afogamento e tripla repetição no lance que completaria os 50 lances.",
+      "procedimento": "Jogar o lance decisivo pelo motor.",
+      "esperado": "Vale a regra que encerra primeiro: o mate vence os 50 lances."
+    },
+    "CT-53": {
+      "titulo": "Tripla repetição, roque perdido e en passant",
+      "rf": ["RF07"], "uc": ["UC07"],
+      "entrada": "Sequências que repetem a posição com e sem direito de roque, e com en passant legal e ilegal.",
+      "procedimento": "Repetir lances e conferir quando o empate é declarado.",
+      "esperado": "Só contam como iguais as posições com a mesma vez, os mesmos direitos de roque e o mesmo en passant legal."
+    },
+    "CT-54": {
+      "titulo": "Material insuficiente por captura e promoção subpotente",
+      "rf": ["RF07"], "uc": ["UC07"],
+      "entrada": "Finais com R x R, R+B x R, R+C x R e bispos de mesma cor ou de cores diferentes.",
+      "procedimento": "Chegar à posição por captura, en passant ou promoção subpotente.",
+      "esperado": "Empate imediato só quando nenhum dos lados consegue dar mate."
+    },
+    "CT-55": {
+      "titulo": "Relógio, desistência, série, revanche e pretas primeiro",
+      "rf": ["RF07", "RF11", "RF12", "RF13"], "uc": ["UC03", "UC08", "UC09"],
+      "entrada": "Tempo contra rei só, tempo exato, dt zero, negativo, NaN e infinito, desistência na pausa, sete revanches, FEN com as Pretas primeiro.",
+      "procedimento": "Chamar o motor em cada situação e conferir resultado e placar.",
+      "esperado": "Tempo esgotado contra rei só é empate. Pontos da série nunca contam duas vezes. dt inválido não altera o relógio."
+    },
+    "CT-56": {
+      "titulo": "Entradas absurdas e FEN malformadas",
+      "rf": ["RF04", "RNF07"], "uc": ["UC02"],
+      "entrada": "13 formatos de casa absurdos em play e 29 FEN malformadas.",
+      "procedimento": "Chamar play com cada entrada e from_fen com cada FEN.",
+      "esperado": "play devolve erro, sem exceção e sem alterar o estado. FEN inválida levanta ValueError claro."
+    },
+    "CT-57": {
+      "titulo": "Macaco: eventos aleatórios com invariantes",
+      "rf": ["RNF07"], "uc": ["UC02", "UC03"],
+      "entrada": "Cliques, teclas, roda, texto com emoji e caracteres de controle, janelas de 1x1 a 3000x200, dt inválidos, com semente fixa.",
+      "procedimento": "Enviar eventos aleatórios ao App.step, em todas as cenas, e conferir as invariantes a cada quadro.",
+      "esperado": "Nenhuma exceção. Histórico sempre legal, tabuleiro e relógio parados com sobreposição que congela, uma cena ativa."
+    },
+    "CT-58": {
+      "titulo": "Corridas entre relógio, voo, pausa, promoção e fim",
+      "rf": ["RF05", "RF07", "RF12"], "uc": ["UC02", "UC03", "UC05"],
+      "entrada": "Tempo acabando com a promoção aberta, lance e tempo no mesmo quadro, pausa durante o voo, Esc em cada estado.",
+      "procedimento": "Dirigir cada roteiro por eventos reais.",
+      "esperado": "O estado final é coerente, sem peça fantasma, sem lance depois do fim e sem cena presa."
+    },
+    "CT-59": {
+      "titulo": "Clique: o que se vê é o que se aciona",
+      "rf": ["RF08", "RF16"], "uc": ["UC02", "UC06"],
+      "entrada": "Posição inicial, cada pixel do tabuleiro, peão e2 atrás do rei, clique na cabeça de peça alta selecionada.",
+      "procedimento": "Comparar, pixel a pixel, a peça pintada com a casa que o clique aciona, e clicar nos casos do relatório de QA.",
+      "esperado": "Menos de 2% de divergência, tanto em pixels de peça quanto em pixels de chão. O 1º lance e2 é clicável, e clicar de novo na peça selecionada desmarca."
+    },
+    "CT-60": {
+      "titulo": "Clique duplo e eventos no mesmo quadro",
+      "rf": ["RF12", "RNF07"], "uc": ["UC03", "UC08", "UC09"],
+      "entrada": "Clique duplo em Propor empate, Reiniciar e Retomar. Dois Enter em Revanche no mesmo quadro. Redimensionar ao trocar de cena.",
+      "procedimento": "Enviar os dois eventos sem intervalo de tempo real.",
+      "esperado": "O 2º clique não aciona o que apareceu embaixo do mouse. As cores trocam uma vez só. A cena nova já nasce no tamanho certo."
+    },
+    "CT-61": {
+      "titulo": "Nomes: caracteres perigosos, largura e ajuda",
+      "rf": ["RF01", "RNF07"], "uc": ["UC01"],
+      "entrada": "Seletores de variação (largura zero), emoji, coreano, 16 W, 16 Ç, nome só de espaços, H fechando a ajuda.",
+      "procedimento": "Digitar no campo por TEXTINPUT e iniciar a partida.",
+      "esperado": "O jogo não cai. Caractere que a fonte não desenha é recusado. O nome cabe nas placas. A tecla que fecha a ajuda não vira texto."
+    },
+    "CT-62": {
+      "titulo": "Janelas e números extremos",
+      "rf": ["RF16", "RNF07"], "uc": ["UC02"],
+      "entrada": "F3 e F4 em oito tamanhos até 1x1, dt NaN e infinito, roda de um milhão de passos, jogada no meio da volta à vista padrão.",
+      "procedimento": "Aplicar cada entrada no App.step.",
+      "esperado": "Nenhuma exceção, zoom no limite, e a vista padrão termina mesmo com jogada no meio."
+    },
+    "CT-63": {
+      "titulo": "Fim de jogo, revanche, menu e HUD",
+      "rf": ["RF11", "RF13", "RF14"], "uc": ["UC04", "UC09"],
+      "entrada": "R no voo do mate, T na queda do rei, relógio com mais de 1 hora, nomes longos nas confirmações, ciclo menu, partida, fim, menu.",
+      "procedimento": "Dirigir cada roteiro por eventos e olhar o estado da cena.",
+      "esperado": "A tela de vitória não é pulada, o aviso não é trocado, o relógio não invade a etiqueta, o título não corta a ação, nomes e opções sobrevivem ao ciclo."
+    },
+    "CT-64": {
+      "titulo": "Vazamento de memória",
+      "rf": ["RNF01", "RNF07"], "uc": ["UC09"],
+      "entrada": "200 revanches seguidas e 5 minutos simulados de partida.",
+      "procedimento": "Medir com tracemalloc e conferir os caches e as partículas.",
+      "esperado": "Memória estável, caches e partículas sempre dentro do limite."
+    },
+    "CT-65": {
+      "titulo": "Sem rede, sem execução dinâmica, sem escrita",
+      "rf": ["RNF05", "RNF07"], "uc": ["UC02"],
+      "entrada": "Todos os módulos do jogo e das ferramentas.",
+      "procedimento": "Analisar o código-fonte pela árvore sintática.",
+      "esperado": "O jogo não importa rede nem subprocess, não usa eval nem exec e não escreve em disco. Só as ferramentas de documentação chamam programas externos."
+    },
+    "CT-66": {
+      "titulo": "PNG, autoria, e-mails e caminhos pessoais",
+      "rf": ["RNF05"], "uc": ["UC01"],
+      "entrada": "Imagens de docs/, arquivos versionados e autoria dos commits.",
+      "procedimento": "Ler os pedaços dos PNG, procurar e-mails e caminhos pessoais e conferir a autoria.",
+      "esperado": "Os PNG não têm metadados de texto, e não há e-mail nem caminho pessoal no que o git publica."
+    },
+    "CT-67": {
+      "titulo": "Python 3.10 e portabilidade",
+      "rf": ["RNF02"], "uc": ["UC01"],
+      "entrada": "Todos os módulos do projeto.",
+      "procedimento": "Analisar com ast.parse(feature_version=(3, 10)) e procurar biblioteca padrão nova e caminho fixo de sistema.",
+      "esperado": "Todos os módulos são sintaxe válida de Python 3.10, sem API nova nem caminho fixo. A execução real em 3.10, Linux e macOS fica com o CI."
+    }
+  }
+}

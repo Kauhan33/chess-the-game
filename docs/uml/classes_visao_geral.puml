@@ -1,0 +1,100 @@
+@startuml classes_visao_geral
+!pragma layout smetana
+!include _estilo.iuml
+title Visão geral: as três camadas e as classes centrais
+hide empty members
+
+package "xadrez.ui" as ui {
+  class App {
+    +scene: Scene
+    +step(dt)
+  }
+  abstract class Scene {
+    {abstract} +update(dt)
+    {abstract} +draw(surface)
+  }
+  class MenuScene
+  class GameScene {
+    +handle_event(event)
+  }
+  class GameOverScene
+  class BoardView {
+    +start_move(outcome)
+    +pick(position)
+  }
+  class Hud
+}
+
+package "xadrez.core" as core {
+  class GameEngine {
+    +state: GameState
+    +play(origin, target, promotion)
+    +tick(dt)
+  }
+  class Board {
+    +turn: Color
+    +apply(move)
+    +undo()
+  }
+  abstract class Piece {
+    +color: Color
+    {abstract} +attacks(board, square)
+  }
+  class Player {
+    +name: str
+    +match_points: float
+  }
+}
+
+package "xadrez.graphics" as graphics {
+  class Camera {
+    +project(points)
+    +screen_ray(sx, sy)
+  }
+  class Renderer3D {
+    +add_mesh(mesh, matrix, color)
+    +flush()
+  }
+  class ParticleSystem {
+    +emit(position, count, ...)
+    +update(dt)
+  }
+  class ColorMatrix {
+    +rgb(time)
+  }
+  class PieceAnimation {
+    +model_matrix()
+  }
+  class Vector2D {
+    +x: float
+    +y: float
+    +reflect(normal)
+  }
+}
+
+App *-- "1$p" Scene
+Scene <|-- MenuScene
+Scene <|-- GameScene
+Scene <|-- GameOverScene
+GameScene *-- "1$p" Hud
+GameScene o-- "1$p" BoardView
+GameOverScene o-- "1$p" BoardView
+
+GameScene -- "1$p" GameEngine
+GameEngine *-- "1$p" Board
+GameEngine *-- "2$p" Player
+Board *-- "0..64$p" Piece
+
+BoardView *-- "1$p" Camera
+BoardView *-- "1$p" Renderer3D
+BoardView *-- "1$p" ColorMatrix
+BoardView *-- "1$p" ParticleSystem
+BoardView *-- "0..2$p" PieceAnimation
+PieceAnimation *-- "3$p" Vector2D
+
+note bottom of core
+  ui usa core e graphics.
+  core e graphics nunca se importam
+  (tests/test_arquitetura.py).
+end note
+@enduml

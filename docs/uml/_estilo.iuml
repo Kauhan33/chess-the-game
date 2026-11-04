@@ -1,0 +1,43 @@
+' Aparência comum a todos os diagramas. Incluído com !include _estilo.iuml.
+skinparam dpi 150
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI"
+skinparam defaultFontSize 12
+skinparam titleFontSize 15
+skinparam titleFontStyle bold
+skinparam backgroundColor white
+skinparam ArrowColor #3A3A3A
+skinparam ArrowFontSize 11
+skinparam ArrowThickness 1
+skinparam classAttributeIconSize 0
+skinparam ClassBackgroundColor #FAF6EE
+skinparam ClassBorderColor #5B4632
+skinparam ClassHeaderBackgroundColor #EADFC8
+skinparam ClassFontStyle bold
+skinparam ClassAttributeFontSize 11
+skinparam StereotypeFontSize 10
+skinparam PackageBorderColor #8F6D33
+skinparam PackageBackgroundColor #FFFDF8
+skinparam PackageFontStyle bold
+skinparam NoteBackgroundColor #FFF6D6
+skinparam NoteBorderColor #A58C4A
+skinparam NoteFontSize 11
+skinparam ActorBorderColor #3A3A3A
+skinparam ActorBackgroundColor #FAF6EE
+skinparam UsecaseBackgroundColor #FAF6EE
+skinparam UsecaseBorderColor #5B4632
+skinparam RectangleBorderColor #8F6D33
+skinparam RectangleBackgroundColor #FFFDF8
+skinparam StateBackgroundColor #FAF6EE
+skinparam StateBorderColor #5B4632
+skinparam SequenceLifeLineBorderColor #5B4632
+skinparam SequenceParticipantBackgroundColor #EADFC8
+skinparam SequenceParticipantBorderColor #5B4632
+skinparam SequenceActorBorderColor #3A3A3A
+skinparam SequenceGroupBodyBackgroundColor transparent
+skinparam SequenceGroupBackgroundColor #EADFC8
+skinparam SequenceGroupBorderColor #8F6D33
+skinparam SequenceMessageAlign left
+
+' Afasta o número da multiplicidade da linha: "1$p" em vez de "1".
+!$p = "<U+00A0><U+00A0><U+00A0>"

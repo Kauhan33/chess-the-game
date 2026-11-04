@@ -1,7 +1,7 @@
 """Gera o executável do jogo com PyInstaller: arquivo único, sem console e sem precisar de Python.
 
 Uso: python tools/gerar_executavel.py
-Resultado: dist/XadrezTheGame.exe (ou XadrezTheGame, fora do Windows).
+Resultado: dist/ChessTheGame.exe (ou ChessTheGame, fora do Windows).
 Requer: pip install pyinstaller pillow
 """
 from __future__ import annotations
@@ -20,7 +20,7 @@ from PIL import Image
 
 from xadrez.graphics import IVORY, Camera, Renderer3D, build_piece_meshes
 
-APP_NAME = "XadrezTheGame"
+APP_NAME = "ChessTheGame"
 ICON_PIXELS = 256
 ICON_SIZES = [(16, 16), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)]
 

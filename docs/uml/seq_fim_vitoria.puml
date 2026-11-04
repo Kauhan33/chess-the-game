@@ -1,0 +1,63 @@
+@startuml seq_fim_vitoria
+!include _estilo.iuml
+title Disparo da animação de vitória
+hide footbox
+
+participant "App" as A
+participant "GameScene" as S
+participant "GameEngine" as E
+participant "BoardView" as V
+participant "ParticleSystem" as PS
+participant "GameOverScene" as O
+
+== A peça que deu o mate voa até a casa ==
+S -> V: start_move(outcome)
+loop a cada quadro, até o pouso
+  A -> S: update(dt)
+  S -> E: tick(dt)
+  E --> S: None (partida já encerrada)
+  S -> V: update(dt)
+  S -> V: consume_landing()
+end
+V --> S: True
+S -> S: _begin_turn()
+S -> S: _begin_ending(engine.result)
+S -> S: notices.set_status("Xeque-mate! Jogador 1 venceu.")
+
+opt motivo é CHECKMATE
+  S -> V: start_king_fall(rei, perdedor, atacante)
+  note right of V: KingFallAnimation: o rei tomba\nem torno da borda da base.
+end
+
+== Festa antes da troca de tela: 2,2 s no mate, 0,9 s nos demais ==
+loop enquanto _ending_left > 0
+  A -> S: update(dt)
+  S -> S: _advance_ending(dt)
+  opt há vencedor e passaram 0,42 s
+    S -> V: launch_fireworks(FIREWORK_COLORS)
+    V -> PS: victory_fireworks(posição, cores)
+    PS -> PS: emit(posição, 140, ...)
+  end
+end
+
+S -> A: game_over_scene(engine, options, view)
+create O
+A -> O: GameOverScene(app, engine, options, view)
+A -> A: _apply_scene_change()
+
+== Tela de fim de jogo: mesma posição, com fogos ==
+loop a cada quadro
+  A -> O: update(dt)
+  O -> O: _drift_camera(dt)
+  O -> V: update(dt)
+  O -> O: _launch_fireworks()
+  A -> O: draw(surface)
+  O -> V: draw(surface)
+  O -> O: _draw_result, _draw_series
+end
+
+note over A, O
+  Tempo esgotado segue o mesmo caminho a partir de _begin_ending:
+  quem detecta é engine.tick(dt), chamado em GameScene._advance_world.
+end note
+@enduml

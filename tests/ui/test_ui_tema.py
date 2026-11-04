@@ -149,7 +149,7 @@ def test_dt_negativo_e_ignorado(app):
 def test_janela_comeca_em_1280_por_720_e_no_menu(app):
     assert app.size == (1280, 720)
     assert isinstance(app.scene, MenuScene)
-    assert pygame.display.get_caption()[0] == "Xadrez The Game"
+    assert pygame.display.get_caption()[0] == "Chess - The Game"
 
 
 def test_fechar_a_janela_encerra_o_laco(app):

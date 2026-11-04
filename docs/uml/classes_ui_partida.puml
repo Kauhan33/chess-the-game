@@ -1,0 +1,120 @@
+@startuml classes_ui_partida
+!pragma layout smetana
+!include _estilo.iuml
+title Camada ui: apresentação da partida e HUD
+hide empty members
+
+class GameScene
+
+class BoardView {
+  +camera: Camera
+  +renderer: Renderer3D
+  +matrix: ColorMatrix
+  +particles: ParticleSystem
+  +time: float
+  +markers: list
+  +tints: dict
+  +lifted_square: Cell | None
+  +shake_square: Cell | None
+  +scene_polygons: int
+  +is_flying: bool
+  +is_camera_moving: bool
+  --
+  +reset()
+  +sync(board)
+  +set_viewport(rect)
+  +face(color)
+  +restore_default_view(color)
+  +drag_orbit(dx, dy)
+  +zoom(wheel_steps)
+  +pick(position): Cell | None
+  +start_move(outcome)
+  +start_king_fall(square, side, away_from)
+  +launch_fireworks(colors)
+  +shake(square)
+  +consume_landing(): bool
+  +update(dt)
+  +draw(surface)
+}
+
+class _Flight {
+  +mesh: Mesh
+  +color: tuple
+  +target: Cell
+  +animation: PieceAnimation
+}
+
+class Hud {
+  +engine: GameEngine
+  +buttons: list[Button]
+  +cards: dict[Color, PlayerCard]
+  +sheet: ScoreSheet
+  +viewport: Rect
+  +active_color: Color | None
+  +checked_color: Color | None
+  --
+  +layout(size): Rect
+  +handle_event(event): bool
+  +update(dt)
+  +draw(surface)
+}
+
+class PlayerCard {
+  +color: Color
+  +info: CardInfo | None
+  --
+  +layout(rect)
+  +refresh(info)
+  +draw(surface, lamp)
+}
+
+class ScoreSheet {
+  +layout(rect)
+  +refresh(history, first_color)
+  +draw(surface)
+}
+
+class NoticeBar {
+  +text: str
+  +kind: str
+  --
+  +set_status(text, kind)
+  +show(text, kind, seconds)
+  +clear_message()
+  +update(dt)
+  +draw(surface)
+}
+
+class PerformancePanel {
+  +is_visible: bool
+  --
+  +toggle()
+  +draw(surface, viewport, fps, frame_ms, view)
+}
+
+class DidacticPanel {
+  +is_visible: bool
+  --
+  +toggle()
+  +board_area(viewport): Rect
+  +draw(surface, viewport, view, mouse_pos)
+}
+
+class Camera
+class Renderer3D
+class ColorMatrix
+class ParticleSystem
+
+GameScene o-- "1$p" BoardView
+GameScene *-- "1$p" Hud
+GameScene *-- "1$p" NoticeBar
+GameScene *-- "1$p" PerformancePanel
+GameScene *-- "1$p" DidacticPanel
+Hud *-- "2$p" PlayerCard
+Hud *-- "1$p" ScoreSheet
+BoardView *-- "1$p" Camera
+BoardView *-- "1$p" Renderer3D
+BoardView *-- "1$p" ColorMatrix
+BoardView *-- "1$p" ParticleSystem
+BoardView *-- "0..2$p" _Flight : peças no ar
+@enduml

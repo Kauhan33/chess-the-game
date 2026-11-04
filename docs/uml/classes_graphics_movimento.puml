@@ -1,0 +1,119 @@
+@startuml classes_graphics_movimento
+!pragma layout smetana
+!include _estilo.iuml
+title Camada graphics: vetores, animações e partículas
+hide empty members
+
+class Vector2D {
+  +x: float
+  +y: float
+  --
+  +dot(other): float
+  +length(): float
+  +normalized(): Vector2D
+  +rotated(angle): Vector2D
+  +lerp(other, t): Vector2D
+  +reflect(normal): Vector2D
+}
+
+class Vector3D {
+  +x: float
+  +y: float
+  +z: float
+  --
+  {static} +from_array(values): Vector3D
+  +as_array(): ndarray
+  +dot(other): float
+  +cross(other): Vector3D
+  +length(): float
+  +normalized(): Vector3D
+  +rotated(axis, angle): Vector3D
+  +lerp(other, t): Vector3D
+  +reflect(normal): Vector3D
+}
+
+class ParticleSystem {
+  +capacity: int
+  +gravity: float
+  +floor_y: float
+  +restitution: float
+  +drag: float
+  +alive_count: int
+  +positions: ndarray
+  +velocities: ndarray
+  +colors: ndarray
+  +sizes: ndarray
+  +alphas: ndarray
+  --
+  +emit(position, count, color, speed, life, size, bias)
+  +capture_burst(position, color)
+  +trail(position, color)
+  +victory_fireworks(position, colors)
+  +update(dt)
+  -_bounce_on_floor(positions, velocities)
+  -_remove_dead()
+}
+
+class Tween {
+  +start
+  +end
+  +duration: float
+  +easing: Callable
+  +elapsed: float
+  +progress: float
+  +value
+  +is_done: bool
+  --
+  +update(dt)
+}
+
+abstract class _TimedAnimation {
+  +progress: float
+  +eased: float
+  +is_done: bool
+  --
+  +update(dt)
+  {abstract} +model_matrix(): ndarray
+}
+
+class PieceAnimation {
+  +arc_height: float
+  +facing: float
+  +position: tuple
+  --
+  +model_matrix(): ndarray
+}
+class CaptureAnimation {
+  +facing: float
+  --
+  +model_matrix(): ndarray
+}
+class SpawnAnimation {
+  +facing: float
+  --
+  +model_matrix(): ndarray
+}
+class KingFallAnimation {
+  +facing: float
+  +pivot: tuple
+  --
+  +model_matrix(): ndarray
+}
+
+class Camera
+
+_TimedAnimation *-- "1$p" Tween
+_TimedAnimation <|-- PieceAnimation
+_TimedAnimation <|-- CaptureAnimation
+_TimedAnimation <|-- SpawnAnimation
+_TimedAnimation <|-- KingFallAnimation
+PieceAnimation *-- "3$p" Vector2D
+KingFallAnimation *-- "1$p" Vector2D
+Camera *-- "0..1$p" Tween : giro
+Camera ..> Vector3D : raio de clique
+
+note bottom of ParticleSystem
+  Faz as contas em arrays numpy, uma linha por
+  partícula. Por desempenho, não usa objetos Vector3D.
+end note
+@enduml

@@ -1,0 +1,43 @@
+@startuml casos_de_uso
+!pragma layout smetana
+!include _estilo.iuml
+title Casos de uso do Chess - The Game
+left to right direction
+
+actor "Jogador" as Jogador
+actor "Jogador 1" as J1
+actor "Jogador 2" as J2
+actor "\n\nSistema /\nMotor de Regras" as Motor
+
+J1 -up-|> Jogador
+J2 -up-|> Jogador
+
+rectangle "Chess - The Game" {
+  usecase "UC01\nIniciar Partida" as UC01
+  usecase "UC02\nExecutar Jogada" as UC02
+  usecase "UC03\nPausar Jogo" as UC03
+  usecase "UC04\nReiniciar Partida" as UC04
+  usecase "UC05\nPromover Peão" as UC05
+  usecase "UC06\nConsultar Caminhos\ne Ameaças" as UC06
+  usecase "UC07\nVerificar Xeque\ne Fim de Jogo" as UC07
+  usecase "UC08\nEncerrar Partida\n(desistência ou empate)" as UC08
+  usecase "UC09\nPedir Revanche ou\nVoltar ao Menu" as UC09
+}
+
+Jogador -- UC01
+Jogador -- UC02
+Jogador -- UC03
+Jogador -- UC04
+Jogador -- UC06
+Jogador -- UC08
+Jogador -- UC09
+
+UC02 ..> UC06 : <<include>>
+UC02 ..> UC07 : <<include>>
+UC05 .up.> UC02 : <<extend>>
+UC08 .up.> UC03 : <<extend>>
+
+UC06 -- Motor
+UC07 -- Motor
+UC08 -- Motor
+@enduml

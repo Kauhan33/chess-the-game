@@ -1,0 +1,138 @@
+@startuml classes_core_motor
+!pragma layout smetana
+!include _estilo.iuml
+title Camada core: GameEngine e seus colaboradores
+hide empty members
+
+class GameEngine {
+  +time_control: TimeControl
+  +players: dict[Color, Player]
+  +board: Board
+  +clock: ChessClock
+  +state: GameState
+  +result: GameResult | None
+  +history: list[str]
+  -_start_fen: str
+  -_position_counts: Counter[str]
+  -_repetitions: int
+  +turn: Color
+  +current_player: Player
+  +in_check: bool
+  +checked_king_square: Square | None
+  +checking_pieces: list[Square]
+  --
+  +play(origin, target, promotion=None): MoveOutcome
+  +legal_moves_from(square): list[Move]
+  +is_promotion_move(origin, target): bool
+  +threatened_pieces(color): list[Square]
+  +attackers_of(square): list[Square]
+  +pause()
+  +resume()
+  +tick(dt): GameResult | None
+  +resign(color=None): GameResult
+  +agree_draw(): GameResult
+  +restart()
+  +rematch()
+  +material_balance(): int
+  -_resolve_move(origin, target, promotion)
+  -_execute(move): MoveOutcome
+  -_finish_if_over(): GameResult | None
+  -_detect_board_result(): GameResult | None
+  -_finish(result): GameResult
+  -_timeout_result(flagged): GameResult
+}
+
+class Player {
+  +name: str
+  +color: Color
+  +match_points: float
+  +captured: list[PieceType]
+  +material_score: int
+}
+
+class ChessClock {
+  +time_control: TimeControl
+  -_remaining: dict[Color, float]
+  -_elapsed: dict[Color, float]
+  --
+  +remaining(color): float
+  +elapsed(color): float
+  +tick(color, dt)
+  +add_increment(color)
+  +is_flagged(color): bool
+}
+
+class TimeControl <<frozen>> {
+  +minutes: float
+  +increment: float
+  {static} +UNLIMITED: TimeControl
+  {static} +BLITZ_5: TimeControl
+  {static} +RAPID_10: TimeControl
+  {static} +CLASSIC_30: TimeControl
+  +is_unlimited: bool
+}
+
+class MoveOutcome {
+  +ok: bool
+  +error: MoveError | None
+  +move: Move | None
+  +piece: Piece | None
+  +captured: Piece | None
+  +captured_square: Square | None
+  +rook_path: tuple | None
+  +promoted_to: PieceType | None
+  +gives_check: bool
+  +result: GameResult | None
+  +san: str
+}
+
+class GameResult <<frozen>> {
+  +winner: Color | None
+  +reason: EndReason
+  +is_draw: bool
+}
+
+enum GameState {
+  IN_PROGRESS
+  PAUSED
+  FINISHED
+}
+
+enum EndReason {
+  CHECKMATE
+  STALEMATE
+  INSUFFICIENT_MATERIAL
+  FIFTY_MOVES
+  THREEFOLD_REPETITION
+  TIMEOUT
+  RESIGNATION
+  AGREEMENT
+  +label: str
+}
+
+enum MoveError {
+  GAME_NOT_ACTIVE
+  NO_PIECE
+  NOT_YOUR_TURN
+  ILLEGAL_MOVE
+  LEAVES_KING_IN_CHECK
+  PROMOTION_REQUIRED
+  +message: str
+}
+
+class Board
+class rules <<module>>
+class notation <<module>>
+
+GameEngine *-- "1$p" Board
+GameEngine *-- "2$p" Player
+GameEngine *-- "1$p" ChessClock
+GameEngine ..> MoveOutcome : devolve
+GameEngine -- "1$p" GameState
+GameEngine ..> rules : usa
+GameEngine ..> notation : usa
+ChessClock -- "1$p" TimeControl
+MoveOutcome -- "0..1$p" MoveError
+MoveOutcome -- "0..1$p" GameResult
+GameResult -- "1$p" EndReason
+@enduml

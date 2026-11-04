@@ -1,0 +1,17 @@
+@startuml estados_cenas
+!pragma layout smetana
+!include _estilo.iuml
+title Fluxo entre as telas (App.scene)
+hide empty description
+
+state "MenuScene\nMenu inicial" as Menu
+state "GameScene\nPartida" as Jogo
+state "GameOverScene\nFim de jogo" as Fim
+
+[*] --> Menu : App()
+Menu --> Jogo : Iniciar partida
+Jogo --> Fim : resultado definido\ne fim da animação
+Fim --> Jogo : Revanche com cores trocadas\n(mesmo motor, placar mantido)
+Fim --> Menu : Voltar ao menu
+Jogo --> Menu : Pausa, Voltar ao menu, confirmar
+@enduml

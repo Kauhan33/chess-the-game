@@ -1,0 +1,18 @@
+@startuml estados_partida
+!pragma layout smetana
+!include _estilo.iuml
+title Estados da partida (GameEngine.state)
+hide empty description
+
+state "IN_PROGRESS\nEm andamento" as IN_PROGRESS
+state "PAUSED\nPausada" as PAUSED
+state "FINISHED\nEncerrada" as FINISHED
+
+[*] --> IN_PROGRESS : GameEngine()
+[*] --> FINISHED : FEN já terminada
+IN_PROGRESS --> PAUSED : pause()
+PAUSED --> IN_PROGRESS : resume(), restart()
+IN_PROGRESS --> FINISHED : play() com mate, afogamento ou empate\ntick() com tempo esgotado\nresign(), agree_draw()
+PAUSED --> FINISHED : resign(), agree_draw()
+FINISHED --> IN_PROGRESS : restart(), rematch()
+@enduml

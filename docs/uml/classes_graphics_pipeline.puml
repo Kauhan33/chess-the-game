@@ -1,0 +1,136 @@
+@startuml classes_graphics_pipeline
+!pragma layout smetana
+!include _estilo.iuml
+title Camada graphics: pipeline de desenho
+hide empty members
+
+class Renderer3D {
+  +camera: Camera
+  +light: DirectionalLight
+  +polygons_drawn: int
+  +sprites_built: int
+  --
+  +begin(surface)
+  +draw_board(rgb_matrix)
+  +add_mesh(mesh, model_matrix, color, ...)
+  +add_marker(file, rank, kind, color)
+  +add_particles(system)
+  +flush()
+  +render_icon(mesh, color, size)
+  -_draw_shadows()
+  -_draw_objects_as_polygons()
+  -_draw_objects_as_sprites()
+  -_draw_particle_system(system)
+}
+
+class Camera {
+  +fov_y: float
+  +revision: int
+  +viewport: tuple
+  +yaw: float
+  +pitch: float
+  +distance: float
+  +eye: ndarray
+  +view_matrix: ndarray
+  +projection_matrix: ndarray
+  +view_projection_matrix: ndarray
+  +viewport_matrix: ndarray
+  +inverse_view_projection: ndarray
+  +is_moving: bool
+  --
+  +set_viewport(x, y, w, h)
+  +orbit_to(yaw, duration=0.8)
+  +orbit_by(dyaw, dpitch=0.0)
+  +zoom_by(factor)
+  +update(dt)
+  +project(points)
+  +screen_ray(sx, sy)
+  +pick_plane(sx, sy, plane_y=0.0)
+  +pick_square(sx, sy)
+  +pick_piece(sx, sy, pieces)
+}
+
+class Mesh {
+  +vertices: ndarray
+  +faces: ndarray
+  +face_normals: ndarray
+  +face_centers: ndarray
+  +face_shades: ndarray
+  +face_neighbors: ndarray
+  +height: float
+  +radius: float
+  --
+  +transformed(matrix): Mesh
+}
+
+class DirectionalLight {
+  +direction: ndarray
+  +to_light: ndarray
+  +color: ndarray
+  +ambient: float
+  +diffuse: float
+  --
+  +shade(normals, base_color)
+}
+
+class ColorMatrix {
+  +states: ndarray
+  --
+  +clear()
+  +set(file, rank, state)
+  +set_many(squares, state)
+  +state_at(file, rank): CellState
+  +rgb(time=0.0): ndarray
+}
+
+enum CellState {
+  NONE
+  LAST_MOVE
+  PATH
+  CAPTURE
+  THREAT
+  CHECK
+  SELECTED
+  CURSOR
+}
+
+class _Instance {
+  +geometry: _Geometry
+  +sprite: _Sprite | None
+  +shadow_outline: ndarray
+}
+
+class _ShadowLayer {
+  +mask: Surface | None
+  --
+  +paint(outlines, bounds, capacity)
+}
+
+class matrix <<module>> {
+  +translation(x, y, z)
+  +scaling(sx, sy=None, sz=None)
+  +rotation_x(angle)
+  +rotation_y(angle)
+  +rotation_z(angle)
+  +compose(*matrices)
+  +look_at(eye, target, up)
+  +perspective(fov_y, aspect, near, far)
+  +viewport(x, y, w, h)
+  +planar_shadow(light_dir, plane_y=0.0)
+  +transform_points(matrix, points)
+  +square_to_world(file, rank)
+  +world_to_square(x, z)
+  +piece_matrix(file, rank, facing=0.0)
+}
+
+class ParticleSystem
+
+Renderer3D o-- "1$p" Camera
+Renderer3D o-- "1$p" DirectionalLight
+Renderer3D *-- "1$p" _ShadowLayer
+Renderer3D *-- "0..*$p" _Instance
+_Instance ..> Mesh : monta a geometria
+Renderer3D ..> ParticleSystem : desenha
+Camera ..> matrix : usa
+ColorMatrix ..> CellState
+@enduml

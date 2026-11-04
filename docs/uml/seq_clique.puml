@@ -1,0 +1,67 @@
+@startuml seq_clique
+!include _estilo.iuml
+title Do clique à casa: pixel, raio, silhueta e casa do tabuleiro
+hide footbox
+
+actor "Jogador" as J
+participant "App" as A
+participant "GameScene" as S
+participant "BoardView" as V
+participant "Camera" as C
+participant "matrix" as M
+
+J -> A: clique do mouse
+A -> S: handle_event(MOUSEBUTTONDOWN)
+S -> S: _handle_mouse_down(event)
+S -> V: pick(event.pos)
+V -> C: pick_piece(sx, sy, pieces)
+
+alt pixel fora do viewport
+  C --> V: None
+else pixel dentro do viewport
+  C -> C: screen_ray(sx, sy)
+  note right of C
+    Tela para NDC:
+    ndc_x = 2 (sx - x) / w - 1
+    ndc_y = 1 - 2 (sy - y) / h
+  end note
+  C -> C: _unproject(ndc_x, ndc_y, -1): ponto no plano near
+  C -> C: _unproject(ndc_x, ndc_y, +1): ponto no plano far
+  note right of C
+    Usa a inversa da view-projection.
+    Direção = normalizar(far - near).
+  end note
+
+  loop cada peça (file, rank, malha, matriz de modelo)
+    C -> C: _ray_touches_bounds(origin, direction, piece)
+  end
+  note right of C
+    Fase larga: o cilindro envolvente
+    descarta o que está longe do raio.
+  end note
+
+  loop candidatas, da mais próxima do olho para a mais distante
+    C -> C: project(transform_points(model_matrix, vertices))
+    C -> C: _pixel_inside_any_face(sx, sy, faces projetadas)
+  end
+  note right of C
+    Fase fina: a silhueta real da malha.
+    A primeira que contém o pixel é a que
+    o jogador está vendo naquele ponto.
+  end note
+
+  alt alguma silhueta contém o pixel
+    C --> V: (file, rank) dessa peça
+  else nenhuma peça aparece no pixel
+    C -> C: pick_square(sx, sy)
+    C -> C: pick_plane(sx, sy): t = (0 - o.y) / d.y
+    C -> M: world_to_square(x, z)
+    M --> C: (file, rank), ou None fora do tabuleiro
+    C --> V: (file, rank) ou None
+  end
+end
+
+V --> S: cell
+S -> S: _set_cursor(cell), _activate_square(cell)
+S --> J: casa selecionada ou jogada executada
+@enduml

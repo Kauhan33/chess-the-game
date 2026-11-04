@@ -1,0 +1,127 @@
+@startuml classes_ui_cenas
+!pragma layout smetana
+!include _estilo.iuml
+title Camada ui: aplicação e cenas
+hide empty members
+
+class App {
+  +screen: Surface
+  +size: tuple
+  +pacer: FramePacer
+  +theme: Theme
+  +meshes: dict
+  +running: bool
+  +fps: float
+  +frame_ms: float
+  +scene: Scene
+  --
+  +menu_scene(defaults=None)
+  +game_scene(engine, options, view=None)
+  +game_over_scene(engine, options, view)
+  +step(dt)
+  +run_frame()
+  +preload()
+  +run()
+  -_dispatch(event)
+  -_apply_scene_change()
+}
+
+class FramePacer {
+  +period: float
+  +fps: float
+  --
+  +wait(): float
+}
+
+abstract class Scene {
+  +app: App
+  +next_scene: Scene | None
+  --
+  {abstract} +handle_event(event)
+  {abstract} +update(dt)
+  {abstract} +draw(surface)
+  {abstract} +resize(size)
+}
+
+class MenuScene {
+  +white_input: TextInput
+  +black_input: TextInput
+  +time_selector: Selector
+  +camera_selector: Selector
+  +start_button: Button
+  +help_button: Button
+  +focus: FocusGroup
+  +modal: Overlay | None
+  +camera: Camera
+  +renderer: Renderer3D
+  --
+  +options(): MatchOptions
+  +start_match()
+  +open_help()
+}
+
+class GameScene {
+  +engine: GameEngine
+  +options: MatchOptions
+  +view: BoardView
+  +auto_rotate: bool
+  +selection: Square | None
+  +targets: dict[Square, Move]
+  +cursor: Cell | None
+  +modals: list[Overlay]
+  +notices: NoticeBar
+  +hud: Hud
+  +is_board_locked: bool
+  +is_frozen: bool
+  --
+  +open_pause()
+  +open_help()
+  +confirm_restart()
+  +restart()
+  -_activate_square(cell)
+  -_submit_move(origin, target, promotion)
+  -_refuse(error, square)
+  -_show_move(outcome)
+  -_begin_turn()
+  -_begin_ending(result)
+  -_advance_ending(dt)
+  -_paint_highlights()
+}
+
+class GameOverScene {
+  +engine: GameEngine
+  +options: MatchOptions
+  +view: BoardView
+  +result: GameResult
+  +rematch_button: Button
+  +menu_button: Button
+  +focus: FocusGroup
+  --
+  +rematch()
+  +go_to_menu()
+}
+
+class MatchOptions <<frozen>> {
+  +white_name: str
+  +black_name: str
+  +time_control: TimeControl
+  +auto_rotate: bool
+  --
+  +create_engine(fen=None): GameEngine
+}
+
+class GameEngine
+class BoardView
+
+App *-right- "1$p" Scene : cena atual
+App *-- "1$p" FramePacer
+Scene <|-- MenuScene
+Scene <|-- GameScene
+Scene <|-- GameOverScene
+GameScene o-- "1$p" BoardView
+GameOverScene o-- "1$p" BoardView
+GameScene -- "1$p" GameEngine
+GameOverScene -- "1$p" GameEngine
+MenuScene ..> MatchOptions : cria
+MatchOptions ..> GameEngine : cria
+@enduml

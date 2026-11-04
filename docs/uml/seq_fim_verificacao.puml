@@ -1,0 +1,56 @@
+@startuml seq_fim_verificacao
+!include _estilo.iuml
+title Verificação do fim de jogo no motor de regras
+hide footbox
+
+participant "GameScene" as S
+participant "GameEngine" as E
+participant "Board" as B
+participant "rules" as R
+participant "Player" as PL
+
+S -> E: play(origin, target)
+E -> B: apply(move)
+E -> E: _finish_if_over()
+E -> E: _detect_board_result()
+E -> R: has_legal_moves(board)
+
+alt lado da vez sem jogadas
+  R --> E: False
+  E -> R: is_in_check(board)
+  alt em xeque
+    R --> E: True
+    E -> E: GameResult(adversário, CHECKMATE)
+  else fora de xeque
+    R --> E: False
+    E -> E: GameResult(None, STALEMATE)
+  end
+else lado da vez ainda tem jogadas
+  R --> E: True
+  E -> R: has_insufficient_material(board)
+  alt só restam peças que não dão mate
+    R --> E: True
+    E -> E: GameResult(None, INSUFFICIENT_MATERIAL)
+  else posição repetida 3 vezes
+    E -> E: GameResult(None, THREEFOLD_REPETITION)
+  else 100 meios-lances sem peão nem captura
+    E -> E: GameResult(None, FIFTY_MOVES)
+  else nenhum dos casos
+    E --> S: MoveOutcome(ok=True, result=None)
+  end
+end
+
+opt há resultado
+  E -> E: _finish(result)
+  note right of E
+    state = FINISHED. Único ponto que soma
+    pontos na série, uma vez por partida.
+  end note
+  alt há vencedor
+    E -> PL: match_points += 1 (só o vencedor)
+  else empate
+    E -> PL: match_points += 0,5 (cada um)
+  end
+  E --> S: MoveOutcome(ok=True, result=result)
+end
+@enduml

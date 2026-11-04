@@ -19,7 +19,7 @@ from xadrez.ui.scene import Scene
 from xadrez.ui.theme import Theme
 
 WINDOW_SIZE = (1280, 720)
-WINDOW_TITLE = "Xadrez The Game"
+WINDOW_TITLE = "Chess - The Game"
 FPS = 60
 # Quadro mais longo que isso (janela arrastada, por exemplo) não pode virar salto de relógio e animação.
 MAX_FRAME_SECONDS = 0.1

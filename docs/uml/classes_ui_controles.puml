@@ -1,0 +1,107 @@
+@startuml classes_ui_controles
+!pragma layout smetana
+!include _estilo.iuml
+title Camada ui: sobreposições e controles
+hide empty members
+
+class GameScene
+
+abstract class Overlay {
+  {static} +freezes_clock: bool
+  --
+  +layout(size)
+  {abstract} +handle_event(event)
+  +update(dt)
+  {abstract} +draw(surface)
+}
+
+class ChoiceOverlay {
+  +title: str
+  +lines: list[str]
+  +buttons: list[Button]
+}
+
+class PromotionDialog {
+  {static} +freezes_clock: bool
+  +color: Color
+  +buttons: list[_ChoiceButton]
+  +kinds: list[PieceType]
+}
+
+class HelpOverlay
+
+class FocusGroup {
+  +widgets: list
+  +focused
+  --
+  +move(delta)
+  +focus(widget)
+  +handle_event(event): bool
+  +draw(surface, theme)
+}
+
+class Button {
+  +label: str
+  +rect: Rect
+  +is_hovered: bool
+  +is_focused: bool
+  --
+  +activate()
+  +handle_mouse(event): bool
+  +handle_key(event): bool
+  +draw(surface, theme)
+}
+
+class _ChoiceButton {
+  +draw(surface, theme)
+}
+
+class TextInput {
+  +label: str
+  +placeholder: str
+  +max_length: int
+  +text: str
+  +value: str
+  --
+  +set_character_filter(accepts)
+  +handle_text(content)
+  +handle_key(event): bool
+  +update(dt)
+}
+
+class Selector {
+  +label: str
+  +options: list
+  +index: int
+  +value
+  +current_label: str
+  --
+  +step(delta)
+  +activate()
+}
+
+class Theme {
+  +set_window_size(size)
+  +px(value): int
+  +font(role, size)
+  +text(content, role, size, color)
+  +text_fit(content, role, size, color, max_width)
+  +tabular(content, role, size, color)
+  +has_glyph(char, role, size): bool
+  +plate(size, style)
+  +panel_ground(size)
+}
+
+GameScene *-- "0..*$p" Overlay : pilha de modais
+Overlay <|-- ChoiceOverlay
+Overlay <|-- PromotionDialog
+Overlay <|-- HelpOverlay
+ChoiceOverlay *-- "1$p" FocusGroup
+PromotionDialog *-- "1$p" FocusGroup
+HelpOverlay *-- "1$p" Button
+Button <|-- _ChoiceButton
+FocusGroup o-- "1..*$p" Button
+FocusGroup o-- "0..*$p" TextInput
+FocusGroup o-- "0..*$p" Selector
+Overlay ..> Theme
+@enduml

@@ -161,7 +161,7 @@ class MenuScene(Scene):
         theme = self.app.theme
         pad = theme.px(_FORM_PADDING)
         available = max(self._form.width - 2 * pad, 1)
-        title = theme.text_fit("Xadrez The Game", tokens.ROLE_DISPLAY, theme.px(48), tokens.BRASS_BRIGHT, available)
+        title = theme.text_fit("Chess - The Game", tokens.ROLE_DISPLAY, theme.px(48), tokens.BRASS_BRIGHT, available)
         surface.blit(title, (self._content_left(), self._form.y + theme.px(24)))
         tagline = "Dois jogadores, uma tela, regras oficiais."
         subtitle = theme.text_fit(tagline, tokens.ROLE_LABEL, theme.px(18), tokens.TEXT_MUTED, available)

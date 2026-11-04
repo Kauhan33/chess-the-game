@@ -1,0 +1,66 @@
+@startuml seq_movimento
+!include _estilo.iuml
+title Processamento e validação de um movimento do jogador
+hide footbox
+
+actor "Jogador" as J
+participant "GameScene" as S
+participant "BoardView" as V
+participant "NoticeBar" as N
+participant "GameEngine" as E
+participant "Piece" as P
+participant "rules" as R
+participant "Board" as B
+
+J -> S: handle_event(MOUSEBUTTONDOWN)
+S -> V: pick(pos)
+V --> S: cell
+S -> S: _activate_square(cell)
+
+alt is_board_locked (peça no ar, fim ou pausa)
+  S --> J: clique ignorado
+else sem seleção, clique em peça do adversário
+  S -> E: play(casa, casa, None)
+  E --> S: ok=False, NOT_YOUR_TURN
+  S -> N: show("Essa peça é do adversário.")
+  S -> V: shake(casa)
+  S --> J: aviso e tremor; turno e posição iguais
+else com seleção, clique na casa alvo
+  S -> E: play(origin, target, promotion)
+  alt state não é IN_PROGRESS
+    E --> S: ok=False, GAME_NOT_ACTIVE
+  else partida ativa
+    E -> B: piece_at(origin)
+    alt sem peça na origem
+      E --> S: ok=False, NO_PIECE
+    else peça de quem não joga
+      E --> S: ok=False, NOT_YOUR_TURN
+    else padrão de movimento inválido
+      E -> P: pseudo_legal_moves(board, origin)
+      P --> E: lista sem o alvo
+      E --> S: ok=False, ILLEGAL_MOVE
+    else jogada expõe o próprio rei
+      E -> R: leaves_king_in_check(board, move)
+      R -> B: apply(move), is_attacked, undo()
+      R --> E: True
+      E --> S: ok=False, LEAVES_KING_IN_CHECK
+    else promoção sem peça escolhida
+      E --> S: ok=False, PROMOTION_REQUIRED
+    else jogada legal
+      E -> B: apply(move)
+      B --> E: AppliedMove
+      E -> E: captured, increment, history, _finish_if_over
+      E --> S: ok=True, move, san, result
+    end
+  end
+  S -> S: _set_selection(None)
+  alt outcome.ok
+    S -> V: start_move(outcome)
+    S --> J: peça voa; o relógio do adversário corre quando ela pousa
+  else recusada
+    S -> N: show(error.message)
+    S -> V: shake(target)
+    S --> J: aviso com a mensagem do motor
+  end
+end
+@enduml
