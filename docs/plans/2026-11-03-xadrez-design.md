@@ -151,21 +151,27 @@ rotation_y(a), rotation_z(a), compose(*matrices), look_at(eye, target, up),
 perspective(fov_y, aspect, near, far), viewport(x, y, w, h),
 planar_shadow(light_dir, plane_y=0.0), transform_points(m, points) -> (N, 3)
 square_to_world(file, rank) -> (x, 0, z); world_to_square(x, z) -> (file, rank) | None
+piece_matrix(file, rank, facing=0.0)   # matriz-modelo de peça parada; em cache, somente leitura
 
 # camera.py
 class Camera:
-    def __init__(self, viewport=(0, 0, 1280, 720), yaw=0.0, pitch=radians(52), distance=11.5, fov_y=radians(38))
+    # distance e fov_y padrão mudaram de 11.5 e 38 graus: daquele jeito a borda do tabuleiro saía da tela.
+    def __init__(self, viewport=(0, 0, 1280, 720), yaw=0.0, pitch=radians(52), distance=16.5, fov_y=radians(30), target=None)
     set_viewport(x, y, w, h); view_matrix; projection_matrix
     project(points) -> (pontos_tela (N, 2), profundidade (N,))
-    screen_ray(sx, sy) -> (origem, direção)
+    screen_ray(sx, sy) -> (origem, direção)   # dois Vector3D
     pick_plane(sx, sy, plane_y=0.0) -> (x, z) | None
-    pick_square(sx, sy) -> (file, rank) | None
-    orbit_to(yaw, duration); orbit_by(dyaw, dpitch); zoom_by(factor); update(dt); is_moving
+    pick_square(sx, sy) -> (file, rank) | None   # None fora do viewport ou do tabuleiro
+    pick_piece(sx, sy, pieces) -> (file, rank) | None   # pieces: (file, rank, altura); ver abaixo
+    orbit_to(yaw, duration=0.8); orbit_by(dyaw, dpitch=0.0); zoom_by(factor); update(dt); is_moving
+    view_projection_matrix; viewport_matrix; eye; yaw; pitch; distance; viewport; revision
 
 # mesh.py e models.py
-class Mesh:   # vertices (N, 3), faces, face_normals, face_centers
+class Mesh:   # vertices (N, 3), faces (M, 4), face_normals, face_centers, face_shades, face_neighbors,
+              # height, radius, transformed(matrix). Triângulo repete o último índice.
 lathe(profile, segments), extrude(polygon_2d, depth), box(w, h, d), merge(*meshes)
 PIECE_KINDS; build_piece_meshes() -> dict[str, Mesh]
+IVORY; EBONY; FACING_WHITE; FACING_BLACK   # cor das peças e `facing` por lado
 
 # lighting.py
 class DirectionalLight:  # direction, color, ambient, diffuse; shade(normals, base_color) -> cores
@@ -173,20 +179,25 @@ class DirectionalLight:  # direction, color, ambient, diffuse; shade(normals, ba
 # color_matrix.py: requisito "indicação por matriz de cores"
 class CellState(IntEnum):  # NONE, LAST_MOVE, PATH, CAPTURE, THREAT, CHECK, SELECTED, CURSOR (prioridade crescente)
 class ColorMatrix:
+    def __init__(self, light_square=..., dark_square=..., palette=None)   # o tema da Interface entra aqui
     states: numpy (8, 8) uint8 indexado por [file, rank]
     clear(), set(file, rank, state), set_many(squares, state), state_at(file, rank)
+    # set mantém o estado de maior prioridade; NONE sempre limpa; casa inválida é ignorada
     rgb(time=0.0) -> numpy (8, 8, 3) uint8   # base do tabuleiro + paleta + pulso por estado
 
 # animation.py
 easing: linear, ease_in_out_cubic, ease_out_back, ease_out_bounce
 class Tween: start, end, duration, easing; update(dt), value, is_done
-class PieceAnimation:   # arco de movimento: model_matrix() compõe translação + rotação + escala
-class CaptureAnimation; class SpawnAnimation; class KingFallAnimation
+# Todas têm update(dt), progress, is_done e model_matrix(). `square` é (file, rank).
+class PieceAnimation(origin, target, duration=0.38, arc_height=None, facing=0.0)  # arco: translação + rotação + escala
+class CaptureAnimation(square, duration=0.45, facing=0.0)
+class SpawnAnimation(square, duration=0.45, facing=0.0)
+class KingFallAnimation(square, direction=(1.0, 0.0), duration=0.95, base_radius=0.34, facing=0.0)
 
 # particles.py
 class ParticleSystem:
-    def __init__(self, capacity=2000, gravity=-9.8, floor_y=0.0, restitution=0.45, seed=None)
-    emit(position, count, color, speed, life, size)
+    def __init__(self, capacity=2000, gravity=-9.8, floor_y=0.0, restitution=0.45, seed=None, drag=0.55)
+    emit(position, count, color, speed, life, size, bias=(0, 0, 0))   # speed, life e size aceitam (mín, máx)
     capture_burst(position, color); trail(position, color); victory_fireworks(position, colors)
     update(dt)              # gravidade, arrasto, colisão com o piso por reflexão do vetor velocidade
     alive_count; positions; colors; sizes; alphas
@@ -197,8 +208,22 @@ class Renderer3D:
     begin(surface); draw_board(rgb_matrix); add_mesh(mesh, model_matrix, color, tint=None, tint_amount=0.0, cast_shadow=True)
     add_marker(file, rank, kind, color)    # ponto = caminho; anel = captura (forma, além de cor)
     add_particles(system); flush()         # sombras, ordenação do pintor, desenho
-    render_icon(mesh, color, size) -> pygame.Surface
+    render_icon(mesh, color, size) -> pygame.Surface   # em cache
+    light; polygons_drawn; sprites_built
+# kind: MARKER_DOT, MARKER_RING, MARKER_CORNERS (cursor e seleção), MARKER_TRIANGLE (ameaça).
+# color de marcador aceita alpha: (r, g, b, a).
+
+# board_model.py e backdrop.py: geometria do tabuleiro e fundo procedural, internos ao renderizador.
 ```
+
+`pick_piece`: em ângulo, a cabeça de uma peça cobre a casa de trás na tela. `pick_square` só olha
+o plano do tabuleiro, então clicar na cabeça escolhe a casa errada. Para selecionar peças, a
+Interface deve chamar `pick_piece` com as peças visíveis (altura em `meshes[kind].height`). Se o
+raio não tocar nenhuma, ela cai em `pick_square`.
+
+Cache do renderizador: `add_mesh` compara malha, matriz e cor com o quadro anterior. Reenviar a
+mesma peça a cada quadro é barato. A primeira vez que a câmera para, a camada do tabuleiro e os
+sprites são refeitos em alguns quadros.
 
 ## 6. Contrato de `xadrez.ui`
 

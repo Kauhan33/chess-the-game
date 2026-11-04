@@ -1,0 +1,87 @@
+"""Computação gráfica do jogo: pipeline 3D próprio, feito com numpy e pygame."""
+from xadrez.graphics.animation import (
+    CaptureAnimation,
+    KingFallAnimation,
+    PieceAnimation,
+    SpawnAnimation,
+    Tween,
+    ease_in_out_cubic,
+    ease_out_back,
+    ease_out_bounce,
+    linear,
+)
+from xadrez.graphics.camera import Camera
+from xadrez.graphics.color_matrix import CellState, ColorMatrix
+from xadrez.graphics.lighting import DirectionalLight
+from xadrez.graphics.matrix import (
+    compose,
+    identity,
+    look_at,
+    perspective,
+    piece_matrix,
+    planar_shadow,
+    rotation_x,
+    rotation_y,
+    rotation_z,
+    scaling,
+    square_to_world,
+    transform_points,
+    translation,
+    viewport,
+    world_to_square,
+)
+from xadrez.graphics.mesh import Mesh, box, extrude, lathe, merge
+from xadrez.graphics.models import EBONY, FACING_BLACK, FACING_WHITE, IVORY, PIECE_KINDS, build_piece_meshes
+from xadrez.graphics.particles import ParticleSystem
+from xadrez.graphics.renderer import MARKER_CORNERS, MARKER_DOT, MARKER_RING, MARKER_TRIANGLE, Renderer3D
+from xadrez.graphics.vector import Vector2D, Vector3D
+
+__all__ = [
+    "CaptureAnimation",
+    "Camera",
+    "CellState",
+    "ColorMatrix",
+    "DirectionalLight",
+    "EBONY",
+    "FACING_BLACK",
+    "FACING_WHITE",
+    "IVORY",
+    "KingFallAnimation",
+    "MARKER_CORNERS",
+    "MARKER_DOT",
+    "MARKER_RING",
+    "MARKER_TRIANGLE",
+    "Mesh",
+    "PIECE_KINDS",
+    "ParticleSystem",
+    "PieceAnimation",
+    "Renderer3D",
+    "SpawnAnimation",
+    "Tween",
+    "Vector2D",
+    "Vector3D",
+    "box",
+    "build_piece_meshes",
+    "compose",
+    "ease_in_out_cubic",
+    "ease_out_back",
+    "ease_out_bounce",
+    "extrude",
+    "identity",
+    "lathe",
+    "linear",
+    "look_at",
+    "merge",
+    "perspective",
+    "piece_matrix",
+    "planar_shadow",
+    "rotation_x",
+    "rotation_y",
+    "rotation_z",
+    "scaling",
+    "square_to_world",
+    "transform_points",
+    "translation",
+    "viewport",
+    "world_to_square",
+]
