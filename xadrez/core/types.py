@@ -104,6 +104,7 @@ class EndReason(Enum):
     TIMEOUT = "Tempo esgotado"
     RESIGNATION = "Desistência"
     AGREEMENT = "Empate por acordo"
+    ABANDONMENT = "Adversário desconectou"
 
     @property
     def label(self) -> str:

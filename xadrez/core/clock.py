@@ -21,6 +21,8 @@ class TimeControl:
     BLITZ_5: ClassVar[TimeControl]
     RAPID_10: ClassVar[TimeControl]
     CLASSIC_30: ClassVar[TimeControl]
+    BLITZ_3_2: ClassVar[TimeControl]
+    CLASSIC_15_10: ClassVar[TimeControl]
 
     def __post_init__(self) -> None:
         if self.minutes < 0 or self.increment < 0:
@@ -35,6 +37,8 @@ TimeControl.UNLIMITED = TimeControl(0)
 TimeControl.BLITZ_5 = TimeControl(5)
 TimeControl.RAPID_10 = TimeControl(10)
 TimeControl.CLASSIC_30 = TimeControl(30)
+TimeControl.BLITZ_3_2 = TimeControl(3, 2)
+TimeControl.CLASSIC_15_10 = TimeControl(15, 10)
 
 
 class ChessClock:

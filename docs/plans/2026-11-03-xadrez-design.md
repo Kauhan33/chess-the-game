@@ -426,6 +426,10 @@ def game_to_pgn(engine: GameEngine, event: str = "Chess - The Game", date: str |
 # engine.py: GameEngine ganha abandon(color) -> GameResult e final_fen -> str
 ```
 
+Acréscimos feitos na implementação: `search_board.py` (tabuleiro compacto de inteiros, só para a busca, provado pelos mesmos perft do motor) e `evaluation.py`; `analyze` e `SearchReport`; `Board.copy()`, `Board.undoable_moves` e `GameEngine.start_fen`.
+
+**CPU em thread, não em processo.** Medido com a cena de `tools/benchmark.py`: thread com o intervalo padrão do Python deixa a tela em 9,5 FPS; com `sys.setswitchinterval(0.0002)` durante a busca, 58,7 FPS (58,9 sem CPU); com a câmera girando, é preciso também dormir 1 ms em cada `should_stop`. Processo separado daria 58,7 FPS com mais nós por segundo, mas exigiria `multiprocessing` e `freeze_support` no executável, um risco a mais na demonstração. Regra: copiar o tabuleiro com `board.copy()` na thread principal, antes de iniciar a thread, porque `legal_moves_from` faz `apply` e `undo` temporários no tabuleiro real.
+
 ### 10.3 Contrato de `xadrez.data`
 
 ```python
@@ -459,7 +463,7 @@ Regras: escrita atômica (arquivo temporário e troca). Arquivo corrompido não 
 
 ```python
 # room_code.py
-def encode_room_code(ipv4: str) -> str      # 7 caracteres: IPv4 (32 bits) em base 32, sem letras ambíguas, com 3 bits de conferência
+def encode_room_code(ipv4: str) -> str      # 7 caracteres: ip * 6 + conferência, em base 31 (sem 0, O, 1, I, L)
 def decode_room_code(code: str) -> str      # levanta ValueError com mensagem em pt-BR se o código for inválido
 def local_ipv4() -> str                     # IP desta máquina na rede local, sem enviar pacote
 

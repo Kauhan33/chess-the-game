@@ -248,6 +248,20 @@ class GameEngine:
     def agree_draw(self) -> GameResult:
         return self._finish(GameResult(None, EndReason.AGREEMENT))
 
+    def abandon(self, color: Color) -> GameResult:
+        """Quem abandona a partida (queda de rede) perde. Partida já encerrada não muda de resultado."""
+        return self._finish(GameResult(color.opposite, EndReason.ABANDONMENT))
+
+    @property
+    def start_fen(self) -> str:
+        """FEN de onde a partida começou, a base para refazer os lances do PGN."""
+        return self._start_fen
+
+    @property
+    def final_fen(self) -> str:
+        """FEN da posição atual: ao fim da partida, é a posição final guardada no histórico."""
+        return self.board.to_fen()
+
     def restart(self) -> None:
         """Volta à posição de partida com as mesmas cores. A partida abandonada não soma pontos."""
         self._begin_game()

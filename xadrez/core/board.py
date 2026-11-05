@@ -72,6 +72,24 @@ class Board:
     def initial(cls) -> Board:
         return cls.from_fen(STARTING_FEN)
 
+    def copy(self) -> Board:
+        """Cópia independente, com o histórico. Peças e registros são compartilhados: ninguém os altera."""
+        clone = Board.__new__(Board)
+        clone.grid = [column[:] for column in self.grid]
+        clone.turn = self.turn
+        clone.castling_rights = self.castling_rights
+        clone.en_passant_target = self.en_passant_target
+        clone.halfmove_clock = self.halfmove_clock
+        clone.fullmove_number = self.fullmove_number
+        clone._king_squares = dict(self._king_squares)
+        clone._applied = self._applied[:]
+        return clone
+
+    @property
+    def undoable_moves(self) -> int:
+        """Quantas jogadas `undo` ainda consegue desfazer."""
+        return len(self._applied)
+
     @classmethod
     def from_fen(cls, fen: str) -> Board:
         """Monta o tabuleiro a partir de um FEN. FEN malformado ou impossível levanta ValueError."""
