@@ -379,3 +379,163 @@ Um agente escrevendo por conjunto de arquivos. QA só lê, em cópia congelada.
 
 Testes passando, cobertura medida, jogo executado de verdade, prints olhados, varredura
 de dados pessoais limpa e documentação coerente com o código.
+
+## 10. Versão 1.1: modos, CPU, rede, contas e histórico
+
+Tudo das seções anteriores continua valendo. O jogo existente é mantido, e o modo Treinamento é o padrão.
+
+Decisões do grupo:
+
+- **Modos:** Treinamento mostra tudo, como na versão 1.0. Partida não mostra caminhos, capturas, ameaças nem avisos de xeque. Nos dois, as regras são as oficiais: lance ilegal é recusado. Na Partida, a recusa não explica o motivo, para não virar dica.
+- **CPU:** níveis Easy, Medium, Hard e Hardcore, com a cor escolhida pelo jogador.
+- **Rede:** só rede local, sem servidor: um cria a sala e o outro digita um código de 7 letras.
+- **Contas:** login com senha, guardado neste computador, com "Jogar como convidado". Convidado não grava histórico.
+
+No modo Partida ficam só os indicadores neutros, que dizem o que aconteceu e não o que fazer: a peça selecionada, o cursor e o último lance. A planilha do HUD omite `+` e `#` enquanto a partida corre. O PGN guarda a notação completa.
+
+### 10.1 Novas camadas
+
+```
+xadrez/
+├── core/    + ai.py (CPU), pgn.py. Continua Python puro.
+├── data/    contas e histórico em disco. Python puro: sem pygame e sem numpy.
+├── net/     sala em rede local por socket. Python puro: sem pygame e sem numpy.
+├── graphics/
+└── ui/      liga tudo.
+```
+
+Regra de dependência: `core` e `graphics` seguem como estão, sem conhecer as outras camadas. `data` pode importar `core`. `net` pode importar `core`. `ui` importa todas. `tests/test_arquitetura.py` passa a conferir `data` e `net`.
+
+### 10.2 Contrato de `xadrez.core`: acréscimos
+
+```python
+# ai.py
+class Difficulty(Enum):   # EASY, MEDIUM, HARD, HARDCORE
+                          # .label = "Easy", "Medium", "Hard", "Hardcore"; .description em pt-BR
+def choose_move(board: Board, difficulty: Difficulty, rng: random.Random | None = None,
+                should_stop: Callable[[], bool] | None = None, max_seconds: float | None = None) -> Move
+    # Devolve sempre uma jogada legal. Não altera `board`: trabalha em uma cópia, para poder rodar em outra thread.
+    # `should_stop` cancela a busca. `max_seconds` limita o tempo, para a CPU não perder no relógio.
+
+# pgn.py
+def game_to_pgn(engine: GameEngine, event: str = "Chess - The Game", date: str | None = None) -> str
+    # PGN válido: cabeçalhos White, Black, Result, Date, TimeControl e, se preciso, SetUp e FEN.
+
+# types.py: EndReason ganha ABANDONMENT ("Adversário desconectou")
+# clock.py: TimeControl ganha BLITZ_3_2, CLASSIC_15_10. Os presets antigos continuam.
+# engine.py: GameEngine ganha abandon(color) -> GameResult e final_fen -> str
+```
+
+### 10.3 Contrato de `xadrez.data`
+
+```python
+# paths.py
+def data_dir() -> Path    # %APPDATA%/ChessTheGame, ~/Library/Application Support/ChessTheGame ou ~/.local/share/chess-the-game
+                          # A variável de ambiente CHESS_THE_GAME_DATA substitui o local: é o que os testes usam.
+
+# accounts.py
+class AccountError(Exception): ...   # mensagem em pt-BR, pronta para a tela
+class AccountStore:
+    def __init__(self, directory: Path | None = None)
+    def create(self, username: str, password: str) -> None     # 3 a 16 caracteres; senha de no mínimo 8
+    def authenticate(self, username: str, password: str) -> bool
+    def usernames(self) -> list[str]
+    # PBKDF2-HMAC-SHA256 com sal por usuário. Nunca grava a senha. Nome sem diferenciar maiúsculas.
+
+# history.py
+@dataclass(frozen=True)
+class MatchRecord:        # played_at (ISO), opponent, opponent_kind ("local", "cpu", "rede"), difficulty | None, color,
+                          # outcome ("vitoria", "derrota", "empate"), reason, moves, seconds, time_control, mode, pgn, final_fen
+class HistoryStore:
+    def __init__(self, username: str, directory: Path | None = None)
+    def add(self, record: MatchRecord) -> None     # mantém as 50 mais recentes
+    def records(self) -> list[MatchRecord]         # mais recente primeiro
+    def stats(self) -> HistoryStats                # played, wins, losses, draws
+```
+
+Regras: escrita atômica (arquivo temporário e troca). Arquivo corrompido não derruba o jogo: é guardado com outro nome, e a lista começa vazia. Nada disso vai para o repositório.
+
+### 10.4 Contrato de `xadrez.net`
+
+```python
+# room_code.py
+def encode_room_code(ipv4: str) -> str      # 7 caracteres: IPv4 (32 bits) em base 32, sem letras ambíguas, com 3 bits de conferência
+def decode_room_code(code: str) -> str      # levanta ValueError com mensagem em pt-BR se o código for inválido
+def local_ipv4() -> str                     # IP desta máquina na rede local, sem enviar pacote
+
+# session.py
+DEFAULT_PORT = 50507
+class HostSession:
+    def __init__(self, name: str, time_control: TimeControl, port: int = DEFAULT_PORT, bind: str = "0.0.0.0")
+    code: str; start(); poll() -> list[NetEvent]; send_*(...); close()
+class ClientSession:
+    def __init__(self, name: str, code_or_host: str, port: int = DEFAULT_PORT, timeout: float = 5.0)
+    start(); poll() -> list[NetEvent]; send_*(...); close()
+# Comum: send_move(uci, clock_ms), send_resign(), send_draw_offer(), send_draw_answer(accept), send_rematch(), send_bye()
+# NetEvent: PeerJoined(name), GameStart(white, black, your_color, minutes, increment), MoveReceived(uci, clock_ms),
+#           PeerResigned(), DrawOffered(), DrawAnswered(accept), RematchRequested(), PeerLeft(reason), NetworkError(message)
+```
+
+Protocolo: uma mensagem JSON por linha, com versão. Quem cria a sala joga de brancas. Uma thread cuida do socket e entrega os eventos a `poll()`: a interface nunca bloqueia. Sinal de vida a cada 2 s, e 8 s sem resposta viram `PeerLeft`.
+
+Segurança, porque a entrada vem da rede e não é confiável: só JSON, nunca `pickle` ou `eval`; linha de no máximo 4096 bytes; tipos conferidos; mensagem inválida encerra a conexão; o segundo a tentar entrar é recusado; a porta só fica aberta enquanto a sala existe. Quem recebe uma jogada a valida no próprio `GameEngine` antes de aceitar: jogada ilegal do outro lado encerra a sala.
+
+### 10.5 Contrato de `xadrez.ui`: acréscimos
+
+```python
+class LoginScene        # entrar, criar conta, jogar como convidado
+class MenuScene         # abas Jogar e Meu histórico; adversário, nível, cor, modo e tempo
+class LobbyScene        # sala em rede: código grande, copiar convite, aguardando; ou digitar o código
+class HistoryScene      # estatísticas, lista, detalhes, copiar PGN (ou aba dentro do menu)
+class GameMode(Enum)    # TRAINING, MATCH, em match.py
+class CpuPlayer         # roda choose_move fora do quadro; a tela não pode travar
+MatchOptions            # ganha mode, opponent_kind, difficulty, human_color
+GameScene               # copiar PGN, virar tabuleiro, arrastar peça, indicador "CPU pensando"
+```
+
+### 10.6 Identificadores novos
+
+| ID | Requisito |
+|---|---|
+| RF17 | Oferecer os modos Treinamento e Partida |
+| RF18 | Jogar contra a CPU nos níveis Easy, Medium, Hard e Hardcore, escolhendo a cor |
+| RF19 | Jogar em rede local por sala com código de 7 letras |
+| RF20 | Entrar com conta e senha, criar conta ou jogar como convidado |
+| RF21 | Guardar as últimas 50 partidas da conta, com estatísticas, PGN e FEN final |
+| RF22 | Copiar o PGN da partida |
+| RF23 | Arrastar a peça para jogar e virar o tabuleiro |
+| RF24 | Oferecer os tempos Blitz 3+2, Rápida 10+0 e Clássica 15+10 |
+| RNF08 | Segurança: senha nunca gravada em claro; entrada da rede tratada como não confiável |
+| RNF09 | A CPU pensando não pode derrubar os 60 FPS |
+
+Casos de uso novos: UC10 Jogar contra a CPU; UC11 Criar sala em rede; UC12 Entrar em sala; UC13 Entrar na conta; UC14 Consultar histórico; UC15 Copiar PGN.
+
+Casos de teste novos: motor e IA de CT-70 a CT-79; dados de CT-80 a CT-84; rede de CT-85 a CT-89; interface de CT-90 a CT-99; ataques do QA a partir de CT-100.
+
+| ID | Foco | RF |
+|---|---|---|
+| CT-70 | CPU sempre devolve jogada legal, sem alterar o tabuleiro | RF18 |
+| CT-71 | CPU acha mate em 1 nos níveis Medium, Hard e Hardcore | RF18 |
+| CT-72 | CPU acha mate em 2 nos níveis Hard e Hardcore | RF18 |
+| CT-73 | CPU não entrega a dama de graça a partir do Medium | RF18 |
+| CT-74 | A força cresce com o nível, em partidas entre os níveis | RF18 |
+| CT-75 | Cancelamento e limite de tempo da busca são respeitados | RF18, RNF09 |
+| CT-76 | PGN válido, com resultado e cabeçalhos | RF21, RF22 |
+| CT-77 | Tempos com incremento | RF24 |
+| CT-80 | Conta: criar, entrar, recusar senha errada e nome repetido | RF20 |
+| CT-81 | Senha nunca aparece no arquivo | RNF08 |
+| CT-82 | Histórico: mantém 50, ordem e estatísticas | RF21 |
+| CT-83 | Arquivo corrompido não derruba o jogo | RF20, RF21 |
+| CT-85 | Código de sala: ida e volta, e recusa de código inválido | RF19 |
+| CT-86 | Partida inteira entre duas sessões por socket | RF19 |
+| CT-87 | Queda de conexão vira evento, sem travar | RF19 |
+| CT-88 | Mensagens inválidas e maliciosas são recusadas | RF19, RNF08 |
+| CT-90 | Modo Partida esconde caminhos, ameaças e xeque; Treinamento mostra | RF17 |
+| CT-91 | Partida contra a CPU até o fim, por eventos | RF18 |
+| CT-92 | CPU pensando não bloqueia a entrada nem o desenho | RF18, RNF09 |
+| CT-93 | Login, criação de conta e convidado | RF20 |
+| CT-94 | Partida encerrada entra no histórico da conta | RF21 |
+| CT-95 | Duas instâncias do jogo em rede, por eventos | RF19 |
+| CT-96 | Arrastar a peça para jogar | RF23 |
+| CT-97 | Virar o tabuleiro mantém o clique correto | RF23 |
+| CT-98 | Copiar PGN | RF22 |
