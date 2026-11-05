@@ -36,13 +36,21 @@ def pytest_runtest_makereport(item, call):
         tests.append({"test": report.nodeid, "outcome": report.outcome, "seconds": round(report.duration, 4)})
 
 
+def _case_status(tests):
+    """Teste pulado não é falha (por exemplo, o que só vale em POSIX), mas um caso todo pulado não passou."""
+    outcomes = {test["outcome"] for test in tests}
+    if "failed" in outcomes:
+        return "FALHOU"
+    return "PASSOU" if "passed" in outcomes else "PULADO"
+
+
 def pytest_sessionfinish(session):
     destination = session.config.getoption("--ct-report")
     if not destination:
         return
     cases = {
         case_id: {
-            "status": "PASSOU" if all(t["outcome"] == "passed" for t in tests) else "FALHOU",
+            "status": _case_status(tests),
             "tests": tests,
         }
         for case_id, tests in sorted(session.config._ct_results.items())

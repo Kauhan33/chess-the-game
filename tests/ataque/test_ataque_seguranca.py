@@ -1,6 +1,7 @@
 """Varredura estática: segurança, privacidade e compatibilidade do código e dos arquivos do repositório.
 
-CT-65: jogo sem rede, sem execução dinâmica e sem escrita em disco; só ferramentas e testes gravam, onde pedimos.
+CT-65: sem execução dinâmica em lugar nenhum. Rede só em `xadrez/net/`, e escrita em disco só em `xadrez/data/` e nas
+ferramentas e testes, onde pedimos. O resto do jogo continua sem nenhum dos dois.
 CT-66: PNG sem metadados de texto, autoria dos commits só com e-mail noreply e nenhum e-mail ou caminho pessoal em arquivo.
 CT-67: todos os módulos valem como Python 3.10, sem biblioteca padrão mais nova, e o que é de Windows fica protegido.
 
@@ -24,13 +25,23 @@ TEST_FILES = sorted(path for path in (ROOT / "tests").rglob("*.py") if "ataque" 
 ALL_PY = GAME_FILES + TOOL_FILES + TEST_FILES
 
 FORBIDDEN_IMPORTS = {
-    "socket", "ssl", "http", "urllib", "ftplib", "smtplib", "telnetlib", "xmlrpc", "requests", "asyncio",
-    "subprocess", "multiprocessing", "pickle", "marshal", "shelve", "dbm", "sqlite3", "tempfile", "webbrowser",
+    "socket", "socketserver", "select", "selectors", "ssl", "http", "urllib", "ftplib", "smtplib", "telnetlib", "xmlrpc",
+    "requests", "asyncio", "subprocess", "multiprocessing", "pickle", "marshal", "shelve", "dbm", "sqlite3", "tempfile",
+    "webbrowser",
 }
 # Geram a documentação: chamam Java, navegador, pytest e gh de propósito, e nada disso vai no jogo.
 DOCUMENT_TOOLS = {"capturar_kanban.py", "gerar_documentacao.py", "gerar_pdf.py", "gerar_uml.py", "preparar_github.py", "relatorio_testes.py"}
+# Exceção estreita, por camada: cada uma só libera o mínimo do próprio trabalho, e nunca `pickle` e afins.
+LAYER_ALLOWED_IMPORTS = {"net": {"socket", "selectors"}, "data": {"tempfile"}}
+# Threads só onde há espera de verdade: a rede (10.4) e a CPU pensando fora do quadro (`CpuPlayer`, 10.5). Motor, gráficos
+# e dados rodam no quadro de quem chama.
+THREAD_FREE_LAYERS = {"core", "graphics", "data"}
+THREAD_IMPORTS = {"threading", "_thread", "concurrent"}
+NET_DIRECTORY = ROOT / "xadrez" / "net"
+DATA_DIRECTORY = ROOT / "xadrez" / "data"
 FORBIDDEN_CALLS = {"eval", "exec", "compile", "__import__", "open"}
-WRITE_METHODS = {"write_text", "write_bytes", "mkdir", "unlink", "rmdir", "rename", "touch"}
+WRITE_METHODS = {"write_text", "write_bytes", "mkdir", "makedirs", "unlink", "rmdir", "rename", "touch", "fdopen", "mkstemp", "mkdtemp"}
+PICKLE_LIKE = {"pickle", "marshal", "shelve", "dbm"}
 NEWER_STDLIB = {"tomllib", "wsgiref.types", "asyncio.taskgroups"}
 NEWER_NAMES = {
     ("enum", "StrEnum"), ("enum", "ReprEnum"), ("typing", "Self"), ("typing", "LiteralString"), ("typing", "Never"),
@@ -58,6 +69,16 @@ def imported_modules(tree: ast.AST) -> set[str]:
     return modules
 
 
+def called_methods(tree: ast.AST) -> set[str]:
+    return {node.func.attr for node in ast.walk(tree) if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)}
+
+
+def game_layer(path: Path) -> str | None:
+    """Nome da camada do jogo a que o arquivo pertence; None para as ferramentas, fora de `xadrez/`."""
+    relative = path.relative_to(ROOT)
+    return relative.parts[1] if relative.parts[0] == "xadrez" and len(relative.parts) > 2 else None
+
+
 def repository_text_files() -> list[Path]:
     """Só o que o git publicaria. Sem git, os arquivos de texto do projeto, menos os testes deste ataque."""
     git = shutil.which("git")
@@ -75,6 +96,7 @@ def test_ataque_sem_rede_nem_execucao_dinamica(path):
     tree = parsed(path)
     roots = {name.split(".")[0] for name in imported_modules(tree)}
     forbidden = FORBIDDEN_IMPORTS - {"subprocess"} if path.name in DOCUMENT_TOOLS else FORBIDDEN_IMPORTS
+    forbidden = forbidden - LAYER_ALLOWED_IMPORTS.get(game_layer(path), set())
     assert not roots & forbidden, f"importa {roots & forbidden}"
     called = {node.func.id for node in ast.walk(tree) if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)}
     assert not called & FORBIDDEN_CALLS, f"chama {called & FORBIDDEN_CALLS}"
@@ -82,9 +104,44 @@ def test_ataque_sem_rede_nem_execucao_dinamica(path):
 
 @pytest.mark.ct("CT-65")
 @pytest.mark.parametrize("path", GAME_FILES, ids=lambda path: path.relative_to(ROOT).as_posix())
+def test_ataque_threads_so_onde_ha_espera_de_verdade(path):
+    if game_layer(path) in THREAD_FREE_LAYERS:
+        roots = {name.split(".")[0] for name in imported_modules(parsed(path))}
+        assert not roots & THREAD_IMPORTS, f"importa {roots & THREAD_IMPORTS}"
+
+
+@pytest.mark.ct("CT-65")
+def test_ataque_camadas_novas_nunca_usam_pickle_nem_comando():
+    for directory in (NET_DIRECTORY, DATA_DIRECTORY):
+        for path in sorted(directory.rglob("*.py")):
+            roots = {name.split(".")[0] for name in imported_modules(parsed(path))}
+            assert not roots & (PICKLE_LIKE | {"subprocess"}), path
+            source = path.read_text(encoding="utf-8")
+            assert "os.system" not in source and "os.popen" not in source, path
+
+
+@pytest.mark.ct("CT-65")
+def test_ataque_a_excecao_de_rede_e_de_disco_vale_so_para_a_propria_camada():
+    """Trava a própria regra: abrir a exceção para outra camada precisa aparecer aqui, de propósito."""
+    assert LAYER_ALLOWED_IMPORTS == {"net": {"socket", "selectors"}, "data": {"tempfile"}}
+    socket_users = {
+        game_layer(path) for path in GAME_FILES if {"socket", "selectors"} & {name.split(".")[0] for name in imported_modules(parsed(path))}
+    }
+    disk_users = {path.parent.name for path in GAME_FILES if WRITE_METHODS & called_methods(parsed(path))}
+    assert socket_users <= {"net"}
+    assert disk_users <= {"data"}
+
+
+@pytest.mark.ct("CT-65")
+@pytest.mark.parametrize(
+    "path",
+    [path for path in GAME_FILES if game_layer(path) != "data"],
+    ids=lambda path: path.relative_to(ROOT).as_posix(),
+)
 def test_ataque_o_jogo_nao_escreve_em_disco(path):
+    """Só `xadrez/data/` grava, e os testes de lá provam que é só dentro da pasta de dados."""
     tree = parsed(path)
-    methods = {node.func.attr for node in ast.walk(tree) if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)}
+    methods = called_methods(tree)
     assert not methods & WRITE_METHODS, f"usa {methods & WRITE_METHODS}"
     source = path.read_text(encoding="utf-8")
     assert "image.save" not in source, "só a ferramenta de captura grava imagens"

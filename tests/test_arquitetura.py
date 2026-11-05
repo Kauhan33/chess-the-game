@@ -7,8 +7,10 @@ import pytest
 PACKAGE = Path(__file__).resolve().parent.parent / "xadrez"
 
 FORBIDDEN_IMPORTS = {
-    "core": {"pygame", "numpy", "xadrez.graphics", "xadrez.ui"},
-    "graphics": {"xadrez.core", "xadrez.ui"},
+    "core": {"pygame", "numpy", "xadrez.graphics", "xadrez.ui", "xadrez.data", "xadrez.net"},
+    "graphics": {"xadrez.core", "xadrez.ui", "xadrez.data", "xadrez.net"},
+    "data": {"pygame", "numpy", "xadrez.graphics", "xadrez.ui", "xadrez.net"},
+    "net": {"pygame", "numpy", "xadrez.graphics", "xadrez.ui", "xadrez.data"},
 }
 
 
