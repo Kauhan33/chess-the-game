@@ -146,6 +146,87 @@ e a peça que deu o mate ficam marcadas.
 A luz do abajur fica com quem venceu: a placa do resultado acende. No empate ela não fica com
 ninguém: a placa fica na sombra, e os fogos são poucos e em tons neutros.
 
+## Versão 1.1: telas novas, com o mesmo conceito
+
+Nada de tela de formulário solta: login, menu e sala são a mesma mesa, com o tabuleiro girando à
+esquerda e o painel de nogueira à direita. `Tableau` é um só no jogo inteiro, então trocar de tela não
+faz a mesa pular nem refaz o fundo.
+
+- **Controle segmentado (`SegmentedControl`):** adversário, modo, nível e cor mostram todas as opções e
+  acendem a escolhida com a placa de latão. O seletor com setas ficou para o tempo e a câmera, em que
+  a lista não cabe na largura.
+- **Abas (`TabBar`):** só o texto, em serifa, com o filete de latão embaixo da aberta. Assim as abas
+  ficam acima dos campos na hierarquia, sem virar mais uma fileira de botões.
+- **A folha da partida:** abrir uma partida no histórico põe uma folha de papel sobre a mesa, escrita à
+  tinta, com a mesma cor e a mesma sombra da planilha do HUD. A lista continua no painel, e a roda
+  rola o que estiver sob o mouse.
+- **Resultado no histórico:** a etiqueta segue a linguagem da mesa. Vitória é a placa acesa, derrota é
+  a placa vermelha e empate fica na sombra. A palavra está sempre escrita: nunca só a cor (RNF04).
+- **O código da sala é o único elemento grande da tela:** é o que se dita para o outro jogador.
+- **Senha:** o campo desenha pontos como círculos, sem passar pela fonte. Assim a senha nunca entra no
+  cache de texto do tema, e não há glifo ausente em nenhuma máquina.
+
+### Modo Partida
+
+Treinamento é a versão 1.0, sem nenhuma diferença. No modo Partida ficam só a peça selecionada, o cursor
+e o último lance: dizem o que aconteceu, não o que fazer. O modo não calcula ameaças nem xeque por turno.
+A planilha omite `+` e `#` até a partida acabar, e aí mostra a notação completa. Lance ilegal, peça
+do adversário e casa vazia recebem o mesmo "Lance inválido.", sem tremor nem anel, que seria mais um
+marcador. Selecionar uma peça sem jogada não avisa nada. O fim diz o motivo normalmente: depois do mate, o
+rei tomba e a casa dele é marcada, porque a partida já acabou e isso não é mais dica. O painel F4 lê a
+mesma matriz de cores, então também não revela nada.
+
+### Contra a CPU e em rede
+
+A placa de quem joga acende igual. Na vez da CPU, a etiqueta diz "Pensando", com três pontos que acendem em
+sequência, desenhados a cada quadro: custam três círculos e mostram que ela não travou. A faixa no alto
+diz quem está pensando. Clicar na vez dela dá um aviso curto e não muda nada.
+
+O giro por turno só existe em 2 jogadores. Contra a CPU e em rede, a câmera fica do lado de quem está
+na tela, e "Virar" (tecla F) dá meia volta quando a pessoa quiser olhar do outro lado. O menu começa em
+Easy: quem nunca jogou contra a CPU começa pelo nível mais fácil.
+
+### Regra do tempo esgotado em rede
+
+Os dois lados precisam chegar ao mesmo resultado, e um relógio visto de longe pode estar errado: a jogada
+do outro pode estar a caminho. Por isso:
+
+1. **Só quem esgota o próprio relógio decide.** Ele perde na hora, pela regra do motor, e avisa o outro lado
+   com `send_resign`.
+2. **Quem recebe esse aviso, com o relógio do outro em até 2 s (`DECLARED_FLAG_WINDOW_SECONDS`), registra tempo
+   esgotado**, pela mesma regra do motor, inclusive o empate quando quem fica só tem o rei. Com mais tempo
+   sobrando no relógio, foi desistência comum.
+3. **O relógio do outro lado, visto daqui, para em zero sem decidir nada.** Uma jogada que chegue nessa hora
+   ainda vale.
+4. **Se passarem 5 s (`REMOTE_FLAG_GRACE_SECONDS`) com esse relógio em zero, sem jogada nem aviso, o outro lado
+   sumiu:** a partida acaba por abandono, e a sala é fechada.
+
+O `clock_ms` que chega pela rede não entra em nenhuma decisão, porque pode ser falso. Limite conhecido da
+regra 2: desistir de propósito nos últimos 2 s, com o adversário só com o rei, vira empate de um lado e
+vitória do outro. É o único caso em que os dois discordam, e só no placar da série daquela sala.
+
+### Arrastar a peça
+
+Apertar em peça própria seleciona. Passando de 6 pixels, a peça vai para um plano um pouco acima do tabuleiro
+e segue o mouse por `Camera.pick_plane`. Só a matriz de modelo muda, sem chamada nova no renderizador.
+Enquanto ela está no ar, fica de fora do `pick`: o que importa é o que há embaixo dela. Soltar em destino válido
+joga, soltar na própria casa mantém a seleção, soltar fora do tabuleiro só devolve, e o resto vai para o motor
+julgar, com a mesma mensagem do clique. Para o clique e o arrasto conviverem, clicar de novo na peça selecionada
+agora desmarca ao soltar o botão, não ao apertar.
+
+### Clique duplo entre telas
+
+O 2º clique de um clique duplo não pode acertar o que apareceu no lugar. A `GameScene` já cuidava disso
+com as sobreposições, e agora o `App` cuida na troca de tela: por 0,25 s, o clique no mesmo lugar do clique que
+trocou a tela (até 3 pixels de distância) é descartado. O menu novo pôs "Iniciar partida" embaixo de "Voltar ao
+menu" da tela de fim, e `tests/ataque` pegou.
+
+### Área de transferência
+
+`pygame.scrap` no Windows usa o texto ANSI do sistema. Conferido em janela real, lendo de volta com outro programa:
+UTF-8 chega como `JoÃ£o`, e o tipo `text/plain;charset=utf-8` chega como caracteres chineses. Por isso, no
+Windows, o texto vai em `mbcs`, com `\r\n`. Sem janela, ou se a cópia falhar, a resposta é um aviso, nunca exceção.
+
 ## Modo didático (F4)
 
 Feito para a defesa oral. Mostra ao vivo a matriz de visão, os estados da matriz de cores em
@@ -174,6 +255,33 @@ janela e sem `display.flip`:
 
 Em 1920x1080, a partida com câmera parada ficou em 3,98 ms de média e 8,09 ms de p99. Com giro por
 turno, 6,77 ms de média e 13,58 ms de p99, com 32 de 3438 quadros acima de 16,67 ms.
+
+### Versão 1.1, com a CPU pensando (RNF09)
+
+`tools/demo_automatica.py --cpu hardcore`, janela real em 1280x720, com `display.flip`. A busca roda em uma thread,
+com `sys.setswitchinterval(0.0002)`, e dorme 1 ms a cada consulta enquanto há animação ou câmera em movimento.
+
+| Cenário, em janela real | Quadros | FPS médio | Intervalo médio | p99 | Máximo |
+|---|---|---|---|---|---|
+| CPU Hardcore pensando, câmera parada | 1204 | 60,0 | 16,66 ms | 18,24 ms | 28,30 ms |
+| Mesma partida, com "Virar" no meio do pensamento: quadros de câmera parada | 948 | 59,2 | 16,88 ms | 29,89 ms | 37,48 ms |
+| Mesma partida: quadros de câmera girando | 238 | 59,5 | 16,80 ms | 24,30 ms | 27,42 ms |
+| Partida de 4 lances, 2 jogadores, sem CPU | 1289 | 60,0 | 16,66 ms | 20,87 ms | 40,27 ms |
+
+Quando a câmera para de girar, a camada do tabuleiro e os sprites são refeitos em alguns quadros: é daí que vem o p99
+maior na segunda linha.
+
+`tools/benchmark_ui.py --seconds 8`, sem janela e sem `display.flip`, depois do HUD com os botões novos, em 1280x720:
+
+| Cenário | Média | p95 | p99 | Máximo |
+|---|---|---|---|---|
+| Partida inteira com câmera parada | 2,10 ms | 3,48 ms | 4,99 ms | 6,81 ms |
+| Partida inteira com giro por turno | 4,26 ms | 7,32 ms | 10,86 ms | 15,40 ms |
+| Câmera em giro contínuo (pior caso) | 6,92 ms | 7,34 ms | 10,51 ms | 10,91 ms |
+| Tela de vitória com fogos | 6,76 ms | 7,25 ms | 10,14 ms | 10,95 ms |
+| CPU Hardcore pensando, câmera parada | 2,69 ms | 3,22 ms | 3,76 ms | 11,04 ms |
+
+As tabelas de antes, acima, são da versão 1.0 e ficam como registro.
 
 **Medição antiga, anterior ao `FramePacer`.** `tools/demo_automatica.py`, janela real em 1280x720, com `display.flip`: 59,1 FPS de média em 1287
 quadros, 16,93 ms de intervalo médio entre quadros e 4,90 ms de trabalho médio por quadro. Dois

@@ -23,9 +23,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import numpy as np
 import pygame
 
-from xadrez.core import TimeControl
+from xadrez.core import Color, Difficulty, TimeControl, legal_moves
 from xadrez.ui import App, MatchOptions
-from xadrez.ui.autoplay import Autoplayer, click_point, post_mouse_move
+from xadrez.ui.autoplay import Autoplayer, click_point, post_key, post_mouse_move
+from xadrez.ui.match import OPPONENT_CPU
 
 SEED = 3
 FRAME_SECONDS = 1.0 / 60.0
@@ -122,6 +123,46 @@ def measure_victory_screen(size: tuple[int, int], seconds: float) -> np.ndarray:
     return np.array(recorder.samples)
 
 
+def measure_cpu_thinking(size: tuple[int, int], seconds: float) -> np.ndarray:
+    """A CPU Hardcore pensa em outra thread e a câmera está parada: é o que o RNF09 pede.
+
+    Cada lance dela leva cerca de 4 s, então o tempo do quadro é real, sem pular: o `dt` é fixo só para o relógio.
+    """
+    app = App(size, seed=SEED)
+    pygame.event.clear()
+    options = MatchOptions("Jogador 1", "Jogador 2", TimeControl.UNLIMITED, False, opponent_kind=OPPONENT_CPU,
+                           difficulty=Difficulty.HARDCORE, human_color=Color.WHITE)
+    app.scene.next_scene = app.game_scene(options.create_engine(), options)
+    app.step(FRAME_SECONDS)
+    scene = app.scene
+    player = Autoplayer(app)
+    player.play("e2e4")
+    post_mouse_move((size[0] - 2, 2))
+    samples: list[float] = []
+    deadline = time.perf_counter() + seconds
+    while time.perf_counter() < deadline:
+        if not scene.cpu.is_thinking:
+            player.settle()
+            play_any_move(player, scene)
+            continue
+        started = time.perf_counter()
+        app.step(FRAME_SECONDS)
+        samples.append((time.perf_counter() - started) * 1000.0)
+    scene.shutdown()
+    return np.array(samples)
+
+
+def play_any_move(player: Autoplayer, scene) -> None:
+    move = next(iter(legal_moves(scene.engine.board)))
+    player.click_square(tuple(move.origin))
+    player.click_square(tuple(move.target))
+    if scene.modals:
+        post_key(pygame.K_1)
+        player.frames(1)
+    post_mouse_move((player.app.size[0] - 2, 2))
+    player.settle()
+
+
 def report(name: str, samples: np.ndarray) -> None:
     print(f"\n{name}")
     print(f"  quadros medidos: {len(samples)}")
@@ -149,6 +190,7 @@ def main() -> None:
     report("Partida inteira com giro por turno", measure_full_game(args.size, auto_rotate=True))
     report("Câmera em giro contínuo (pior caso)", measure_continuous_orbit(args.size, args.seconds))
     report("Tela de vitória com fogos", measure_victory_screen(args.size, args.seconds))
+    report("CPU Hardcore pensando, câmera parada", measure_cpu_thinking(args.size, args.seconds))
     is_within_budget = parked.mean() <= MEAN_BUDGET_MS and np.percentile(parked, 99) < P99_BUDGET_MS
     verdict = "dentro" if is_within_budget else "FORA"
     print(f"\nMeta de câmera parada (média até {MEAN_BUDGET_MS:g} ms, p99 abaixo de {P99_BUDGET_MS:g} ms): {verdict}")

@@ -7,14 +7,19 @@ import time
 
 import pygame
 
-from xadrez.core import GameEngine
+from xadrez.core import GameEngine, Player
+from xadrez.data import HistoryStore
 from xadrez.graphics import IVORY, build_piece_meshes
+from xadrez.ui.arena_scene import Tableau
 from xadrez.ui.board_view import BoardView
 from xadrez.ui.frame_pacer import FramePacer
 from xadrez.ui.game_over_scene import GameOverScene
 from xadrez.ui.game_scene import GameScene
+from xadrez.ui.lobby_scene import LobbyScene
+from xadrez.ui.login_scene import LoginScene
 from xadrez.ui.match import MatchOptions
 from xadrez.ui.menu_scene import MenuScene
+from xadrez.ui.net_link import LanNetwork, NetLink
 from xadrez.ui.scene import Scene
 from xadrez.ui.theme import Theme
 
@@ -25,6 +30,9 @@ FPS = 60
 MAX_FRAME_SECONDS = 0.1
 _FRAME_SMOOTHING = 0.1
 _WINDOW_ICON_SIZE = 64
+_DOUBLE_CLICK_SECONDS = 0.25
+# Um clique duplo de verdade quase não sai do lugar. Um clique rápido em outro botão, logo ao lado, tem de valer.
+_DOUBLE_CLICK_PIXELS = 3
 
 
 def _enable_dpi_awareness() -> None:
@@ -43,12 +51,22 @@ def _bounded_frame_time(dt: float) -> float:
 
 
 class App:
-    def __init__(self, size: tuple[int, int] = WINDOW_SIZE, seed: int | None = None):
+    """O jogo do jogador é `App(require_login=True)`: abre no login, com contas e rede.
+
+    `App()` abre direto no menu, como convidado, sem contas e sem rede: é o que testes e ferramentas usam, e
+    nada ali toca a pasta de dados nem abre uma porta. Os testes de rede passam a própria `network`.
+    """
+
+    def __init__(self, size: tuple[int, int] = WINDOW_SIZE, seed: int | None = None, require_login: bool = False,
+                 network=None):
         _enable_dpi_awareness()
         pygame.init()
         self._flags = pygame.RESIZABLE
         self._windowed_size: tuple[int, int] | None = None
         self.seed = seed
+        self.require_login = require_login
+        self.network = network if network is not None or not require_login else LanNetwork()
+        self.account: str | None = None
         self.screen = pygame.display.set_mode(size, self._flags)
         self.size = self.screen.get_size()
         pygame.display.set_caption(WINDOW_TITLE)
@@ -56,26 +74,43 @@ class App:
         self.theme = Theme()
         self.theme.set_window_size(self.size)
         self.meshes = build_piece_meshes()
+        self.tableau = Tableau(self.meshes)
         self.running = True
         self.fps = 0.0
         self.frame_ms = 0.0
-        self.scene: Scene = self.menu_scene()
+        self._last_press: tuple[int, int] | None = None
+        self._last_press_age = 0.0
+        self._echo_position: tuple[int, int] | None = None
+        self._echo_guard_left = 0.0
+        self.scene: Scene = self.login_scene() if require_login else self.menu_scene()
         self._set_window_icon()
 
     def _set_window_icon(self) -> None:
-        icon = self.scene.renderer.render_icon(self.meshes["knight"], IVORY, _WINDOW_ICON_SIZE)
+        icon = self.tableau.renderer.render_icon(self.meshes["knight"], IVORY, _WINDOW_ICON_SIZE)
         pygame.display.set_icon(icon)
 
+    def history_store(self) -> HistoryStore | None:
+        """O histórico de quem está logado. O convidado não tem."""
+        return HistoryStore(self.account) if self.account else None
+
     # As cenas se chamam em ciclo (menu, partida e fim). Passar pelo App evita importação circular.
+
+    def login_scene(self, start_creating: bool = False) -> LoginScene:
+        return LoginScene(self, start_creating)
 
     def menu_scene(self, defaults: MatchOptions | None = None) -> MenuScene:
         return MenuScene(self, defaults)
 
-    def game_scene(self, engine: GameEngine, options: MatchOptions, view: BoardView | None = None) -> GameScene:
-        return GameScene(self, engine, options, view)
+    def lobby_scene(self, options: MatchOptions, role: str) -> LobbyScene:
+        return LobbyScene(self, options, role)
 
-    def game_over_scene(self, engine: GameEngine, options: MatchOptions, view: BoardView) -> GameOverScene:
-        return GameOverScene(self, engine, options, view)
+    def game_scene(self, engine: GameEngine, options: MatchOptions, view: BoardView | None = None,
+                   local_player: Player | None = None, link: NetLink | None = None) -> GameScene:
+        return GameScene(self, engine, options, view, local_player, link)
+
+    def game_over_scene(self, engine: GameEngine, options: MatchOptions, view: BoardView,
+                        local_player: Player | None = None, link: NetLink | None = None) -> GameOverScene:
+        return GameOverScene(self, engine, options, view, local_player, link)
 
     def step(self, dt: float) -> None:
         """Um quadro completo e determinístico: eventos, tempo e desenho. Quem chama controla o `dt`."""
@@ -83,7 +118,10 @@ class App:
         for event in pygame.event.get():
             self._dispatch(event)
         self._follow_window_size()
-        self.scene.update(_bounded_frame_time(dt))
+        frame_time = _bounded_frame_time(dt)
+        self._echo_guard_left -= frame_time
+        self._last_press_age += frame_time
+        self.scene.update(frame_time)
         self._apply_scene_change()
         self.scene.draw(self.screen)
         elapsed_ms = (time.perf_counter() - started) * 1000.0
@@ -96,8 +134,19 @@ class App:
             self._apply_resize(event.size)
         elif event.type == pygame.KEYDOWN and event.key == pygame.K_F11:
             self._toggle_fullscreen()
-        else:
+        elif not self._is_double_click_echo(event):
             self.scene.handle_event(event)
+
+    def _is_double_click_echo(self, event: pygame.event.Event) -> bool:
+        """O 2º clique de um clique duplo não pode acertar o que apareceu ali na tela nova, como "Iniciar partida"."""
+        if event.type != pygame.MOUSEBUTTONDOWN:
+            return False
+        self._last_press = event.pos
+        self._last_press_age = 0.0
+        echo = self._echo_position
+        if self._echo_guard_left <= 0.0 or echo is None:
+            return False
+        return max(abs(event.pos[0] - echo[0]), abs(event.pos[1] - echo[1])) <= _DOUBLE_CLICK_PIXELS
 
     def _toggle_fullscreen(self) -> None:
         """Tela cheia para o projetor da apresentação, na resolução da tela. Volta ao tamanho de antes."""
@@ -137,6 +186,9 @@ class App:
     def _apply_scene_change(self) -> None:
         if self.scene.next_scene is not None:
             self.scene = self.scene.next_scene
+            # Só o clique que acabou de trocar a tela tem eco: um clique antigo no mesmo lugar não conta.
+            self._echo_position = self._last_press if self._last_press_age <= _DOUBLE_CLICK_SECONDS else None
+            self._echo_guard_left = _DOUBLE_CLICK_SECONDS
             # A janela pode ter mudado de tamanho no mesmo quadro em que a cena nova foi criada.
             self.scene.resize(self.size)
             self.scene.update(0.0)
@@ -155,6 +207,14 @@ class App:
 
     def run(self) -> None:
         self.preload()
-        while self.running:
-            self.run_frame()
-        pygame.quit()
+        try:
+            while self.running:
+                self.run_frame()
+        finally:
+            # Nenhuma thread pode sobrar nem atrasar o fechamento: a cena aberta encerra as dela.
+            self.scene.shutdown()
+            pygame.quit()
+
+
+def main() -> None:
+    App(require_login=True).run()

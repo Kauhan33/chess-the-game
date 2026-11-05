@@ -497,6 +497,14 @@ MatchOptions            # ganha mode, opponent_kind, difficulty, human_color
 GameScene               # copiar PGN, virar tabuleiro, arrastar peça, indicador "CPU pensando"
 ```
 
+Divergências da implementação:
+
+- **Histórico é aba do menu, não `HistoryScene`.** Está em `HistoryPanel` (`history_panel.py`): estatísticas e lista no painel, e a partida aberta como folha de papel sobre a mesa.
+- **`App()` não tem contas nem rede.** Abre no menu como convidado, e "Criar sala" só avisa. O jogo do jogador é `App(require_login=True)`, que é o `main()` de `app.py`. Assim, testes e ferramentas não tocam a pasta de dados nem abrem porta, nem por um clique do macaco. Os testes de rede passam `App(network=...)`, com sessões em `127.0.0.1`. `LoginScene` e `LobbyScene` são cenas à parte, e só existem nesses dois casos.
+- **Ordem dos tempos:** Sem limite, Blitz 3+2, Blitz 5, Rápida 10+0, Clássica 30 e Clássica 15+10. Clássica 30 vem antes de 15+10 porque `tests/ataque/` espera que ela venha logo depois de Rápida 10+0, como na versão 1.0.
+- **Contra a CPU não há "Propor empate".** Não há com quem combinar.
+- **Módulos a mais:** `arena_scene.py` (a mesa ao fundo e a base das telas fora da partida), `clipboard.py`, `cpu_player.py`, `match_record.py` e `net_link.py` (a sessão entre as cenas e as regras da mesa em rede). Tempo esgotado em rede: ver `docs/plans/notas-ui.md`.
+
 ### 10.6 Identificadores novos
 
 | ID | Requisito |

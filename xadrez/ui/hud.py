@@ -15,7 +15,7 @@ from xadrez.core import Color, GameEngine, GameState, PieceType
 from xadrez.graphics import Mesh, Renderer3D
 from xadrez.ui import drawing, theme as tokens
 from xadrez.ui.board_view import PIECE_COLORS
-from xadrez.ui.match import format_clock, format_points
+from xadrez.ui.match import format_clock, format_points, time_control_label, without_check_marks
 from xadrez.ui.theme import PlateStyle, Theme
 from xadrez.ui.widgets import Button
 
@@ -24,8 +24,9 @@ _PANEL_MAX_FRACTION = 0.5
 _PANEL_PADDING = 12
 _CARD_HEIGHT = 152
 _SECTION_GAP = 8
-_BUTTON_HEIGHT = 36
-_BUTTON_GAP = 6
+_BUTTON_HEIGHT = 32
+_BUTTON_GAP = 5
+_INFO_LINE_HEIGHT = 16
 _SHEET_ROW_HEIGHT = 23
 _SHEET_HEADER_HEIGHT = 25
 _SHEET_MIN_HEIGHT = 48
@@ -36,10 +37,17 @@ _HOURS_CLOCK_FONT_SIZE = 44
 _MINUTES_CLOCK_LENGTH = len("00:00")
 _GLOW_MARGIN = 26
 _GLOW_PEAK_ALPHA = 92
-_SHEET_PLATE = PlateStyle(tokens.PAPER, (224, 210, 178), tokens.PAPER_RULE, 1)
+_THINKING_DOTS = 3
+_THINKING_DOT_SECONDS = 0.28
 
 STATUS_TURN = "turn"
 STATUS_CHECK = "check"
+STATUS_THINKING = "thinking"
+_STATUS_TAGS = {
+    STATUS_TURN: ("Joga agora", tokens.PLATE_TAG_TURN),
+    STATUS_CHECK: ("Xeque!", tokens.PLATE_TAG_CHECK),
+    STATUS_THINKING: ("Pensando", tokens.PLATE_TAG_TURN),
+}
 
 NOTICE_TURN = "turn"
 NOTICE_WARNING = "warning"
@@ -184,13 +192,25 @@ class PlayerCard:
 
     def _draw_status_tag(self, surface: pygame.Surface, status: str, right: int, center_y: int) -> None:
         theme = self._theme
-        is_check = status == STATUS_CHECK
-        label = theme.text("Xeque!" if is_check else "Joga agora", tokens.ROLE_LABEL, theme.px(15), tokens.IVORY)
+        text, plate = _STATUS_TAGS[status]
+        label = theme.text(text, tokens.ROLE_LABEL, theme.px(15), tokens.IVORY)
         size = (label.get_width() + theme.px(14), label.get_height() + theme.px(5))
         rect = pygame.Rect((0, 0), size)
         rect.midright = (right, center_y)
-        surface.blit(theme.plate(size, tokens.PLATE_TAG_CHECK if is_check else tokens.PLATE_TAG_TURN), rect.topleft)
+        surface.blit(theme.plate(size, plate), rect.topleft)
         surface.blit(label, label.get_rect(center=rect.center))
+
+    def draw_thinking_dots(self, surface: pygame.Surface, time: float) -> None:
+        """Pontos que acendem em sequência acima da etiqueta "Pensando": dizem que a CPU não travou. Custam só três círculos."""
+        theme = self._theme
+        pad = theme.px(11)
+        center_y = (pad + theme.px(40) + self.rect.height - pad - theme.px(28)) // 2 - theme.px(20)
+        right = self.rect.right - theme.px(14)
+        lit = int(time / _THINKING_DOT_SECONDS) % _THINKING_DOTS
+        for index in range(_THINKING_DOTS):
+            x = right - (_THINKING_DOTS - 1 - index) * theme.px(11)
+            color = tokens.INK if index == lit else tokens.BRASS_DARK
+            pygame.draw.circle(surface, color, (x, self.rect.y + center_y), theme.px(3))
 
     def _draw_captures(self, surface: pygame.Surface, info: CardInfo, colors: _CardColors) -> None:
         theme = self._theme
@@ -247,6 +267,7 @@ class ScoreSheet:
         self._surface: pygame.Surface | None = None
         self._shadow: pygame.Surface | None = None
         self._rendered_count = -1
+        self._rendered_hiding_marks = False
 
     def layout(self, rect: pygame.Rect) -> None:
         self.rect = rect
@@ -254,16 +275,20 @@ class ScoreSheet:
         margin = self._theme.px(5)
         self._shadow = drawing.render_soft_shadow(rect.size, margin, 120) if rect.height > 0 else None
 
-    def refresh(self, history: Sequence[str], first_color: Color) -> None:
-        if len(history) == self._rendered_count or self.rect.height <= 0:
+    def refresh(self, history: Sequence[str], first_color: Color, hide_check_marks: bool = False) -> None:
+        """Só refaz o papel quando há lance novo, ou quando a partida acaba e o `+` e o `#` podem aparecer."""
+        is_current = len(history) == self._rendered_count and hide_check_marks == self._rendered_hiding_marks
+        if is_current or self.rect.height <= 0:
             return
         self._rendered_count = len(history)
-        self._surface = self._compose(history, first_color)
+        self._rendered_hiding_marks = hide_check_marks
+        shown = [without_check_marks(san) for san in history] if hide_check_marks else history
+        self._surface = self._compose(shown, first_color)
 
     def _compose(self, history: Sequence[str], first_color: Color) -> pygame.Surface:
         theme = self._theme
         surface = pygame.Surface(self.rect.size, pygame.SRCALPHA)
-        surface.blit(theme.plate(self.rect.size, _SHEET_PLATE), (0, 0))
+        surface.blit(theme.plate(self.rect.size, tokens.PLATE_PAPER), (0, 0))
         header = theme.px(_SHEET_HEADER_HEIGHT)
         row_height = theme.px(_SHEET_ROW_HEIGHT)
         row_count = max((self.rect.height - header) // row_height, 0)
@@ -360,7 +385,7 @@ class Hud:
     """Painel lateral inteiro: chão de madeira, placas, planilha e botões de ação."""
 
     def __init__(self, theme: Theme, renderer: Renderer3D, meshes: Mapping[str, Mesh], engine: GameEngine,
-                 buttons: Sequence[Button]):
+                 buttons: Sequence[Button], mode_label: str = "Treinamento", hides_check_marks: bool = False):
         self._theme = theme
         self.engine = engine
         self.buttons = list(buttons)
@@ -370,6 +395,11 @@ class Hud:
         self.viewport = pygame.Rect(0, 0, 1, 1)
         self.active_color: Color | None = engine.turn
         self.checked_color: Color | None = None
+        self.thinking_color: Color | None = None
+        self.mode_label = mode_label
+        self.hides_check_marks = hides_check_marks
+        self._info_rect = pygame.Rect(0, 0, 0, 0)
+        self._time = 0.0
         self._lamp = {color: 1.0 if color is engine.turn else 0.0 for color in Color}
         self._ground: pygame.Surface | None = None
 
@@ -392,9 +422,11 @@ class Hud:
         self.cards[Color.BLACK].layout(pygame.Rect(left, pad, width, card_height))
         self.cards[Color.WHITE].layout(pygame.Rect(left, bottom_card_y, width, card_height))
         sheet_y = pad + card_height + gap
-        sheet_height = bottom_card_y - gap - sheet_y
+        info_height = theme.px(_INFO_LINE_HEIGHT)
+        sheet_height = bottom_card_y - gap - info_height - sheet_y
         visible_height = sheet_height if sheet_height >= theme.px(_SHEET_MIN_HEIGHT) else 0
         self.sheet.layout(pygame.Rect(left, sheet_y, width, visible_height))
+        self._info_rect = pygame.Rect(left, bottom_card_y - gap - info_height + theme.px(3), width, info_height)
         self._layout_buttons(left, bottom_card_y + card_height + gap, width)
 
     def _buttons_height(self) -> int:
@@ -409,7 +441,9 @@ class Hud:
         for index, button in enumerate(self.buttons):
             column, row = index % 2, index // 2
             x, y = left + column * (button_width + gap), top + row * (button_height + gap)
-            button.rect = pygame.Rect(x, y, button_width, button_height)
+            # Número ímpar de botões: o último fica sozinho na linha e ocupa a largura toda.
+            is_alone = index == len(self.buttons) - 1 and column == 0
+            button.rect = pygame.Rect(x, y, width if is_alone else button_width, button_height)
 
     def release_buttons(self) -> None:
         """Com uma sobreposição aberta, o botão nunca receberia o soltar do mouse e ficaria preso."""
@@ -427,10 +461,12 @@ class Hud:
         return consumed or (is_click and position is not None and self.panel.collidepoint(position))
 
     def update(self, dt: float) -> None:
+        self._time += dt
         self._advance_lamp(dt)
         for color, card in self.cards.items():
             card.refresh(self._card_info(color))
-        self.sheet.refresh(self.engine.history, self.engine.first_turn)
+        hide_marks = self.hides_check_marks and self.engine.result is None
+        self.sheet.refresh(self.engine.history, self.engine.first_turn, hide_marks)
 
     def _advance_lamp(self, dt: float) -> None:
         step = dt / _LAMP_FADE_SECONDS
@@ -461,6 +497,8 @@ class Hud:
     def _status_of(self, color: Color) -> str | None:
         if self.engine.state is GameState.FINISHED or color is not self.active_color:
             return None
+        if color is self.thinking_color:
+            return STATUS_THINKING
         return STATUS_CHECK if color is self.checked_color else STATUS_TURN
 
     def draw(self, surface: pygame.Surface) -> None:
@@ -468,9 +506,21 @@ class Hud:
             surface.blit(self._ground, self.panel.topleft)
         for color, card in self.cards.items():
             card.draw(surface, self._lamp[color])
+        if self.thinking_color is not None:
+            self.cards[self.thinking_color].draw_thinking_dots(surface, self._time)
         self.sheet.draw(surface)
+        self._draw_info_line(surface)
         for button in self.buttons:
             button.draw(surface, self._theme)
+
+    def _draw_info_line(self, surface: pygame.Surface) -> None:
+        """Modo e tempo, discretos, na madeira embaixo da planilha."""
+        theme = self._theme
+        size = theme.px(14)
+        mode = theme.text(f"Modo {self.mode_label}", tokens.ROLE_LABEL, size, tokens.TEXT_MUTED)
+        surface.blit(mode, mode.get_rect(midleft=self._info_rect.midleft))
+        clock = theme.text(time_control_label(self.engine.time_control), tokens.ROLE_LABEL, size, tokens.TEXT_MUTED)
+        surface.blit(clock, clock.get_rect(midright=self._info_rect.midright))
 
 
 class NoticeBar:

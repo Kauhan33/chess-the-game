@@ -57,6 +57,8 @@ _SHAKE_SECONDS = 0.34
 _SHAKE_AMPLITUDE = 0.07
 _SHAKE_HERTZ = 15.0
 _SELECTED_LIFT = translation(0.0, 0.09, 0.0)
+_DRAG_LIFT = 0.32
+_DRAG_LIMIT = 4.6
 _TINT_PULSE_HERTZ = 1.1
 _TINT_LOW, _TINT_HIGH = 0.18, 0.5
 _FIREWORK_HEIGHT = (2.4, 4.2)
@@ -111,6 +113,7 @@ class _ViewReset:
     """Volta à vista padrão com giro, inclinação e zoom juntos, em um só movimento."""
 
     def __init__(self, camera: Camera, yaw: float):
+        self.final_yaw = yaw
         self._yaw_start = camera.yaw
         self._yaw_travel = (yaw - camera.yaw + math.pi) % (2.0 * math.pi) - math.pi
         self._pitch_start = camera.pitch
@@ -149,6 +152,9 @@ class BoardView:
         self._view_reset: _ViewReset | None = None
         self.shake_square: Cell | None = None
         self._shake_elapsed = 0.0
+        self.dragged_square: Cell | None = None
+        self._drag_offset = (0.0, 0.0)
+        self._flip_yaw = 0.0
         self._clear_animations()
 
     def _clear_animations(self) -> None:
@@ -167,6 +173,7 @@ class BoardView:
         self.tints = {}
         self.lifted_square = None
         self.shake_square = None
+        self.dragged_square = None
         self.matrix.clear()
 
     # Posição -------------------------------------------------------------------------------------
@@ -227,6 +234,15 @@ class BoardView:
         is_default = math.isclose(camera.pitch, DEFAULT_PITCH) and math.isclose(camera.distance, DEFAULT_DISTANCE)
         self._view_reset = None if is_default and self._is_facing(SIDE_YAW[color]) else _ViewReset(camera, SIDE_YAW[color])
 
+    def flip(self) -> None:
+        """Meia volta. Apertar de novo no meio do giro conta a partir de onde o giro ia parar, não do ângulo atual."""
+        if self._view_reset is not None:
+            self._view_reset = _ViewReset(self.camera, self._view_reset.final_yaw + math.pi)
+            return
+        start = self._flip_yaw if self.camera.is_moving else self.camera.yaw
+        self._flip_yaw = start + math.pi
+        self.camera.orbit_to(self._flip_yaw)
+
     def _is_facing(self, yaw: float) -> bool:
         """Girar para onde já se está só gastaria quadros refazendo a camada do tabuleiro."""
         travel = (yaw - self.camera.yaw + math.pi) % (2.0 * math.pi) - math.pi
@@ -242,19 +258,50 @@ class BoardView:
         self.camera.zoom_by(_ZOOM_STEP**steps)
 
     def pick(self, position: tuple[int, int]) -> Cell | None:
-        """Casa sob o pixel: testa a silhueta das peças e, se nenhuma aparecer ali, o plano do tabuleiro."""
-        pieces = [(*piece[:3], self._lifted(piece)) for piece in self._pickable]
+        """Casa sob o pixel: testa a silhueta das peças e, se nenhuma aparecer ali, o plano do tabuleiro.
+
+        A peça sendo arrastada fica de fora: ela não está mais na casa dela, e o que importa é o que há embaixo dela.
+        """
+        pieces = [(*piece[:3], self._lifted(piece)) for piece in self._pickable if piece[:2] != self.dragged_square]
         return self.camera.pick_piece(position[0], position[1], pieces)
 
     def _lifted(self, piece: PickablePiece) -> np.ndarray:
         file, rank, _, matrix = piece
         return _SELECTED_LIFT @ matrix if (file, rank) == self.lifted_square else matrix
 
+    # Arrastar ------------------------------------------------------------------------------------
+
+    def begin_drag(self, square: Cell) -> None:
+        self.dragged_square = tuple(square)
+        self._drag_offset = (0.0, 0.0)
+
+    def drag_to(self, position: tuple[int, int]) -> None:
+        """A peça acompanha o ponto do mouse em um plano um pouco acima do tabuleiro. Só a matriz de modelo muda."""
+        hit = self.camera.pick_plane(position[0], position[1], _DRAG_LIFT)
+        if hit is None or self.dragged_square is None:
+            return
+        center_x, _, center_z = square_to_world(*self.dragged_square)
+        self._drag_offset = (
+            max(-_DRAG_LIMIT, min(hit[0], _DRAG_LIMIT)) - center_x,
+            max(-_DRAG_LIMIT, min(hit[1], _DRAG_LIMIT)) - center_z,
+        )
+
+    def end_drag(self) -> None:
+        self.dragged_square = None
+
+    def _drag_matrix(self) -> np.ndarray:
+        return translation(self._drag_offset[0], _DRAG_LIFT, self._drag_offset[1])
+
     # Animações -----------------------------------------------------------------------------------
 
     @property
     def is_flying(self) -> bool:
         return bool(self._flights)
+
+    @property
+    def is_animating(self) -> bool:
+        """Há algo se mexendo na tela: é quando o quadro mais precisa do interpretador."""
+        return bool(self._flights or self._effects) or self.is_camera_moving
 
     def start_move(self, outcome: MoveOutcome) -> None:
         move, side = outcome.move, outcome.piece.color
@@ -398,6 +445,8 @@ class BoardView:
 
     def _adjusted_matrix(self, piece: _PlacedPiece) -> np.ndarray:
         matrix = piece.matrix
+        if piece.square == self.dragged_square:
+            return self._drag_matrix() @ matrix
         if piece.square == self.lifted_square:
             matrix = _SELECTED_LIFT @ matrix
         if piece.square == self.shake_square:

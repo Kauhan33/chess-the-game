@@ -36,7 +36,7 @@ class ControlHint(NamedTuple):
 
 
 CONTROL_HINTS = (
-    ControlHint("Clique", "Seleciona a peça e joga"),
+    ControlHint("Clique", "Seleciona a peça e joga, ou arraste a peça"),
     ControlHint("Direito", "Arraste para girar a câmera"),
     ControlHint("Roda", "Aproxima e afasta a câmera"),
     ControlHint("Setas", "Movem o cursor, conforme a visão"),
@@ -46,12 +46,15 @@ CONTROL_HINTS = (
     ControlHint("R", "Reinicia, depois de confirmar"),
     ControlHint("T", "Liga ou desliga o giro por turno"),
     ControlHint("V", "Volta à vista padrão"),
+    ControlHint("F", "Vira o tabuleiro"),
+    ControlHint("C", "Copia o PGN da partida"),
     ControlHint("H", "Mostra esta ajuda (ou F1)"),
     ControlHint("F3", "Mostra FPS e polígonos"),
     ControlHint("F4", "Modo didático: matrizes ao vivo"),
     ControlHint("F11", "Liga ou desliga a tela cheia"),
 )
 _HELP_ROW_HEIGHT = 30
+_HELP_LIST_ROW_HEIGHT = 27
 _HELP_CLOSE_KEYS = (pygame.K_ESCAPE, pygame.K_h, pygame.K_F1, pygame.K_RETURN, pygame.K_KP_ENTER)
 
 
@@ -254,7 +257,7 @@ class HelpOverlay(Overlay):
         theme = self._theme
         pad = theme.px(_PANEL_PADDING)
         width = theme.px(520)
-        height = 2 * pad + theme.px(50) + len(CONTROL_HINTS) * theme.px(_HELP_ROW_HEIGHT) + theme.px(52)
+        height = 2 * pad + theme.px(46) + len(CONTROL_HINTS) * theme.px(_HELP_LIST_ROW_HEIGHT) + theme.px(50)
         self._panel = pygame.Rect(0, 0, width, height)
         self._panel.center = (self._size[0] // 2, self._size[1] // 2)
         button_height = theme.px(40)
@@ -275,10 +278,10 @@ class HelpOverlay(Overlay):
         pad = theme.px(_PANEL_PADDING)
         title = theme.text("Controles", tokens.ROLE_DISPLAY, theme.px(30), tokens.IVORY)
         surface.blit(title, (self._panel.x + pad, self._panel.y + pad - theme.px(4)))
-        y = self._panel.y + pad + theme.px(50)
+        y = self._panel.y + pad + theme.px(44)
         for hint in CONTROL_HINTS:
             draw_control_hint(surface, theme, hint, self._panel.x + pad + theme.px(80), y)
-            y += theme.px(_HELP_ROW_HEIGHT)
+            y += theme.px(_HELP_LIST_ROW_HEIGHT)
         self._close_button.draw(surface, theme)
 
 

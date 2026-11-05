@@ -29,3 +29,6 @@ class Scene(ABC):
     @abstractmethod
     def resize(self, size: tuple[int, int]) -> None:
         """Recalcula o layout. Precisa aguentar qualquer tamanho sem levantar exceção (RNF07)."""
+
+    def shutdown(self) -> None:
+        """O jogo está fechando com esta cena aberta: a cena que tem thread ou conexão encerra aqui."""

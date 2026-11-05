@@ -56,6 +56,17 @@ def post_click(position: tuple[int, int], button: int = 1) -> None:
     post_mouse_up(position, button)
 
 
+def post_drag(start: tuple[int, int], end: tuple[int, int], release: bool = True) -> None:
+    """Aperta em `start`, leva o mouse até `end` e solta, como a mão faria."""
+    post_mouse_move(start)
+    post_mouse_down(start)
+    middle = ((start[0] + end[0]) // 2, (start[1] + end[1]) // 2)
+    post_mouse_move(middle, buttons=(1, 0, 0))
+    post_mouse_move(end, buttons=(1, 0, 0))
+    if release:
+        post_mouse_up(end)
+
+
 def post_key(key: int, mod: int = 0) -> None:
     pygame.event.post(pygame.event.Event(pygame.KEYDOWN, key=key, mod=mod, unicode="", scancode=0))
     pygame.event.post(pygame.event.Event(pygame.KEYUP, key=key, mod=mod, unicode="", scancode=0))
@@ -104,6 +115,15 @@ class Autoplayer:
 
     def click_widget(self, widget) -> None:
         post_click(widget.rect.center)
+        self.frames(1)
+
+    def click_segment(self, control, index: int) -> None:
+        """Clica em uma das opções de um `SegmentedControl`."""
+        post_click(control.segment_rect(index).center)
+        self.frames(1)
+
+    def drag_square(self, origin: tuple[int, int], target: tuple[int, int]) -> None:
+        post_drag(click_point(self.view, tuple(origin)), click_point(self.view, tuple(target)))
         self.frames(1)
 
     def press(self, key: int, mod: int = 0) -> None:

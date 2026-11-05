@@ -112,6 +112,7 @@ _TEXT_CACHE_LIMIT = 1600
 # Área de uso privado do Unicode: a fonte não tem, então sai o glifo de substituição dela.
 _MISSING_GLYPH_PROBE = chr(0xE000)
 _PLATE_CACHE_LIMIT = 320
+_WRAP_CACHE_LIMIT = 256
 
 
 class PlateStyle(NamedTuple):
@@ -143,6 +144,8 @@ PLATE_NOTICE_DANGER = PlateStyle((176, 50, 36), ALERT_PLATE, (236, 150, 124), 8)
 PLATE_TAG_TURN = PlateStyle((60, 40, 24), INK, None, 4)
 PLATE_TAG_CHECK = PlateStyle((176, 50, 36), ALERT_PLATE, None, 4)
 PLATE_DEBUG = PlateStyle((30, 20, 14), (22, 15, 10), WALNUT_EDGE, 6)
+PLATE_PAPER = PlateStyle(PAPER, (224, 210, 178), PAPER_RULE, 1)
+PLATE_DISABLED = PlateStyle((50, 34, 22), (42, 28, 18), WALNUT_RAISED, 6)
 
 
 def window_scale(size: tuple[int, int]) -> float:
@@ -171,6 +174,7 @@ class Theme:
         self._glyphs: dict[tuple, bool] = {}
         self._plates: dict[tuple, pygame.Surface] = {}
         self._grounds: dict[tuple[int, int], pygame.Surface] = {}
+        self._wrapped: dict[tuple, tuple[str, ...]] = {}
 
     def set_window_size(self, size: tuple[int, int]) -> None:
         self.scale = window_scale(size)
@@ -233,6 +237,19 @@ class Theme:
         while size > minimum and self.font(role, size).size(content)[0] > max_width:
             size -= 1
         return size
+
+    def wrap(self, content: str, role: str, size: int, max_width: int) -> tuple[str, ...]:
+        """Quebra o texto em linhas que cabem na largura. Quebra de linha do texto é respeitada."""
+        key = (content, role, size, max_width)
+        lines = self._wrapped.get(key)
+        if lines is None:
+            if len(self._wrapped) >= _WRAP_CACHE_LIMIT:
+                self._wrapped.clear()
+            font = self.font(role, size)
+            lines = self._wrapped[key] = tuple(
+                line for paragraph in content.split("\n") for line in _wrap_paragraph(paragraph, font, max(max_width, 1))
+            )
+        return lines
 
     def tabular(self, content: str, role: str, size: int, color: tuple) -> pygame.Surface:
         """Números em células de largura igual, para o relógio não tremer quando um dígito muda."""
@@ -303,6 +320,36 @@ def _draws_own_glyph(font: pygame.font.Font, char: str) -> bool:
 
 def _glyph_pixels(font: pygame.font.Font, char: str) -> bytes:
     return pygame.image.tobytes(font.render(char, False, (255, 255, 255)), "RGBA")
+
+
+def _wrap_paragraph(paragraph: str, font: pygame.font.Font, max_width: int) -> list[str]:
+    lines: list[str] = []
+    current = ""
+    for word in paragraph.split():
+        candidate = f"{current} {word}" if current else word
+        if font.size(candidate)[0] <= max_width:
+            current = candidate
+            continue
+        if current:
+            lines.append(current)
+        pieces = _split_long_word(word, font, max_width)
+        lines.extend(pieces[:-1])
+        current = pieces[-1]
+    lines.append(current)
+    return lines
+
+
+def _split_long_word(word: str, font: pygame.font.Font, max_width: int) -> list[str]:
+    """Uma palavra maior que a linha, como o FEN em janela estreita, é cortada onde couber."""
+    pieces: list[str] = []
+    current = ""
+    for char in word:
+        if current and font.size(current + char)[0] > max_width:
+            pieces.append(current)
+            current = ""
+        current += char
+    pieces.append(current)
+    return pieces
 
 
 def _ellipsize(content: str, font: pygame.font.Font, max_width: int) -> str:
