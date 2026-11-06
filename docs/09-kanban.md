@@ -49,8 +49,8 @@ As colunas são as pedidas no enunciado. A fonte das tarefas é `docs/kanban/tar
 | Concluído | T28 | Versão 1.1: medir o FPS em janela real, com a CPU pensando (RNF09) | E4 | medido no commit eaf8f25, seção 7.9 |
 | Concluído | T29 | Versão 1.1: levar requisitos, telas, UML, arquitetura, testes, roteiro e guia até a nova versão | E4 | commit 0021280 |
 | Concluído | T30 | Versão 1.1: rodar a suíte completa e gerar os documentos e os PDFs finais | E4 | suíte completa em 2026-11-06, commit 0021280: 3655 aprovados, 0 falhas |
-| Concluído | T32 | Versão 1.1: confirmar pelo CI em Python 3.10, Linux e macOS (RNF02) | E4 | CI aprovado nas 6 combinações, commit 3cd07ad |
-| Concluído | T33 | Versão 1.1: publicar no GitHub e gerar o novo executável, com autorização do grupo | E4 | main e release v1.1.0 |
+| Concluído | T32 | Versão 1.1: confirmar pelo CI em Python 3.10, Linux e macOS (RNF02) | E4 | CI aprovado nas 6 combinações, commit d14edf5 |
+| Concluído | T33 | Versão 1.1: publicar no GitHub e gerar o novo executável, com autorização do grupo | E4 | release v1.1.0, commit d14edf5 |
 <!-- FIM:kanban -->
 
 ## 9.3 Evolução real pelo git
@@ -81,13 +81,16 @@ Tabela gerada do `git log`, com as datas e as mensagens originais dos commits.
 | 2026-11-06 06:38 | `45b0e5e` | docs: resultados da execucao completa da versao 1.1 |
 | 2026-11-06 07:24 | `3cd07ad` | test: torna dois testes independentes do sistema e da maquina |
 | 2026-11-06 08:09 | `bd26419` | docs: registra a aprovacao da versao 1.1 no CI |
+| 2026-11-06 08:52 | `d14edf5` | test: tira o arredondamento do teste do sinal de vida |
 <!-- FIM:evolucao -->
 
 ## 9.4 Prints do quadro
 
-O primeiro print é real, do dia em que o quadro foi criado. Os demais são espaços reservados: o grupo deve substituir cada item pela imagem real, com a data real da captura.
+Os dois primeiros prints são reais: o do dia em que o quadro foi criado e o do dia em que a versão 1.1 foi publicada. Os demais são espaços reservados: o grupo deve substituir cada item pela imagem real, com a data real da captura.
 
 ![Quadro em 2026-11-04, logo depois de criado](img/kanban/2026-11-04.png)
+
+![Quadro em 2026-11-06, com as tarefas da versão 1.1](img/kanban/2026-11-06.png)
 
 | Momento | Situação |
 |---|---|
@@ -95,7 +98,7 @@ O primeiro print é real, do dia em que o quadro foi criado. Os demais são espa
 | Tarefas de correção do QA em andamento | A capturar pelo grupo |
 | Documentação em revisão | A capturar pelo grupo |
 | Slides da apresentação em andamento | A capturar pelo grupo |
-| Tarefas da versão 1.1 no quadro, depois de publicadas | A capturar pelo grupo |
+| Tarefas da versão 1.1 no quadro, depois de publicadas | Capturado em 2026-11-06 |
 | Quadro antes da entrega final | A capturar pelo grupo |
 
 Para capturar um print novo, com a data de hoje no nome do arquivo:

@@ -34,7 +34,7 @@ O grupo tem 3 integrantes. Os tempos somam 9 min 15 s, com a partida ao vivo inc
 | Integrante 3 | 4 min 15 s |
 | **Total** | **9 min 15 s** |
 
-O código de exemplo do slide de rede é `QVEFASM`, que é o que `encode_room_code` devolve para `192.168.0.10`. É só um exemplo: esse IP não é de nenhuma máquina do grupo.
+O código que aparece no slide de rede é o do print, `GEJXWVH`. O print foi feito em `127.0.0.1`, e é esse o endereço que o código guarda. Na máquina da apresentação, o código será outro, porque depende do IP dela.
 
 ## 10.2 Antes de a banca começar
 

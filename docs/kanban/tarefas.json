@@ -49,8 +49,8 @@
     {"id": "T29", "titulo": "Versão 1.1: levar requisitos, telas, UML, arquitetura, testes, roteiro e guia até a nova versão", "coluna": "Concluído", "marco": "E4", "etiquetas": ["documentação"], "evidencia": "commit 0021280"},
     {"id": "T30", "titulo": "Versão 1.1: rodar a suíte completa e gerar os documentos e os PDFs finais", "coluna": "Concluído", "marco": "E4", "etiquetas": ["testes", "documentação"], "evidencia": "suíte completa em 2026-11-06, commit 0021280: 3655 aprovados, 0 falhas"},
     {"id": "T31", "titulo": "Versão 1.1: testar a rede entre dois computadores, em janela real e com o firewall", "coluna": "Backlog / A Fazer", "marco": "E5", "etiquetas": ["testes"]},
-    {"id": "T32", "titulo": "Versão 1.1: confirmar pelo CI em Python 3.10, Linux e macOS (RNF02)", "coluna": "Concluído", "marco": "E4", "etiquetas": ["testes"], "evidencia": "CI aprovado nas 6 combinações, commit 3cd07ad"},
-    {"id": "T33", "titulo": "Versão 1.1: publicar no GitHub e gerar o novo executável, com autorização do grupo", "coluna": "Concluído", "marco": "E4", "etiquetas": ["gestão"], "evidencia": "main e release v1.1.0"},
+    {"id": "T32", "titulo": "Versão 1.1: confirmar pelo CI em Python 3.10, Linux e macOS (RNF02)", "coluna": "Concluído", "marco": "E4", "etiquetas": ["testes"], "evidencia": "CI aprovado nas 6 combinações, commit d14edf5"},
+    {"id": "T33", "titulo": "Versão 1.1: publicar no GitHub e gerar o novo executável, com autorização do grupo", "coluna": "Concluído", "marco": "E4", "etiquetas": ["gestão"], "evidencia": "release v1.1.0, commit d14edf5"},
     {"id": "T34", "titulo": "Decidir se o modo de cada jogador deve aparecer para o outro em rede (sugestão 1 do QA)", "coluna": "Backlog / A Fazer", "marco": "E4", "etiquetas": ["gestão"]}
   ]
 }

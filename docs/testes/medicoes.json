@@ -126,5 +126,5 @@
       }
     ]
   },
-  "pendencias_portabilidade": "O CI confirmou as 6 combinações no commit 3cd07ad: Python 3.10 e 3.12 em Windows, Linux e macOS, com 3619 testes aprovados em cada uma, sem os testes slow (https://github.com/Kauhan33/chess-the-game/actions/runs/42202345318). O CI roda sem janela real."
+  "pendencias_portabilidade": "O CI confirmou as 6 combinações no commit d14edf5, o da tag v1.1.0: Python 3.10 e 3.12 em Windows, Linux e macOS, com 3619 testes aprovados em cada uma, sem os testes slow (https://github.com/Kauhan33/chess-the-game/actions/runs/42213421124). O CI roda sem janela real."
 }
