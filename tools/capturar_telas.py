@@ -52,8 +52,8 @@ class LoopbackNetwork:
     def __init__(self) -> None:
         self.port = 0
 
-    def host(self, name: str, time_control: TimeControl) -> HostSession:
-        session = HostSession(name, time_control, port=0, bind=_LOOPBACK)
+    def host(self, name: str, time_control: TimeControl, mode: str) -> HostSession:
+        session = HostSession(name, time_control, port=0, bind=_LOOPBACK, mode=mode)
         self.port = session.port
         return session
 

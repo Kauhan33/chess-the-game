@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from enum import Enum
 
 from xadrez.core import Color, Difficulty, GameEngine, TimeControl
-from xadrez.net import MAX_NAME_CHARS
+from xadrez.net import MAX_NAME_CHARS, MODE_MATCH, MODE_TRAINING
 
 DEFAULT_WHITE_NAME = "Jogador 1"
 DEFAULT_BLACK_NAME = "Jogador 2"
@@ -32,15 +32,21 @@ _CHECK_MARKS = str.maketrans("", "", "+#")
 class GameMode(Enum):
     """Treinamento mostra tudo; Partida só mostra o que aconteceu, nunca o que fazer."""
 
-    TRAINING = ("Treinamento", "Mostra caminhos, capturas, ameaças e xeque enquanto você joga.")
-    MATCH = ("Partida", "Sem dicas nem avisos de xeque, como em um torneio. Lance ilegal é recusado sem explicação.")
+    TRAINING = ("Treinamento", "Mostra caminhos, capturas, ameaças e xeque enquanto você joga.", MODE_TRAINING)
+    MATCH = ("Partida", "Sem dicas nem avisos de xeque, como em um torneio. Lance ilegal é recusado sem explicação.", MODE_MATCH)
 
-    def __new__(cls, label: str, description: str) -> GameMode:
+    def __new__(cls, label: str, description: str, wire: str) -> GameMode:
         member = object.__new__(cls)
         member._value_ = label
         member.label = label
         member.description = description
+        member.wire = wire
         return member
+
+    @classmethod
+    def from_wire(cls, wire: str) -> GameMode:
+        """O modo que a sala mandou. `decode_message` já conferiu o valor."""
+        return next(mode for mode in cls if mode.wire == wire)
 
 
 @dataclass(frozen=True)

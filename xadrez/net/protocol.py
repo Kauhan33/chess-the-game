@@ -7,13 +7,16 @@ from typing import Callable
 
 from xadrez.core import Color, EndReason, GameResult, PieceType, Square
 
-PROTOCOL_VERSION = 2
+PROTOCOL_VERSION = 3
 MAX_LINE_BYTES = 4096
 MAX_NAME_CHARS = 16
 MAX_CLOCK_MS = 7 * 24 * 60 * 60 * 1000
 DEFAULT_NAME = "Jogador"
 REFUSED_VERSION = "version"
 REFUSED_ROOM_FULL = "room_full"
+# O modo de jogo vale para os dois lados. A sala escolhe, e quem entra segue.
+MODE_TRAINING = "training"
+MODE_MATCH = "match"
 
 _MAX_MINUTES = 24 * 60
 _MAX_INCREMENT_SECONDS = 60 * 60
@@ -68,6 +71,10 @@ def _is_color(value: object) -> bool:
     return isinstance(value, str) and value in _COLORS
 
 
+def _is_mode(value: object) -> bool:
+    return value in (MODE_TRAINING, MODE_MATCH)
+
+
 def _is_winner(value: object) -> bool:
     return value is None or _is_color(value)
 
@@ -84,6 +91,7 @@ _SCHEMAS: dict[str, dict[str, Callable[[object], bool]]] = {
         "your_color": _is_color,
         "minutes": _is_number_up_to(_MAX_MINUTES),
         "increment": _is_number_up_to(_MAX_INCREMENT_SECONDS),
+        "mode": _is_mode,
     },
     "refused": {"code": _is_refusal},
     "move": {"uci": is_valid_uci, "clock_ms": _is_int_up_to(MAX_CLOCK_MS)},

@@ -47,7 +47,7 @@ class FakeNetwork:
         self.sessions = []
         self.warning = None
 
-    def host(self, name, time_control):
+    def host(self, name, time_control, mode):
         self.sessions.append(FakeSession(warning=self.warning))
         return self.sessions[-1]
 
@@ -77,7 +77,7 @@ def open_lobby(app, role=ROLE_HOST):
 
 
 def start_event(your_color=Color.WHITE):
-    return GameStart("Jogador 1", "Jogador 2", your_color, 3, 2)
+    return GameStart("Jogador 1", "Jogador 2", your_color, 3, 2, "training")
 
 
 def test_menu_sem_rede_avisa_e_nao_abre_porta(app, player):

@@ -153,8 +153,8 @@ class GameOverScene(Scene):
         self._refresh_rematch_button()
 
     def _start_network_rematch(self, event: GameStart) -> None:
-        # A revanche troca as cores. Se a sala mandar outra coisa, as duas telas jogariam partidas diferentes.
-        if self.local_player.color.opposite is not event.your_color:
+        # A revanche troca as cores e mantém o modo. Se a sala mandar outra coisa, as duas telas jogariam partidas diferentes.
+        if self.local_player.color.opposite is not event.your_color or event.mode != self.options.mode.wire:
             self.link.peer_is_gone = True
             self.link.leave()
             return

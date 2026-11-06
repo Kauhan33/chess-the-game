@@ -110,7 +110,7 @@ protocol ..> ProtocolError : levanta
 note top of _Session
   Eventos que poll() entrega, de events.py:
   PeerJoined(name)
-  GameStart(white, black, your_color, minutes, increment)
+  GameStart(white, black, your_color, minutes, increment, mode)
   MoveReceived(uci, clock_ms)
   PeerResigned()
   DrawOffered()

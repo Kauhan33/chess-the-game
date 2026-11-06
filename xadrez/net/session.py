@@ -37,6 +37,7 @@ from .events import (
     RematchRequested,
 )
 from .protocol import (
+    MODE_TRAINING,
     PROTOCOL_VERSION,
     REFUSED_ROOM_FULL,
     REFUSED_VERSION,
@@ -358,9 +359,11 @@ class HostSession(_Session):
         bind: str = _ANY_INTERFACE,
         *,
         timings: NetTimings = NetTimings(),
+        mode: str = MODE_TRAINING,
     ) -> None:
         super().__init__(name, timings)
         self._time_control = time_control
+        self._mode = mode
         self._bind = bind
         self.port = port
         address = local_ipv4() if bind == _ANY_INTERFACE else bind
@@ -477,9 +480,10 @@ class HostSession(_Session):
                 "your_color": self._color.opposite.value,
                 "minutes": minutes,
                 "increment": increment,
+                "mode": self._mode,
             }
         )
-        self._emit(GameStart(white, black, self._color, minutes, increment))
+        self._emit(GameStart(white, black, self._color, minutes, increment, self._mode))
 
     def _request_rematch(self) -> None:
         if self._peer_wants_rematch:
@@ -625,6 +629,7 @@ def _game_start_event(message: dict[str, object]) -> GameStart:
         your_color=Color(message["your_color"]),
         minutes=message["minutes"],
         increment=message["increment"],
+        mode=message["mode"],
     )
 
 

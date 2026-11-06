@@ -14,13 +14,17 @@ class PeerJoined:
 
 @dataclass(frozen=True)
 class GameStart:
-    """Início de uma partida, a primeira ou uma revanche. `minutes=0` significa sem limite de tempo."""
+    """Início de uma partida, a primeira ou uma revanche. `minutes=0` significa sem limite de tempo.
+
+    `mode` é o modo de jogo dos dois, `MODE_TRAINING` ou `MODE_MATCH`: quem criou a sala escolhe.
+    """
 
     white: str
     black: str
     your_color: Color
     minutes: float
     increment: float
+    mode: str
 
 
 @dataclass(frozen=True)

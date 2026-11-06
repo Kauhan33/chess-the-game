@@ -615,7 +615,7 @@
       "rf": ["RF19"], "uc": ["UC11", "UC12"],
       "entrada": "`HostSession` e `ClientSession` reais em 127.0.0.1, com partida até o fim, empate, desistência e revanche.",
       "procedimento": "Trocar mensagens por `send_move`, `send_result` e os demais `send`, e ler os eventos em `poll`.",
-      "esperado": "Os dois lados terminam com o mesmo FEN. A jogada ilegal é recusada pelo motor de quem recebe. A revanche troca as cores e só começa com os dois pedidos. `result` só vale vindo da sala."
+      "esperado": "Os dois lados terminam com o mesmo FEN. A jogada ilegal é recusada pelo motor de quem recebe. A revanche troca as cores, mantém o modo e só começa com os dois pedidos. `result` só vale vindo da sala."
     },
     "CT-87": {
       "titulo": "Queda de conexão vira evento, sem travar",
@@ -671,7 +671,7 @@
       "rf": ["RF19"], "uc": ["UC11", "UC12"],
       "entrada": "Duas instâncias de `App` no mesmo processo, em 127.0.0.1, do menu até a revanche.",
       "procedimento": "Jogar pelos dois lados por eventos, com relógio, empate, desistência, queda e jogada ilegal vinda de fora.",
-      "esperado": "Os dois lados chegam ao mesmo FEN e ao mesmo resultado. A sala mede os relógios e decide. `clock_ms` não decide nada. Jogada ilegal encerra a sala, e não há pausa nem reinício em rede."
+      "esperado": "Os dois lados chegam ao mesmo FEN e ao mesmo resultado. A sala mede os relógios e decide. `clock_ms` não decide nada. Os dois jogam no modo da sala, mesmo com outro modo no menu de quem entra. Jogada ilegal encerra a sala, e não há pausa nem reinício em rede."
     },
     "CT-96": {
       "titulo": "Arrastar a peça para jogar",

@@ -33,7 +33,7 @@ Situação em 2026-11-06, depois deste relatório. As seções abaixo são o tex
 
 | Sugestão | Situação |
 |---|---|
-| 1. Modo por jogador em rede | Não aplicada. É decisão do aluno: hoje cada um escolhe o próprio modo, e o outro não sabe. |
+| 1. Modo por jogador em rede | Resolvida de outro jeito, por decisão do aluno em 2026-11-06: o modo é um só para os dois, escolhido por quem cria a sala. |
 | 2. Sala sem segredo | Não aplicada. O código é o IP escrito de outra forma, e quem chegar primeiro à porta entra. |
 | 3. Fugir da derrota contra a CPU | Não aplicada. "Voltar ao menu" e fechar a janela não gravam nada contra a CPU. |
 | 5. Hard responde mais rápido que Easy | Não aplicada. `_MINIMUM_THINK_SECONDS` segue só em Easy e Medium. |

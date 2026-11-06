@@ -46,7 +46,7 @@ No menu, "Adversário" escolhe com quem jogar, e "Modo" escolhe o que a tela mos
 
 Os dois computadores precisam estar na mesma rede. Não há servidor: o código da sala é o endereço IP de quem criou, escrito em 7 caracteres, e a conexão é direta, em TCP, na porta 50507.
 
-- Quem cria a sala escolhe o tempo, joga de brancas na primeira partida e decide o resultado.
+- Quem cria a sala escolhe o modo e o tempo, que valem para os dois, joga de brancas na primeira partida e decide o resultado.
 - Se o outro computador não conseguir entrar, o motivo mais provável é o firewall de quem criou a sala. No Windows, permita o jogo quando ele perguntar, ou libere a porta TCP 50507 na rede privada.
 - Redes de escola, empresa e hotel podem impedir que dois computadores se vejam, mesmo no mesmo Wi-Fi.
 - O tráfego é JSON sem cifra, e a sala não tem senha. É para jogar com quem está ao lado, em uma rede em que você confia.

@@ -15,10 +15,11 @@ from xadrez.net import GameDecided, GameStart, MoveReceived, NetworkError, PeerL
 from xadrez.ui import App, GameOverScene, GameScene, LobbyScene, MenuScene
 from xadrez.ui.autoplay import Autoplayer, post_text
 from xadrez.ui.game_scene import PEER_TURN_NOTICE
-from xadrez.ui.match import OPPONENT_NET
+from xadrez.ui.match import OPPONENT_NET, GameMode
 from xadrez.ui.net_link import ILLEGAL_MOVE_MESSAGE, LanNetwork, NetLink
 
 NET_INDEX = 2
+MATCH_INDEX = 1
 CREATE_THEN_MOVE = "e2e4 e7e5"
 
 
@@ -184,15 +185,62 @@ def test_tempo_e_o_de_quem_criou_a_sala(host_app, guest_app):
 
 
 @pytest.mark.ct("CT-95")
-def test_cada_jogador_escolhe_o_proprio_modo(host_app, guest_app):
-    host_player = Autoplayer(host_app)
-    host_player.click_segment(host_app.scene.mode_selector, 1)
+def test_quem_entra_segue_o_modo_partida_da_sala(host_app, guest_app):
+    Autoplayer(host_app).click_segment(host_app.scene.mode_selector, MATCH_INDEX)
     lobby = open_room(host_app)
     join_room(guest_app, lobby.code)
     match = Table(host_app, guest_app)
     match.settle()
     assert match.host.hides_hints is True
-    assert match.guest.hides_hints is False
+    assert match.guest.hides_hints is True, "o menu de quem entrou estava em Treinamento"
+    assert match.guest.options.mode is GameMode.MATCH
+
+
+@pytest.mark.ct("CT-95")
+def test_quem_entra_segue_o_modo_treinamento_da_sala_e_recebe_aviso(host_app, guest_app):
+    Autoplayer(guest_app).click_segment(guest_app.scene.mode_selector, MATCH_INDEX)
+    lobby = open_room(host_app)
+    join_room(guest_app, lobby.code)
+    drive((host_app, guest_app), lambda: isinstance(host_app.scene, GameScene) and isinstance(guest_app.scene, GameScene))
+    assert guest_app.scene.hides_hints is False, "o menu de quem entrou estava em Partida"
+    assert host_app.scene.hides_hints is False
+    assert "quem criou a sala" in guest_app.scene.notices.text
+
+
+@pytest.mark.ct("CT-95")
+def test_sem_diferenca_de_modo_quem_entra_nao_recebe_aviso(host_app, guest_app):
+    lobby = open_room(host_app)
+    join_room(guest_app, lobby.code)
+    drive((host_app, guest_app), lambda: isinstance(host_app.scene, GameScene) and isinstance(guest_app.scene, GameScene))
+    assert "quem criou a sala" not in guest_app.scene.notices.text
+
+
+@pytest.mark.ct("CT-95")
+def test_revanche_mantem_o_modo_da_sala(host_app, guest_app):
+    Autoplayer(host_app).click_segment(host_app.scene.mode_selector, MATCH_INDEX)
+    lobby = open_room(host_app)
+    join_room(guest_app, lobby.code)
+    match = Table(host_app, guest_app)
+    match.settle()
+    match.play_all(SCHOLARS_MATE)
+    match.run_until_both_over()
+    for player, scene in ((match.host_player, match.host), (match.guest_player, match.guest)):
+        player.click_widget(scene.rematch_button)
+    drive(match.apps, lambda: isinstance(match.host, GameScene) and isinstance(match.guest, GameScene))
+    assert match.host.hides_hints is True
+    assert match.guest.hides_hints is True
+
+
+@pytest.mark.ct("CT-95")
+def test_revanche_com_outro_modo_encerra_a_sala(table):
+    table.play_all(SCHOLARS_MATE)
+    table.run_until_both_over()
+    scene = table.guest
+    link = scene.link
+    wrong_mode = GameStart("a", "b", scene.local_player.color.opposite, 5, 0, GameMode.MATCH.wire)
+    scene._start_network_rematch(wrong_mode)
+    assert link.peer_is_gone is True
+    assert isinstance(table.guest, GameOverScene), "a revanche não abriu"
 
 
 # Jogar --------------------------------------------------------------------------------------------
@@ -601,7 +649,7 @@ def test_inicio_de_revanche_com_a_cor_errada_encerra_a_sala(table):
     table.run_until_both_over()
     host_over = table.host
     fen = host_over.engine.final_fen
-    host_over.link.inbox.append(GameStart("A", "B", Color.WHITE, 0, 0))
+    host_over.link.inbox.append(GameStart("A", "B", Color.WHITE, 0, 0, GameMode.TRAINING.wire))
     table.host_player.frames(1)
     assert isinstance(table.host_app.scene, GameOverScene), "quem era Brancas teria de virar Pretas"
     assert host_over.link.peer_is_gone
@@ -643,7 +691,7 @@ def test_rede_de_verdade_usa_as_sessoes_de_verdade():
     from xadrez.net import ClientSession, HostSession
 
     network = LanNetwork()
-    assert isinstance(network.host("Jogador 1", TimeControl.BLITZ_5), HostSession)
+    assert isinstance(network.host("Jogador 1", TimeControl.BLITZ_5, GameMode.TRAINING.wire), HostSession)
     assert isinstance(network.client("Jogador 2", "ABCDEFG"), ClientSession)
 
 

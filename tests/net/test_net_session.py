@@ -10,6 +10,8 @@ from net_helpers import LOCALHOST, QUICK, WAIT_SECONDS, FakeHost, Inbox, RawPeer
 
 from xadrez.core import Color, EndReason, GameEngine, GameResult, GameState, TimeControl, legal_moves
 from xadrez.net import (
+    MODE_MATCH,
+    MODE_TRAINING,
     ClientSession,
     DrawAnswered,
     DrawOffered,
@@ -140,8 +142,23 @@ def test_net_inicio_tem_nomes_cores_e_tempo(opened):
     host_inbox, client_inbox = Inbox(host), Inbox(client)
     assert host_inbox.wait_for(PeerJoined) == PeerJoined("Visita")
     assert client_inbox.wait_for(PeerJoined) == PeerJoined("Dona da Sala")
-    assert host_inbox.wait_for(GameStart) == GameStart("Dona da Sala", "Visita", Color.WHITE, 5, 3)
-    assert client_inbox.wait_for(GameStart) == GameStart("Dona da Sala", "Visita", Color.BLACK, 5, 3)
+    assert host_inbox.wait_for(GameStart) == GameStart("Dona da Sala", "Visita", Color.WHITE, 5, 3, MODE_TRAINING)
+    assert client_inbox.wait_for(GameStart) == GameStart("Dona da Sala", "Visita", Color.BLACK, 5, 3, MODE_TRAINING)
+
+
+@pytest.mark.ct("CT-86")
+@pytest.mark.parametrize("mode", [MODE_TRAINING, MODE_MATCH])
+def test_net_os_dois_lados_recebem_o_modo_da_sala_tambem_na_revanche(opened, mode):
+    host = open_host(opened, mode=mode)
+    client = open_client(opened, host)
+    host_inbox, client_inbox = Inbox(host), Inbox(client)
+    assert host_inbox.wait_for(GameStart).mode == mode
+    assert client_inbox.wait_for(GameStart).mode == mode
+    client.send_rematch()
+    host_inbox.wait_for(RematchRequested)
+    host.send_rematch()
+    assert host_inbox.wait_for(GameStart).mode == mode
+    assert client_inbox.wait_for(GameStart).mode == mode
 
 
 @pytest.mark.ct("CT-86")
@@ -225,8 +242,8 @@ def test_net_revanche_pedida_por_quem_entrou_troca_as_cores(pair):
     client.send_rematch()
     host_inbox.wait_for(RematchRequested)
     host.send_rematch()
-    assert host_inbox.wait_for(GameStart) == GameStart("Pretas", "Brancas", Color.BLACK, 0, 0)
-    assert client_inbox.wait_for(GameStart) == GameStart("Pretas", "Brancas", Color.WHITE, 0, 0)
+    assert host_inbox.wait_for(GameStart) == GameStart("Pretas", "Brancas", Color.BLACK, 0, 0, MODE_TRAINING)
+    assert client_inbox.wait_for(GameStart) == GameStart("Pretas", "Brancas", Color.WHITE, 0, 0, MODE_TRAINING)
 
 
 @pytest.mark.ct("CT-86")

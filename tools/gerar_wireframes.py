@@ -215,7 +215,7 @@ def draw_room() -> None:
     sketch.box((x, 130, width, 104), "Código da sala\nde 7 caracteres", fill=STRONG_BOX, size=32, bold=True)
     sketch.box((x, 248, width, 46), "Copiar convite", size=SMALL_SIZE)
     sketch.note(306, "Tempo escolhido e a cor de quem criou a sala")
-    sketch.note(332, "O adversário precisa estar na mesma rede local")
+    sketch.note(332, "Modo e tempo valem para os dois, na mesma rede local")
     sketch.text("Aguardando adversário...", (x + width // 2, 378), LABEL_SIZE, bold=True)
     sketch.box((x, 422, width, 42), "Cancelar e voltar", size=SMALL_SIZE)
     sketch.save("wireframe_sala")

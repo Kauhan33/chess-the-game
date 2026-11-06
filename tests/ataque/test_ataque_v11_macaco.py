@@ -119,8 +119,8 @@ class RobotNetwork:
         self.robots = []
         self.waiting_hosts = []
 
-    def host(self, name, time_control):
-        session = HostSession(name, time_control, port=0, bind="127.0.0.1", timings=QUICK)
+    def host(self, name, time_control, mode):
+        session = HostSession(name, time_control, port=0, bind="127.0.0.1", timings=QUICK, mode=mode)
         self.sessions.append(session)
         self.waiting_hosts.append(session)
         return session

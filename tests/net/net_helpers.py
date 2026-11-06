@@ -126,11 +126,12 @@ def start_message(your_color="black", minutes=10, increment=0):
         "your_color": your_color,
         "minutes": minutes,
         "increment": increment,
+        "mode": "training",
     }
 
 
-def open_host(track, time_control=TimeControl.UNLIMITED, timings=QUICK, name="Brancas"):
-    host = track(HostSession(name, time_control, port=0, bind=LOCALHOST, timings=timings))
+def open_host(track, time_control=TimeControl.UNLIMITED, timings=QUICK, name="Brancas", mode="training"):
+    host = track(HostSession(name, time_control, port=0, bind=LOCALHOST, timings=timings, mode=mode))
     host.start()
     return host
 

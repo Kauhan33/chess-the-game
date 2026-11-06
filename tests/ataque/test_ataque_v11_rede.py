@@ -111,7 +111,7 @@ def test_dois_lances_colados_valem_na_ordem_e_a_animacao_de_um_nao_corta_a_do_ou
     b'{"type":"move","uci":"e7e5"}\n',
     b'{"type":"move","uci":"E7E5","clock_ms":0}\n',
     b'{"type":"move","uci":"e7e5","clock_ms":0,"extra":1}\n',
-    b'{"type":"start","white":"a","black":"b","your_color":"white","minutes":0,"increment":0}\n',
+    b'{"type":"start","white":"a","black":"b","your_color":"white","minutes":0,"increment":0,"mode":"training"}\n',
     b'{"type":"hello","version":1,"name":"outra vez"}\n',
     b'{"type":"nada"}\n',
     b'[1,2,3]\n',
@@ -707,7 +707,7 @@ def test_porta_ocupada_vira_mensagem_e_abrir_de_novo_funciona(host_app, network)
     holder.listen(1)
     port = holder.getsockname()[1]
     original = network.host
-    network.host = lambda name, time_control: network._track(HostSession(name, time_control, port=port, bind="127.0.0.1", timings=QUICK))
+    network.host = lambda name, time_control, mode: network._track(HostSession(name, time_control, port=port, bind="127.0.0.1", timings=QUICK, mode=mode))
     lobby = open_room(host_app)
     wait_until(host_app, lambda: lobby.error, dt=1 / 60)
     assert str(port) in lobby.error
@@ -794,7 +794,7 @@ class AttackerRoom:
         self.listener.close()
 
 
-START = {"type": "start", "white": "Atacante", "black": "Tela", "your_color": "black", "minutes": 5, "increment": 0}
+START = {"type": "start", "white": "Atacante", "black": "Tela", "your_color": "black", "minutes": 5, "increment": 0, "mode": "training"}
 
 
 @pytest.fixture
@@ -961,7 +961,7 @@ def test_enter_repetido_em_criar_sala_nao_prende_a_porta(host_app, network):
     probe.bind(("127.0.0.1", 0))
     port = probe.getsockname()[1]
     probe.close()
-    network.host = lambda name, time_control: network._track(HostSession(name, time_control, port=port, bind="127.0.0.1", timings=QUICK))
+    network.host = lambda name, time_control, mode: network._track(HostSession(name, time_control, port=port, bind="127.0.0.1", timings=QUICK, mode=mode))
     menu = host_app.scene
     player = Autoplayer(host_app)
     player.click_segment(menu.opponent_selector, NET_SEGMENT)

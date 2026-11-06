@@ -94,7 +94,7 @@ Volte ao menu, escolha "Contra a CPU" e "Hardcore" e inicie.
 
 | Ação | Quem | O que narrar |
 |---|---|---|
-| "Rede local", "Criar sala" | Integrante 1, no projetor | O código tem 7 caracteres: é o IP da máquina, em base 31, sem os que se confundem. |
+| "Rede local", "Criar sala" | Integrante 1, no projetor | O código tem 7 caracteres: é o IP da máquina, em base 31, sem os que se confundem. O modo e o tempo escolhidos aqui valem para os dois. |
 | Digitar o código e "Entrar na sala" | Integrante 2, no outro computador | Entrada conferida. A partida abre nos dois lados. |
 | `1. e4` e `1... e5` | Os dois | Quem criou a sala valida os lances e decide o fim. O outro joga sem esperar. |
 | Desistir de um dos lados | Integrante 2 | Quem entrou faz um pedido. A sala decide, e os dois terminam com o mesmo resultado. |
@@ -133,6 +133,7 @@ Cada integrante responde pela parte que apresentou. As fórmulas completas estã
 | O que é a poda alfa-beta? | Se um lance já garante algo melhor do que o adversário deixaria acontecer em outra linha, o resto daquela linha pode ser ignorado. A nota final não muda, e o trabalho cai muito. | `_Search._search_moves` em `xadrez/core/ai.py` |
 | Para que serve a quiescência? | Sem ela, a busca pararia no meio de uma troca e acharia que ganhou uma peça que será recapturada. Ela continua só pelas capturas até a posição acalmar. | `_Search._quiesce` |
 | Por que thread e não processo? | Com o intervalo de troca em 0,2 ms, a tela fica em 58,7 FPS, igual a um processo, e não precisa de `multiprocessing` no executável. Com o intervalo padrão, eram 9,5 FPS. | `xadrez/ui/cpu_player.py` |
+| Cada jogador escolhe o modo em rede? | Não. Quem cria a sala escolhe, e a mensagem `start` leva o modo. Assim os dois jogam a mesma partida. | `_begin_game` em `xadrez/net/session.py` |
 | Por que quem cria a sala decide tudo? | Dois relógios nunca batem. Quando cada lado decidia pelo próprio, os dois podiam se dar a vitória: o QA provou isso (QA11-09). | `xadrez/ui/net_link.py` |
 | E se o outro lado trapacear? | Cada mensagem é conferida no esquema, e cada lance, no motor. Lance ilegal encerra a sala. O limite é a sala alterada, que pode mentir sobre tempo e desistência. | `xadrez/net/protocol.py` |
 | Como a senha é guardada? | Não é. Fica o resultado de PBKDF2-HMAC-SHA256, com 600 mil iterações e sal próprio. Leva 0,17 s, de propósito. | `xadrez/data/accounts.py` |

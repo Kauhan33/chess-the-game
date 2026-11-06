@@ -388,7 +388,7 @@ Decisões do grupo:
 
 - **Modos:** Treinamento mostra tudo, como na versão 1.0. Partida não mostra caminhos, capturas, ameaças nem avisos de xeque. Nos dois, as regras são as oficiais: lance ilegal é recusado. Na Partida, a recusa não explica o motivo, para não virar dica.
 - **CPU:** níveis Easy, Medium, Hard e Hardcore, com a cor escolhida pelo jogador.
-- **Rede:** só rede local, sem servidor: um cria a sala e o outro digita um código de 7 letras.
+- **Rede:** só rede local, sem servidor: um cria a sala e o outro digita um código de 7 letras. O modo é um só para os dois: quem cria a sala escolhe, e quem entra segue.
 - **Contas:** login com senha, guardado neste computador, com "Jogar como convidado". Convidado não grava histórico.
 
 No modo Partida ficam só os indicadores neutros, que dizem o que aconteceu e não o que fazer: a peça selecionada, o cursor e o último lance. A planilha do HUD e o texto de "Copiar PGN" omitem `+` e `#` enquanto a partida corre. O PGN gravado guarda a notação completa.
@@ -471,12 +471,12 @@ def local_ipv4() -> str                     # IP desta máquina na rede local, s
 def is_lan_address(ipv4: str) -> bool       # o jogo não conversa com a internet, nem por um código digitado errado
 
 # events.py: o que poll() entrega à interface. PeerLeft e NetworkError sempre encerram a sessão.
-PeerJoined(name), GameStart(white, black, your_color, minutes, increment), MoveReceived(uci, clock_ms), PeerResigned(),
+PeerJoined(name), GameStart(white, black, your_color, minutes, increment, mode), MoveReceived(uci, clock_ms), PeerResigned(),
 DrawOffered(), DrawAnswered(accept), RematchRequested(), PeerLeft(reason), NetworkError(message),
 GameDecided(result, plies)                  # só em quem entrou na sala
 
 # protocol.py: tudo o que entra e sai passa por aqui
-PROTOCOL_VERSION = 2; MAX_LINE_BYTES = 4096; MAX_NAME_CHARS = 16; MAX_CLOCK_MS = 7 dias
+PROTOCOL_VERSION = 3; MODE_TRAINING e MODE_MATCH; MAX_LINE_BYTES = 4096; MAX_NAME_CHARS = 16; MAX_CLOCK_MS = 7 dias
 class ProtocolError(Exception); class LineSplitter    # feed(chunk) -> list[bytes], nunca guarda mais que MAX_LINE_BYTES
 encode_message(message) -> bytes; decode_message(line) -> dict    # conferem tipo, campos e valores nos dois sentidos
 is_valid_name, is_valid_uci, sanitize_name, clock_to_wire, result_fields(result, plies), parse_result(message), parse_uci(uci)
@@ -493,13 +493,13 @@ class _Session(ABC):                        # thread, filas e conversa depois do
     is_authority: bool; name: str; start(); poll() -> list[NetEvent]; close()
     send_move(uci, clock_ms); send_resign(); send_draw_offer(); send_draw_answer(accept); send_rematch(); send_bye()
 class HostSession(_Session):                # is_authority = True; code, port, offline_warning
-    def __init__(self, name, time_control, port=DEFAULT_PORT, bind="0.0.0.0", *, timings=NetTimings())
+    def __init__(self, name, time_control, port=DEFAULT_PORT, bind="0.0.0.0", *, timings=NetTimings(), mode=MODE_TRAINING)
     send_result(result, plies)              # só a sala tem
 class ClientSession(_Session):              # is_authority = False
     def __init__(self, name, code_or_host, port=DEFAULT_PORT, timeout=5.0, *, timings=NetTimings())
 ```
 
-Protocolo: uma mensagem JSON por linha, em TCP, com versão, hoje a 2. Quem entra manda `hello` (versão e nome). A sala responde `start` (nomes, cor de quem entrou, minutos e incremento) ou `refused` (`version` ou `room_full`). Na partida valem `move` (uci e `clock_ms`), `resign`, `draw_offer`, `draw_answer`, `rematch`, `ping` e `bye`, nos dois sentidos, além de `result` (vencedor, motivo e `plies`), que só a sala manda. Uma `result` vinda de quem entrou é mensagem inválida, como qualquer outra fora do protocolo.
+Protocolo: uma mensagem JSON por linha, em TCP, com versão, hoje a 3. Quem entra manda `hello` (versão e nome). A sala responde `start` (nomes, cor de quem entrou, minutos, incremento e modo) ou `refused` (`version` ou `room_full`). Na partida valem `move` (uci e `clock_ms`), `resign`, `draw_offer`, `draw_answer`, `rematch`, `ping` e `bye`, nos dois sentidos, além de `result` (vencedor, motivo e `plies`), que só a sala manda. Uma `result` vinda de quem entrou é mensagem inválida, como qualquer outra fora do protocolo.
 
 Quem cria a sala joga de brancas na primeira partida e é a autoridade do resultado, também na revanche: valida as jogadas, mede os dois relógios, decide o fim e manda `result`, com vencedor, motivo e em que lance a partida parou. Regras completas em `docs/plans/notas-ui.md`. Uma thread cuida dos sockets e fala com a interface por duas filas `deque`: a interface só espera em `close()`, por pouco tempo. Sinal de vida a cada 2 s, e 8 s sem resposta viram `PeerLeft`. Só linha completa e válida conta como sinal de vida.
 

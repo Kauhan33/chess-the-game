@@ -333,6 +333,10 @@ Toda pasta de dados de teste é temporária, por `CHESS_THE_GAME_DATA`, e toda r
 
 A sala pelo IP real prova que `0.0.0.0` e o código funcionam nesta máquina. Ela não prova que outra máquina chega até aqui, e por isso o roteiro da apresentação tem um plano B para a rede.
 
+### Um modo só por sala
+
+Na versão 1.1.1, por decisão do aluno, o modo passou a ser um só para os dois em rede: quem cria a sala escolhe, e quem entra segue. A mudança sobe o protocolo para a versão 3, porque `start` passa a levar o modo. Os casos CT-86 e CT-95 cobrem os dois sentidos, com o menu de quem entra em outro modo, o aviso na faixa e a revanche, e os testes do protocolo recusam modo desconhecido ou ausente.
+
 ### CI da versão 1.1
 
 O primeiro envio falhou nas 6 combinações ([execução](https://github.com/Kauhan33/chess-the-game/actions/runs/42197820704)). Foram dois casos de teste presos a uma suposição, e nenhum defeito do jogo:

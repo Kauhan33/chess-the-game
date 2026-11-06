@@ -311,18 +311,18 @@ Em todos eles, a faixa mostra a mensagem por 3 s, a casa treme, a seleção é l
 
 **Fluxo principal**
 
-1. O jogador digita o próprio nome, se não estiver em uma conta, escolhe o modo e o tempo e aciona "Criar sala".
+1. O jogador digita o próprio nome, se não estiver em uma conta, escolhe o modo e o tempo, que valem para os dois, e aciona "Criar sala".
 2. O sistema abre a porta 50507 e mostra o código de 7 caracteres, "Passe este código para quem vai jogar com você." e "Aguardando adversário".
 3. O jogador passa o código ao outro, ditando ou por "Copiar convite".
 4. Quem entra na sala conecta (UC12), e a sala valida o `hello`.
-5. A sala responde com `start`, e a partida abre nos dois computadores. Quem criou joga de brancas na primeira partida.
+5. A sala responde com `start`, que leva o modo e o tempo, e a partida abre nos dois computadores. Quem criou joga de brancas na primeira partida.
 6. A cada lance recebido, a sala valida no próprio motor, mede os dois relógios e anima o voo.
 7. Quando a partida acaba, a sala manda `result`, com vencedor, motivo e em que lance parou, e abre a tela de fim.
 
 **Fluxos alternativos**
 
 - **A1, sem rede local:** a tela avisa "Sem rede local: esta sala só pode ser acessada neste computador. Conecte-se a uma rede e crie outra.".
-- **A2, revanche:** com os dois pedidos, a sala manda um novo `start`, com as cores trocadas. Ela continua a autoridade, mesmo de pretas.
+- **A2, revanche:** com os dois pedidos, a sala manda um novo `start`, com as cores trocadas e o mesmo modo. Ela continua a autoridade, mesmo de pretas.
 - **A3, proposta de empate:** em "Opções", "Propor empate" envia a proposta, uma por lance. A faixa avisa a recusa.
 - **A4, cancelar:** "Cancelar e voltar" ou Esc fecha a sala antes de o outro entrar.
 
@@ -349,7 +349,7 @@ Em todos eles, a faixa mostra a mensagem por 3 s, a casa treme, a seleção é l
 2. O sistema pede o "Código da sala".
 3. O jogador digita o código. Minúsculas e espaços valem.
 4. O jogador aciona "Entrar na sala", ou aperta Enter, e o sistema mostra "Conectando".
-5. A sala responde, e a partida abre com o tempo que ela escolheu, com o jogador de pretas na primeira partida.
+5. A sala responde, e a partida abre com o modo e o tempo que ela escolheu, com o jogador de pretas na primeira partida.
 6. O jogador joga sem esperar: o lance vale na hora, no motor local, e segue para a sala.
 7. A partida acaba quando chega o `result` da sala. O jogador lê a tela de fim, e a partida é gravada.
 
@@ -359,6 +359,7 @@ Em todos eles, a faixa mostra a mensagem por 3 s, a casa treme, a seleção é l
 - **A2, desistir ou aceitar empate:** é um pedido. A faixa mostra "Desistência enviada.", e o tabuleiro fica parado até a sala responder.
 - **A3, proposta recebida:** o cartão aparece sobre a planilha. A aceita, Esc recusa, e jogar um lance também recusa.
 - **A4, lance que cruzou com o fim:** a sala não o viu. O lance é desfeito, inclusive a captura e o ponto na série.
+- **A5, outro modo no menu:** vale o modo da sala, e a faixa avisa, por exemplo, "Modo Partida: quem criou a sala escolhe o modo dos dois.".
 
 **Fluxos de exceção**
 

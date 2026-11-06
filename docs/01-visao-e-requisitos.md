@@ -71,7 +71,7 @@ O enunciado pede para o grupo um "Xadrez Simplificado": tabuleiro 8x8, movimento
 | `+` e `#` em "Copiar PGN" com a partida correndo | Sim | Não |
 | Notação completa depois do fim | Sim | Sim |
 
-Treinamento é o padrão. Em rede, cada jogador escolhe o próprio modo, e o protocolo não avisa o outro qual foi. O PGN gravado no histórico guarda sempre a notação completa.
+Treinamento é o padrão. Em rede, o modo é um só para os dois: quem cria a sala escolhe, e quem entra segue. O PGN gravado no histórico guarda sempre a notação completa.
 
 **Fim de jogo.**
 

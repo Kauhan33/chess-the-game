@@ -51,6 +51,8 @@
     {"id": "T31", "titulo": "Versão 1.1: testar a rede entre dois computadores, em janela real e com o firewall", "coluna": "Backlog / A Fazer", "marco": "E5", "etiquetas": ["testes"]},
     {"id": "T32", "titulo": "Versão 1.1: confirmar pelo CI em Python 3.10, Linux e macOS (RNF02)", "coluna": "Concluído", "marco": "E4", "etiquetas": ["testes"], "evidencia": "CI aprovado nas 6 combinações, commit d14edf5"},
     {"id": "T33", "titulo": "Versão 1.1: publicar no GitHub e gerar o novo executável, com autorização do grupo", "coluna": "Concluído", "marco": "E4", "etiquetas": ["gestão"], "evidencia": "release v1.1.0, commit d14edf5"},
-    {"id": "T34", "titulo": "Decidir se o modo de cada jogador deve aparecer para o outro em rede (sugestão 1 do QA)", "coluna": "Backlog / A Fazer", "marco": "E4", "etiquetas": ["gestão"]}
+    {"id": "T34", "titulo": "Decidir se o modo de cada jogador deve aparecer para o outro em rede (sugestão 1 do QA)", "coluna": "Concluído", "marco": "E4", "etiquetas": ["gestão"], "evidencia": "decisão do aluno em 2026-11-06: um modo só, escolhido por quem cria a sala"},
+    {"id": "T35", "titulo": "Versão 1.1.1: um modo só por sala em rede, com o protocolo 3", "coluna": "Em Revisão", "marco": "E4", "etiquetas": ["interface", "testes"]},
+    {"id": "T36", "titulo": "Versão 1.1.1: publicar no GitHub e gerar o novo executável, com autorização do grupo", "coluna": "Backlog / A Fazer", "marco": "E4", "etiquetas": ["gestão"]}
   ]
 }

@@ -199,7 +199,7 @@ Cada resposta foi conferida no código, no arquivo citado. Todos precisam saber 
 
 **Como o fluxo de bytes vira mensagem?** O TCP não tem mensagens, só bytes. Cada mensagem é um JSON em uma linha, e `LineSplitter` separa as linhas. Nenhuma pode passar de 4096 bytes: uma linha sem fim é descartada sem acumular memória.
 
-**Quais são as mensagens?** Na entrada, `hello` (versão e nome), `start` (nomes, cor, minutos e incremento) e `refused` (`version` ou `room_full`). Na partida, `move` (uci e `clock_ms`), `resign`, `draw_offer`, `draw_answer`, `rematch`, `ping` e `bye`, e `result` (vencedor, motivo e `plies`), que só sai da sala.
+**Quais são as mensagens?** Na entrada, `hello` (versão e nome), `start` (nomes, cor, minutos, incremento e modo) e `refused` (`version` ou `room_full`). Na partida, `move` (uci e `clock_ms`), `resign`, `draw_offer`, `draw_answer`, `rematch`, `ping` e `bye`, e `result` (vencedor, motivo e `plies`), que só sai da sala.
 
 **O que `decode_message` confere?** Que é JSON, que é um objeto, que o tipo existe, que os campos são exatamente os esperados e que cada valor tem o tipo e a faixa certos. Booleano não passa como número, nome com controle ou inversão de direção não passa, e vencedor que não combina com o motivo não passa. Qualquer erro levanta `ProtocolError`, e a conexão é encerrada: não se tenta entender.
 
@@ -216,6 +216,8 @@ Cada resposta foi conferida no código, no arquivo citado. Todos precisam saber 
 **Funciona entre dois computadores?** Resposta honesta: a partida inteira foi testada em dois processos em `127.0.0.1`, e a sala foi testada pelo IP real, com `0.0.0.0` e a porta 50507, em um computador só. A conexão entre dois computadores e a passagem pelo firewall não estão verificadas na documentação. Diga o que o ensaio do grupo mostrou, e nada além disso.
 
 ### Autoridade
+
+**Cada um escolhe o modo?** Não: o modo é um só por sala. Quem cria escolhe, e `start` leva o valor. Em `_start_game`, na `LobbyScene`, quem entra troca o modo do menu pelo da sala, e a faixa avisa se eram diferentes. Se a sala mudar o modo na revanche, a conexão é encerrada, em `_start_network_rematch`. Por que mudar: com um modo por jogador, quem estava em Partida enfrentaria, sem saber, alguém com todas as dicas. É o protocolo 3: versões diferentes não jogam entre si, e `refused` com `version` explica isso na tela.
 
 **Por que um lado manda em tudo?** Os dois lados precisam chegar ao mesmo resultado, e dois relógios separados nunca batem: o `dt` de cada quadro é limitado a 0,1 s, então uma janela arrastada atrasa só aquele relógio. Na primeira versão, cada lado decidia pelo próprio relógio, e o QA provou que os dois podiam se dar a vitória (QA11-09). Com uma autoridade só, isso não acontece.
 

@@ -123,8 +123,8 @@ class LoopbackNetwork:
         self.opened = []
         self.last_host = None
 
-    def host(self, name, time_control):
-        self.last_host = self._track(HostSession(name, time_control, port=0, bind=LOCALHOST, timings=self.timings))
+    def host(self, name, time_control, mode="training"):
+        self.last_host = self._track(HostSession(name, time_control, port=0, bind=LOCALHOST, timings=self.timings, mode=mode))
         return self.last_host
 
     def client(self, name, code):

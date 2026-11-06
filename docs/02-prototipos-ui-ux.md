@@ -59,6 +59,7 @@ Nenhuma tela nova é um formulário solto. Login, menu e sala são a mesma mesa,
 | Decisão | Por quê |
 |---|---|
 | O código é o único elemento grande | É o que se dita para o outro jogador, de longe. |
+| A sala mostra o modo e o tempo, que valem para os dois | Os dois jogam a mesma partida. Quem entra com outro modo no menu lê na faixa qual vale, em vez de descobrir jogando. |
 | Código sem 0, O, 1, I e L | São os caracteres que se confundem ao ditar. O campo aceita minúsculas e espaços. |
 | "Copiar convite" é o botão em foco | Quem está no mesmo chat não precisa ditar nada. |
 | A sala avisa quando não há rede local | Sem rede, o código é o de `127.0.0.1` e só serve neste computador. A tela diz isso, em vez de fazer alguém esperar. |

@@ -54,8 +54,8 @@ _BOARD_REASONS = frozenset({
 class LanNetwork:
     """Sessões de verdade, na porta padrão, em todas as placas de rede desta máquina."""
 
-    def host(self, name: str, time_control: TimeControl) -> HostSession:
-        return HostSession(name, time_control)
+    def host(self, name: str, time_control: TimeControl, mode: str) -> HostSession:
+        return HostSession(name, time_control, mode=mode)
 
     def client(self, name: str, code: str) -> ClientSession:
         return ClientSession(name, code)

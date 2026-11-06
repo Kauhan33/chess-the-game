@@ -11,7 +11,8 @@ from xadrez.net import GameStart, NetworkError, PeerJoined, PeerLeft
 from xadrez.net.room_code import ROOM_CODE_LENGTH
 from xadrez.ui import clipboard, theme as tokens
 from xadrez.ui.arena_scene import ArenaScene, draw_notes
-from xadrez.ui.match import OPPONENT_NET, MatchOptions, distinct_player_names, time_control_label
+from xadrez.ui.hud import NOTICE_TURN
+from xadrez.ui.match import OPPONENT_NET, GameMode, MatchOptions, distinct_player_names, time_control_label
 from xadrez.ui.net_link import NetLink
 from xadrez.ui.widgets import STYLE_PRIMARY, Button, FocusGroup, TextInput
 
@@ -68,7 +69,7 @@ class LobbyScene(ArenaScene):
     def open_room(self) -> None:
         self._close_session()
         self.error = ""
-        session = self.app.network.host(self.options.white_name, self.options.time_control)
+        session = self.app.network.host(self.options.white_name, self.options.time_control, self.options.mode.wire)
         session.start()
         self.link = NetLink(session)
         self.code = session.code
@@ -129,7 +130,11 @@ class LobbyScene(ArenaScene):
         white, black = distinct_player_names(event.white, event.black)
         engine = GameEngine(white, black, TimeControl(event.minutes, event.increment))
         link.peer_name = engine.players[event.your_color.opposite].name
-        self.next_scene = self.app.game_scene(engine, self.options, local_player=engine.players[event.your_color], link=link)
+        options = replace(self.options, mode=GameMode.from_wire(event.mode))
+        scene = self.app.game_scene(engine, options, local_player=engine.players[event.your_color], link=link)
+        if options.mode is not self.options.mode:
+            scene.notices.show(f"Modo {options.mode.label}: quem criou a sala escolhe o modo dos dois.", NOTICE_TURN)
+        self.next_scene = scene
 
     def handle_event(self, event: pygame.event.Event) -> None:
         if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
@@ -207,8 +212,8 @@ class LobbyScene(ArenaScene):
             flow.gap(14)
             flow.place(self.copy_button, 46)
             flow.gap(10)
-        flow.note(f"Tempo: {time_control_label(self.options.time_control)}. Você joga de Brancas na primeira partida.")
-        flow.note("O adversário precisa estar na mesma rede local que você.")
+        flow.note(f"Modo {self.options.mode.label} e tempo {time_control_label(self.options.time_control)}: valem para os dois.")
+        flow.note("Você começa de Brancas. O adversário precisa estar na mesma rede local.")
         flow.gap(14)
         self._status_y = flow.y
         flow.gap(max(_STATUS_ROOM, self._error_room(self.error)))
@@ -231,7 +236,7 @@ class LobbyScene(ArenaScene):
     def _layout_guest(self, spacing: float) -> int:
         theme = self.app.theme
         flow = self._flow(theme.px(_FORM_TOP), spacing)
-        flow.note("Digite o código que o outro jogador passou. Quem criou a sala escolhe o tempo.", size=17)
+        flow.note("Digite o código que o outro jogador passou. Quem criou a sala escolhe o modo e o tempo.", size=17)
         flow.field(self.code_input, 56)
         flow.gap(14)
         flow.place(self.connect_button, 50)

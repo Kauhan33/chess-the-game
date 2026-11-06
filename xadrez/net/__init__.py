@@ -12,7 +12,7 @@ from .events import (
     PeerResigned,
     RematchRequested,
 )
-from .protocol import MAX_NAME_CHARS, PROTOCOL_VERSION, parse_uci
+from .protocol import MAX_NAME_CHARS, MODE_MATCH, MODE_TRAINING, PROTOCOL_VERSION, parse_uci
 from .room_code import decode_room_code, encode_room_code, local_ipv4
 from .session import DEFAULT_PORT, ClientSession, HostSession, NetTimings
 
@@ -25,6 +25,8 @@ __all__ = [
     "GameStart",
     "HostSession",
     "MAX_NAME_CHARS",
+    "MODE_MATCH",
+    "MODE_TRAINING",
     "MoveReceived",
     "NetEvent",
     "NetTimings",

@@ -24,12 +24,13 @@ from xadrez.net.protocol import (
 
 BIDI_OVERRIDE = chr(0x202E)
 ZERO_WIDTH_SPACE = chr(0x200B)
-START = {"white": "Brancas", "black": "Pretas", "your_color": "black", "minutes": 10, "increment": 0}
+START = {"white": "Brancas", "black": "Pretas", "your_color": "black", "minutes": 10, "increment": 0, "mode": "training"}
 
 VALID_MESSAGES = [
     {"type": "hello", "version": 1, "name": "Pretas"},
     {"type": "start", **START},
     {"type": "start", **{**START, "minutes": 0.5, "increment": 2.5, "your_color": "white"}},
+    {"type": "start", **{**START, "mode": "match"}},
     {"type": "refused", "code": "room_full"},
     {"type": "refused", "code": "version"},
     {"type": "move", "uci": "e2e4", "clock_ms": 0},
@@ -105,6 +106,11 @@ INVALID_MESSAGES = [
     {"type": "hello", "version": 1, "name": f"a{BIDI_OVERRIDE}b"},
     {"type": "hello", "version": 1, "name": f"a{ZERO_WIDTH_SPACE}b"},
     {"type": "hello", "version": 1, "name": chr(0xD800)},
+    {"type": "start", **{**START, "mode": "Partida"}},
+    {"type": "start", **{**START, "mode": None}},
+    {"type": "start", **{**START, "mode": ["match"]}},
+    {"type": "start", **{**START, "mode": 1}},
+    {"type": "start", **{key: value for key, value in START.items() if key != "mode"}},
     {"type": "start", **{**START, "your_color": "red"}},
     {"type": "start", **{**START, "your_color": ["white"]}},
     {"type": "start", **{**START, "your_color": None}},
@@ -163,7 +169,7 @@ def test_net_mensagem_invalida_e_recusada_nos_dois_sentidos(message):
         b'{"type":"move","uci":"e2e4","clock_ms":-Infinity}',
         b'{"type":"move","uci":"e2e4","clock_ms":1e999}',
         b'{"type":"move","uci":"e2e4","clock_ms":' + b"9" * 4000 + b"}",
-        b'{"type":"start","white":"a","black":"b","your_color":"white","minutes":1e999,"increment":0}',
+        b'{"type":"start","white":"a","black":"b","your_color":"white","minutes":1e999,"increment":0,"mode":"training"}',
         b'{"type":"hello","version":1,"name":"\\ud800"}',
     ],
     ids=range(18),
