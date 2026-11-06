@@ -23,7 +23,6 @@ As colunas são as pedidas no enunciado. A fonte das tarefas é `docs/kanban/tar
 | Backlog / A Fazer | T19 | Entregar a documentação unificada e o código | E4 | ainda não feita |
 | Backlog / A Fazer | T21 | Ensaiar a demonstração e a defesa técnica | E5 | ainda não feita |
 | Backlog / A Fazer | T31 | Versão 1.1: testar a rede entre dois computadores, em janela real e com o firewall | E5 | ainda não feita |
-| Backlog / A Fazer | T36 | Versão 1.1.1: publicar no GitHub e gerar o novo executável, com autorização do grupo | E4 | ainda não feita |
 | Em Andamento (WIP) | T15 | Criar o quadro no GitHub Projects e capturar os prints | E4 | quadro criado em 2026-11-04; prints a capturar pelo grupo |
 | Em Revisão | T20 | Montar os slides e dividir a fala entre os integrantes | E5 | slides prontos para o grupo revisar |
 | Concluído | T01 | Definir design, contratos e identificadores | E4 | commit 714b188 |
@@ -53,6 +52,7 @@ As colunas são as pedidas no enunciado. A fonte das tarefas é `docs/kanban/tar
 | Concluído | T33 | Versão 1.1: publicar no GitHub e gerar o novo executável, com autorização do grupo | E4 | release v1.1.0, commit d14edf5 |
 | Concluído | T34 | Decidir se o modo de cada jogador deve aparecer para o outro em rede (sugestão 1 do QA) | E4 | decisão do aluno em 2026-11-06: um modo só, escolhido por quem cria a sala |
 | Concluído | T35 | Versão 1.1.1: um modo só por sala em rede, com o protocolo 3 | E4 | suíte completa no commit 846bba7: 3668 aprovados, 0 falhas |
+| Concluído | T36 | Versão 1.1.1: publicar no GitHub e gerar o novo executável, com autorização do grupo | E4 | release v1.1.1, commit 4be3181 |
 <!-- FIM:kanban -->
 
 ## 9.3 Evolução real pelo git
@@ -86,6 +86,7 @@ Tabela gerada do `git log`, com as datas e as mensagens originais dos commits.
 | 2026-11-06 08:52 | `d14edf5` | test: tira o arredondamento do teste do sinal de vida |
 | 2026-11-06 09:31 | `0bcbc24` | docs: registra a release v1.1.0 e o print do quadro |
 | 2026-11-06 10:03 | `846bba7` | feat(rede): um modo so para os dois, escolhido por quem cria a sala |
+| 2026-11-06 11:37 | `4be3181` | docs: resultados da suite completa da versao 1.1.1 |
 <!-- FIM:evolucao -->
 
 ## 9.4 Prints do quadro
