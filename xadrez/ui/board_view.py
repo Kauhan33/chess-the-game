@@ -154,7 +154,7 @@ class BoardView:
         self._shake_elapsed = 0.0
         self.dragged_square: Cell | None = None
         self._drag_offset = (0.0, 0.0)
-        self._flip_yaw = 0.0
+        self._orbit_goal = 0.0
         self._clear_animations()
 
     def _clear_animations(self) -> None:
@@ -227,7 +227,7 @@ class BoardView:
             # A volta à vista padrão termina a inclinação e o zoom, agora para o lado de quem joga.
             self._view_reset = _ViewReset(self.camera, SIDE_YAW[color])
         elif not self._is_facing(SIDE_YAW[color]):
-            self.camera.orbit_to(SIDE_YAW[color])
+            self._orbit_toward(SIDE_YAW[color])
 
     def restore_default_view(self, color: Color) -> None:
         camera = self.camera
@@ -239,9 +239,12 @@ class BoardView:
         if self._view_reset is not None:
             self._view_reset = _ViewReset(self.camera, self._view_reset.final_yaw + math.pi)
             return
-        start = self._flip_yaw if self.camera.is_moving else self.camera.yaw
-        self._flip_yaw = start + math.pi
-        self.camera.orbit_to(self._flip_yaw)
+        start = self._orbit_goal if self.camera.is_moving else self.camera.yaw
+        self._orbit_toward(start + math.pi)
+
+    def _orbit_toward(self, yaw: float) -> None:
+        self._orbit_goal = yaw
+        self.camera.orbit_to(yaw)
 
     def _is_facing(self, yaw: float) -> bool:
         """Girar para onde já se está só gastaria quadros refazendo a camada do tabuleiro."""

@@ -4,7 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Union
 
-from xadrez.core import Color
+from xadrez.core import Color, GameResult
 
 
 @dataclass(frozen=True)
@@ -47,6 +47,14 @@ class DrawAnswered:
 
 
 @dataclass(frozen=True)
+class GameDecided:
+    """A sala decidiu o fim da partida, depois de `plies` meios-lances. Só quem entrou na sala recebe."""
+
+    result: GameResult
+    plies: int
+
+
+@dataclass(frozen=True)
 class RematchRequested:
     pass
 
@@ -68,6 +76,7 @@ NetEvent = Union[
     PeerResigned,
     DrawOffered,
     DrawAnswered,
+    GameDecided,
     RematchRequested,
     PeerLeft,
     NetworkError,

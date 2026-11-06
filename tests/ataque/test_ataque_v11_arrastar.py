@@ -412,7 +412,6 @@ def test_virar_em_giro_termina_de_frente_e_o_clique_continua_certo(app, monkeypa
 
 
 @pytest.mark.ct("CT-127")
-@pytest.mark.xfail(strict=True, reason="QA11-11: em 2 jogadores, Virar durante o giro por turno não vira: a referência é a última virada, não para onde a câmera vai")
 def test_virar_durante_o_giro_por_turno_vai_para_o_lado_oposto(app):
     scene, player = open_game(app, mode=GameMode.TRAINING, auto_rotate=True)
     player.click_square(cell("e2"))

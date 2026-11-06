@@ -21,6 +21,20 @@ _FORMAT_VERSION = 1
 _FILE_PREFIX = "history-"
 _FILE_HASH_CHARS = 32
 _TEXT_FIELDS = ("played_at", "opponent", "color", "reason", "time_control", "mode", "pgn", "final_fen")
+# O arquivo pode ter sido editado à mão. Texto gigante travaria a lista, e número gigante derrubaria a conta da duração.
+_MAX_FIELD_CHARS = {
+    "played_at": 40,
+    "opponent": 64,
+    "difficulty": 32,
+    "color": 32,
+    "reason": 64,
+    "time_control": 32,
+    "mode": 32,
+    "pgn": 100_000,
+    "final_fen": 128,
+}
+_MAX_MOVES = 1_000_000
+_MAX_SECONDS = 1_000_000_000
 
 
 @dataclass(frozen=True)
@@ -115,4 +129,13 @@ def _parse_records(payload: object) -> list[MatchRecord]:
 
 
 def _parse_record(entry: dict[str, object]) -> MatchRecord:
-    return MatchRecord(**{field.name: entry[field.name] for field in fields(MatchRecord)})
+    values = {field.name: entry[field.name] for field in fields(MatchRecord)}
+    for name, limit in _MAX_FIELD_CHARS.items():
+        if isinstance(values[name], str):
+            values[name] = values[name][:limit]
+    if type(values["moves"]) is int:
+        values["moves"] = min(values["moves"], _MAX_MOVES)
+    # O infinito fica como está: quem recusa é a validação de `MatchRecord`.
+    if type(values["seconds"]) in (int, float) and values["seconds"] != math.inf:
+        values["seconds"] = min(values["seconds"], _MAX_SECONDS)
+    return MatchRecord(**values)

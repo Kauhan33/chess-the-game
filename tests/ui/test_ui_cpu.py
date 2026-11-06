@@ -286,7 +286,7 @@ def test_busca_recebe_uma_copia_do_tabuleiro(app, monkeypatch):
 
 @pytest.mark.ct("CT-92")
 @pytest.mark.parametrize("remaining, increment, expected", [
-    (math.inf, 0.0, None), (math.inf, 5.0, None), (100.0, 0.0, 4.0), (180.0, 2.0, 8.7), (0.0, 0.0, 0.0), (10.0, 10.0, 7.9),
+    (math.inf, 0.0, None), (math.inf, 5.0, None), (100.0, 0.0, 4.0), (180.0, 2.0, 8.7), (0.0, 0.0, 0.0), (10.0, 10.0, 5.0),
 ])
 def test_tempo_de_busca_segue_o_relogio(remaining, increment, expected):
     budget = search_budget(remaining, increment)

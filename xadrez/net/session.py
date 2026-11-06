@@ -1,7 +1,11 @@
 """Sala em rede local. Uma thread por sessão cuida dos sockets; a interface só chama `poll()` e `send_*()`.
 
-Nada aqui bloqueia quem chama nem levanta exceção por causa da rede: toda falha vira `NetworkError` ou
-`PeerLeft` em `poll()`, e esses dois eventos encerram a sessão, fechando a thread e os sockets.
+Só `close()` espera, e pouco: a thread terminar, com a despedida do outro lado. Nada aqui levanta exceção por causa
+da rede: toda falha vira `NetworkError` ou `PeerLeft` em `poll()`, e esses dois eventos encerram a sessão, fechando a
+thread e os sockets.
+
+Quem cria a sala é a autoridade do resultado: só `HostSession` manda `send_result`, e só `ClientSession` o recebe.
+Se quem entrou mandar um, é mensagem inválida, como qualquer outra fora do protocolo.
 """
 from __future__ import annotations
 
@@ -16,12 +20,13 @@ from collections import deque
 from dataclasses import dataclass
 from typing import Callable
 
-from xadrez.core import Color, TimeControl
+from xadrez.core import Color, GameResult, TimeControl
 
 from .connection import REASON_PEER_CLOSED, LineConnection, PeerGone
 from .events import (
     DrawAnswered,
     DrawOffered,
+    GameDecided,
     GameStart,
     MoveReceived,
     NetEvent,
@@ -39,6 +44,8 @@ from .protocol import (
     clock_to_wire,
     decode_message,
     encode_message,
+    parse_result,
+    result_fields,
     sanitize_name,
 )
 from .room_code import LOOPBACK_IPV4, decode_room_code, encode_room_code, is_lan_address, local_ipv4
@@ -91,6 +98,8 @@ class _Session(ABC):
     Só a thread da sessão toca em sockets, e por isso ela não precisa de trava para eles. A interface fala
     com ela por duas filas `deque`, seguras entre threads: `_outbox` na ida e `_events` na volta.
     """
+
+    is_authority = False
 
     def __init__(self, name: str, timings: NetTimings) -> None:
         self.name = sanitize_name(name)
@@ -315,7 +324,7 @@ class _Session(ABC):
 
     def _release_sockets(self) -> None:
         for connection in self._open_connections():
-            connection.close_gracefully()
+            connection.close_gracefully(wait_for_peer=connection is self._peer)
         if self._selector is not None:
             self._selector.close()
 
@@ -339,6 +348,8 @@ class _Session(ABC):
 class HostSession(_Session):
     """Quem cria a sala. A porta fica aberta da chamada a `start` até a sessão terminar."""
 
+    is_authority = True
+
     def __init__(
         self,
         name: str,
@@ -360,6 +371,10 @@ class HostSession(_Session):
         self._refusals: dict[LineConnection, float] = {}
         self._peer_name = ""
         self._color = Color.WHITE
+
+    def send_result(self, result: GameResult, plies: int) -> None:
+        """A decisão final da partida, depois de `plies` meios-lances. Quem entrou na sala segue o que chegar aqui."""
+        self._send("result", **result_fields(result, plies))
 
     def _open_sockets(self) -> None:
         try:
@@ -508,6 +523,7 @@ class ClientSession(_Session):
         self._connecting: socket.socket | None = None
         self._joining: LineConnection | None = None
         self._game_handlers["start"] = self._on_rematch_start
+        self._game_handlers["result"] = lambda message: self._emit(GameDecided(parse_result(message), message["plies"]))
 
     def _open_sockets(self) -> None:
         try:

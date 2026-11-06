@@ -121,6 +121,8 @@ class MenuScene(ArenaScene):
                             self.difficulty_selector.value, self.color_selector.value)
 
     def start_match(self) -> None:
+        if self.next_scene is not None:
+            return
         options = self.options()
         if options.opponent_kind == OPPONENT_NET:
             self.create_room()
@@ -148,6 +150,8 @@ class MenuScene(ArenaScene):
         self._open_lobby(ROLE_GUEST)
 
     def _open_lobby(self, role: str) -> None:
+        if self.next_scene is not None:
+            return
         if self.app.network is None:
             self.notice = NETWORK_OFF_MESSAGE
             return
@@ -212,7 +216,10 @@ class MenuScene(ArenaScene):
         self._layout_form()
 
     def _refresh_widgets_keeping_focus(self) -> None:
-        self.focus.set_widgets(self._visible_widgets(), self.focus.focused)
+        """Se o controle focado saiu da tela, o foco fica nas abas: cair no primeiro seria cair em 'Sair da conta'."""
+        widgets = self._visible_widgets()
+        focused = self.focus.focused
+        self.focus.set_widgets(widgets, focused if focused in widgets else self.tab_bar)
 
     # Eventos e quadro -----------------------------------------------------------------------------
 

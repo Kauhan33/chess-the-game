@@ -22,6 +22,7 @@ _BUSY_NAP_SECONDS = 0.001
 _JOIN_SECONDS = 2.0
 _REMAINING_DIVISOR = 25.0
 _INCREMENT_SHARE = 0.75
+_MAX_SHARE_OF_REMAINING = 0.5
 # Jogada instantânea parece defeito: Easy e Medium respondem em milissegundos.
 _MINIMUM_THINK_SECONDS = {Difficulty.EASY: 0.5, Difficulty.MEDIUM: 0.5}
 
@@ -58,10 +59,10 @@ _fast_switching = _FastThreadSwitching()
 
 
 def search_budget(remaining: float, increment: float) -> float | None:
-    """Tempo máximo para um lance, para a CPU não perder no relógio. Sem relógio, só vale o limite do nível."""
+    """Tempo máximo para um lance, sempre menos do que resta: o incremento só chega depois dele. Sem relógio, só vale o limite do nível."""
     if math.isinf(remaining):
         return None
-    return remaining / _REMAINING_DIVISOR + increment * _INCREMENT_SHARE
+    return min(remaining / _REMAINING_DIVISOR + increment * _INCREMENT_SHARE, remaining * _MAX_SHARE_OF_REMAINING)
 
 
 class _SearchJob:

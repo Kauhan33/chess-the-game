@@ -6,12 +6,12 @@ from typing import TYPE_CHECKING
 
 import pygame
 
-from xadrez.core import Color, GameEngine, TimeControl
+from xadrez.core import GameEngine, TimeControl
 from xadrez.net import GameStart, NetworkError, PeerJoined, PeerLeft
 from xadrez.net.room_code import ROOM_CODE_LENGTH
 from xadrez.ui import clipboard, theme as tokens
 from xadrez.ui.arena_scene import ArenaScene, draw_notes
-from xadrez.ui.match import OPPONENT_NET, MatchOptions, time_control_label
+from xadrez.ui.match import OPPONENT_NET, MatchOptions, distinct_player_names, time_control_label
 from xadrez.ui.net_link import NetLink
 from xadrez.ui.widgets import STYLE_PRIMARY, Button, FocusGroup, TextInput
 
@@ -126,8 +126,9 @@ class LobbyScene(ArenaScene):
 
     def _start_game(self, event: GameStart) -> None:
         link, self.link = self.link, None
-        link.peer_name = event.black if event.your_color is Color.WHITE else event.white
-        engine = GameEngine(event.white, event.black, TimeControl(event.minutes, event.increment))
+        white, black = distinct_player_names(event.white, event.black)
+        engine = GameEngine(white, black, TimeControl(event.minutes, event.increment))
+        link.peer_name = engine.players[event.your_color.opposite].name
         self.next_scene = self.app.game_scene(engine, self.options, local_player=engine.players[event.your_color], link=link)
 
     def handle_event(self, event: pygame.event.Event) -> None:
@@ -174,7 +175,7 @@ class LobbyScene(ArenaScene):
 
     def _status_text(self) -> str:
         if self.is_host:
-            return f"{self.peer_name} entrou. Começando" if self.peer_name else "Aguardando adversário"
+            return "Adversário entrou. Começando" if self.peer_name else "Aguardando adversário"
         return "Conectando" if self.is_connecting else ""
 
     def _draw_status(self, surface: pygame.Surface) -> None:
@@ -183,7 +184,8 @@ class LobbyScene(ArenaScene):
         text = self._status_text()
         if text:
             dots = "." * (int(self._time / _DOT_SECONDS) % 3 + 1)
-            surface.blit(theme.text(f"{text}{dots}", tokens.ROLE_DISPLAY, theme.px(22), tokens.IVORY), (left, y))
+            status = theme.text_fit(f"{text}{dots}", tokens.ROLE_DISPLAY, theme.px(22), tokens.IVORY, self._content_width())
+            surface.blit(status, (left, y))
             y += theme.px(30)
         if self.message:
             message = theme.text_fit(self.message, tokens.ROLE_LABEL, theme.px(15), tokens.TEXT_MUTED, self._content_width())

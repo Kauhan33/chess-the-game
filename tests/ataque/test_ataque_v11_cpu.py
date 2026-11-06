@@ -352,14 +352,12 @@ def test_orcamento_cabe_no_relogio_em_situacao_normal(remaining, increment):
 
 
 @pytest.mark.ct("CT-108")
-@pytest.mark.xfail(strict=True, reason="QA11-05: search_budget passa do que resta no relógio em Blitz 3+2 e Clássica 15+10 com pouco tempo")
 @pytest.mark.parametrize("remaining, increment", [(1.0, 2.0), (1.5, 2.0), (5.0, 10.0), (7.0, 10.0)])
 def test_orcamento_nunca_passa_do_que_resta(remaining, increment):
     assert search_budget(remaining, increment) < remaining
 
 
 @pytest.mark.ct("CT-108")
-@pytest.mark.xfail(strict=True, reason="QA11-05: Hardcore perde no relógio com 1 s em Blitz 3+2, pensando 1,54 s")
 def test_hardcore_com_pouco_tempo_e_incremento_nao_estoura_o_proprio_relogio(app):
     """Lance real, em tempo real: 1 s no relógio, com 2 s de incremento, em uma posição de meio-jogo."""
     fen = "r1bq1rk1/pp2bppp/2n1pn2/2pp4/3P1B2/2PBPN2/PP1N1PPP/R2QK2R b KQ - 0 8"
@@ -455,7 +453,6 @@ def test_primeiro_quadro_com_cpu_e_humano_de_pretas_nao_bloqueia(app, stuck_sear
 
 
 @pytest.mark.ct("CT-109")
-@pytest.mark.xfail(strict=True, reason="QA11-02: dois Enter no mesmo quadro em 'Iniciar partida' abrem duas partidas, e a CPU da primeira segue pensando sem dono")
 def test_enter_repetido_no_menu_abre_uma_partida_so(app, stuck_search):
     menu = app.scene
     player = Autoplayer(app)

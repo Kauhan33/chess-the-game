@@ -134,7 +134,8 @@ class App:
             self._apply_resize(event.size)
         elif event.type == pygame.KEYDOWN and event.key == pygame.K_F11:
             self._toggle_fullscreen()
-        elif not self._is_double_click_echo(event):
+        elif not self._is_double_click_echo(event) and self.scene.next_scene is None:
+            # Com a troca de tela já pedida, o resto do quadro não é mais dela: dois Enter abririam duas partidas.
             self.scene.handle_event(event)
 
     def _is_double_click_echo(self, event: pygame.event.Event) -> bool:

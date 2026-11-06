@@ -170,7 +170,8 @@ faz a mesa pular nem refaz o fundo.
 
 Treinamento é a versão 1.0, sem nenhuma diferença. No modo Partida ficam só a peça selecionada, o cursor
 e o último lance: dizem o que aconteceu, não o que fazer. O modo não calcula ameaças nem xeque por turno.
-A planilha omite `+` e `#` até a partida acabar, e aí mostra a notação completa. Lance ilegal, peça
+A planilha omite `+` e `#` até a partida acabar, e aí mostra a notação completa. "Copiar PGN" segue a mesma regra:
+com a partida correndo, o texto copiado sai sem os dois sinais, e depois do fim sai completo. Lance ilegal, peça
 do adversário e casa vazia recebem o mesmo "Lance inválido.", sem tremor nem anel, que seria mais um
 marcador. Selecionar uma peça sem jogada não avisa nada. O fim diz o motivo normalmente: depois do mate, o
 rei tomba e a casa dele é marcada, porque a partida já acabou e isso não é mais dica. O painel F4 lê a
@@ -186,24 +187,49 @@ O giro por turno só existe em 2 jogadores. Contra a CPU e em rede, a câmera fi
 na tela, e "Virar" (tecla F) dá meia volta quando a pessoa quiser olhar do outro lado. O menu começa em
 Easy: quem nunca jogou contra a CPU começa pelo nível mais fácil.
 
-### Regra do tempo esgotado em rede
+### Resultado em rede: quem criou a sala decide
 
-Os dois lados precisam chegar ao mesmo resultado, e um relógio visto de longe pode estar errado: a jogada
-do outro pode estar a caminho. Por isso:
+Os dois lados precisam chegar ao mesmo FEN e ao mesmo resultado, e dois relógios separados nunca batem. Por isso,
+uma só autoridade:
 
-1. **Só quem esgota o próprio relógio decide.** Ele perde na hora, pela regra do motor, e avisa o outro lado
-   com `send_resign`.
-2. **Quem recebe esse aviso, com o relógio do outro em até 2 s (`DECLARED_FLAG_WINDOW_SECONDS`), registra tempo
-   esgotado**, pela mesma regra do motor, inclusive o empate quando quem fica só tem o rei. Com mais tempo
-   sobrando no relógio, foi desistência comum.
-3. **O relógio do outro lado, visto daqui, para em zero sem decidir nada.** Uma jogada que chegue nessa hora
-   ainda vale.
-4. **Se passarem 5 s (`REMOTE_FLAG_GRACE_SECONDS`) com esse relógio em zero, sem jogada nem aviso, o outro lado
-   sumiu:** a partida acaba por abandono, e a sala é fechada.
+1. **Quem criou a sala decide.** Ele valida as jogadas, mede os dois relógios e decide o fim, inclusive o tempo
+   esgotado, pela regra do motor: quem fica só com o rei empata. A decisão vai pela mensagem `result`, com vencedor,
+   motivo e em que lance a partida parou.
+2. **Quem entrou segue a decisão.** O relógio dele continua andando na tela, só para mostrar, e nenhum dos dois
+   relógios encerra a partida ali. Uma jogada dele feita com o relógio em zero na tela vale, se a sala aceitar.
+3. **Fim visto em quem entrou ainda não é definitivo.** O mate sai na tela dele na hora, mas a partida só é gravada,
+   e a tela de fim só abre, depois do `result`. Desistir ou aceitar empate é um pedido: o tabuleiro fica parado até a resposta.
+4. **Lance que cruza com o fim:** a sala ignora tudo que chega depois do fim. Do outro lado, o lance que a sala
+   não viu é desfeito, inclusive a captura e o ponto na série. Desistências cruzadas: vale a primeira que a sala viu.
+5. **O resultado é conferido.** Mensagem fora do formato, vencedor que não combina com o motivo, lance que não bate
+   ou mate que o tabuleiro não mostra encerram a sala. O `result` de quem entrou é mensagem inválida.
+6. **Se a sala sumir,** vale `PeerLeft` e o sinal de vida: fecha na hora, ou em 8 s de silêncio. Sem ninguém para
+   decidir, quem entrou fica com o que já sabia: o fim no tabuleiro, o próprio pedido ou o abandono da sala. Com a sala
+   viva e muda depois de um pedido ou de um fim no tabuleiro, ele desiste de esperar em 5 s (`DECISION_WAIT_SECONDS`).
 
-O `clock_ms` que chega pela rede não entra em nenhuma decisão, porque pode ser falso. Limite conhecido da
-regra 2: desistir de propósito nos últimos 2 s, com o adversário só com o rei, vira empate de um lado e
-vitória do outro. É o único caso em que os dois discordam, e só no placar da série daquela sala.
+O `clock_ms` que chega pela rede não entra em nenhuma decisão, porque pode ser falso.
+
+Quem sai no meio perde. "Sair da sala" e fechar a janela gravam a derrota antes de fechar a conexão, com o motivo
+"Abandonou a partida". Quem fica lê "Adversário desconectou".
+
+Limites conhecidos, inerentes a ter uma autoridade: uma cópia alterada do jogo na sala pode mentir sobre o resultado,
+e um quadro travado por muito tempo na sala atrasa o relógio dos dois. Se quem entrou sair com um lance da sala a
+caminho, o histórico dele fica com um lance a menos, porque não há mais a quem perguntar.
+
+### Proposta de empate em rede
+
+Quem recebe vê um cartão sobre a planilha, sem véu, com o tabuleiro inteiro à vista, e continua jogando: o cartão
+responde aos botões, a A (aceitar) e a Esc (recusar), e as setas, o Enter e o clique no tabuleiro seguem com a partida.
+Jogar um lance equivale a recusar. Assim, ninguém perde no relógio só por receber propostas.
+
+Uma proposta por lance, como na regra do xadrez: depois de uma recusa, o mesmo jogador só propõe de novo depois do
+próprio lance. Proposta repetida ou fora da hora, vinda da rede, é ignorada. Em 2 jogadores nada mudou: a pergunta
+continua na mesma tela.
+
+### Mesmo nome dos dois lados
+
+Dois convidados entram os dois como "Jogador 1", e nesse caso as Pretas viram "Jogador 1 (2)". A conta é feita nos
+dois computadores a partir da mesma mensagem, e vale também em 2 jogadores locais.
 
 ### Arrastar a peça
 

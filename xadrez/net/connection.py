@@ -1,4 +1,4 @@
-"""Socket não bloqueante que conversa por linhas. Nenhum método aqui pode segurar a thread da sessão."""
+"""Socket não bloqueante que conversa por linhas. Só o fechamento segura a thread da sessão, e por pouco tempo."""
 from __future__ import annotations
 
 import socket
@@ -12,6 +12,7 @@ REASON_CONNECTION_LOST = "A conexão com o adversário caiu."
 _RECEIVE_BYTES = 4096
 # Muito acima do que uma partida produz, e baixo o bastante para uma enxurrada não roubar CPU do jogo.
 _MAX_MESSAGES_PER_SECOND = 2000
+_CLOSE_WAIT_SECONDS = 0.15
 
 
 class PeerGone(Exception):
@@ -64,13 +65,25 @@ class LineConnection:
         except OSError:
             pass
 
-    def close_gracefully(self) -> None:
+    def close_gracefully(self, wait_for_peer: bool = False) -> None:
         try:
             self.flush()
         except PeerGone:
             pass
         self.shutdown_write()
+        if wait_for_peer:
+            self._discard_until_peer_closes()
         self.close()
+
+    def _discard_until_peer_closes(self) -> None:
+        """Fechar com dados por ler vira RST, que pode apagar no outro lado o que acabou de sair, como o resultado da partida."""
+        deadline = time.monotonic() + _CLOSE_WAIT_SECONDS
+        try:
+            self._socket.settimeout(_CLOSE_WAIT_SECONDS)
+            while time.monotonic() < deadline and self._socket.recv(_RECEIVE_BYTES):
+                pass
+        except OSError:
+            pass
 
     def close(self) -> None:
         self._socket.close()

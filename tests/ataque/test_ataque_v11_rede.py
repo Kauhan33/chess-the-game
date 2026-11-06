@@ -4,7 +4,7 @@ CT-110: o que chega pelo socket: jogada ilegal, fora da vez, formato errado, rel
 CT-111: nome hostil chega pela rede e passa por HUD, faixa, sobreposição e tela de fim sem derrubar nem vazar.
 CT-112: queda em cada estado: sala, promoção, sobreposição aberta, voo da peça e tela de fim.
 CT-113: os dois lados terminam com o mesmo FEN e o mesmo resultado em cada fim de partida.
-CT-114: regra do tempo esgotado, de `docs/plans/notas-ui.md`.
+CT-114: regra do tempo em rede, de `docs/plans/notas-ui.md`: quem criou a sala decide.
 CT-115: revanche e proposta de empate, cruzadas e sem resposta.
 CT-116: entrada na sala: código errado, em minúsculas, com espaços, Enter repetido e reabertura logo depois de sair.
 CT-117: thread e socket não sobram, por nenhum caminho de saída.
@@ -20,11 +20,13 @@ import pygame
 import pytest
 from test_ataque_v11_apoio import *  # noqa: F403
 
-from xadrez.core import Color, EndReason, GameState, TimeControl
-from xadrez.net import ClientSession, HostSession, NetTimings, PeerLeft, GameStart, MoveReceived, NetworkError
+from xadrez.core import Color, EndReason, GameResult, GameState, Square, TimeControl
+from xadrez.net import PROTOCOL_VERSION, ClientSession, HostSession, NetTimings, GameStart, NetworkError
+from xadrez.data import HistoryStore
 from xadrez.net.room_code import encode_room_code
 from xadrez.ui import MenuScene
-from xadrez.ui.net_link import DECLARED_FLAG_WINDOW_SECONDS, ILLEGAL_MOVE_MESSAGE, REMOTE_FLAG_GRACE_SECONDS
+from xadrez.ui.game_scene import DRAW_OFFER_AGAIN_NOTICE
+from xadrez.ui.net_link import DECISION_WAIT_SECONDS, ILLEGAL_MOVE_MESSAGE, INVALID_RESULT_MESSAGE, NO_DECISION_MESSAGE
 
 SCHOLARS_MATE = "e2e4 e7e5 f1c4 b8c6 d1h5 g8f6 h5f7"
 QUICK = NetTimings(tick=0.002)
@@ -51,7 +53,7 @@ def raw_host(port=0):
     return host
 
 
-def hello_socket(port, name="Pretas", version=1):
+def hello_socket(port, name="Pretas", version=PROTOCOL_VERSION):
     connected = socket.create_connection(("127.0.0.1", port), timeout=10.0)
     connected.sendall(json.dumps({"type": "hello", "version": version, "name": name}).encode() + b"\n")
     return connected
@@ -117,6 +119,7 @@ def test_dois_lances_colados_valem_na_ordem_e_a_animacao_de_um_nao_corta_a_do_ou
     b'\xff\xfe\n',
     b'[' * 3000 + b'\n',
     b'{"type":"draw_answer","accept":1}\n',
+    b'{"type":"result","winner":"black","reason":"resignation","plies":1}\n',
 ])
 def test_mensagem_invalida_encerra_sem_derrubar_e_sem_aplicar_nada(host_app, network, line):
     scene, player, raw = connect_raw(host_app, network)
@@ -198,7 +201,7 @@ def test_nome_com_direcao_invertida_e_controle_e_recusado_pelo_protocolo(network
     host = raw_host()
     for name in (chr(0x202e) + "abc", "a" + chr(0x200b) + "b", "a" + chr(0) + "b", chr(0xd83d), "a" + chr(10) + "b", "   ", ""):
         attacker = socket.create_connection(("127.0.0.1", host.port), timeout=10.0)
-        attacker.sendall(json.dumps({"type": "hello", "version": 1, "name": name}).encode() + b"\n")
+        attacker.sendall(json.dumps({"type": "hello", "version": PROTOCOL_VERSION, "name": name}).encode() + b"\n")
         attacker.settimeout(5.0)
         try:
             data = attacker.recv(4096)
@@ -211,10 +214,9 @@ def test_nome_com_direcao_invertida_e_controle_e_recusado_pelo_protocolo(network
 
 
 @pytest.mark.ct("CT-111")
-@pytest.mark.xfail(strict=True, reason="QA11-13: '<nome> entrou. Começando' usa theme.text sem caber: nome longo corta o texto na borda da janela")
 @pytest.mark.parametrize("name", ["W" * 16, "ﷺ" * 16])
 def test_nome_longo_nao_vaza_na_sala_antes_de_a_partida_comecar(host_app, network, name):
-    """A sala escreve "<nome> entrou. Começando" no painel: o texto tem de caber."""
+    """O texto de quem entrou tem de caber no painel, com qualquer nome."""
     lobby = open_room(host_app)
     lobby.peer_name = name
     host_app.step(0.0)
@@ -311,7 +313,6 @@ def test_queda_na_tela_de_fim_desliga_a_revanche(host_app, guest_app):
 
 
 @pytest.mark.ct("CT-112")
-@pytest.mark.xfail(strict=True, reason="QA11-06: quem acabou de perder lê 'A vitória é sua' quando o outro sai durante a animação de fim")
 def test_quem_perdeu_nao_le_que_venceu_quando_o_outro_sai_na_animacao_de_fim(host_app, guest_app):
     table = connected_table(host_app, guest_app)
     host, guest = table.host, table.guest
@@ -374,7 +375,6 @@ def test_proposta_aceita_termina_igual(host_app, guest_app):
 
 
 @pytest.mark.ct("CT-113")
-@pytest.mark.xfail(strict=True, reason="QA11-07: desistências cruzadas: cada lado registra a própria derrota, e os dois resultados discordam")
 def test_desistencias_cruzadas_nao_podem_dar_dois_perdedores(host_app, guest_app):
     table = connected_table(host_app, guest_app)
     table.play("e2e4")
@@ -386,7 +386,6 @@ def test_desistencias_cruzadas_nao_podem_dar_dois_perdedores(host_app, guest_app
 
 
 @pytest.mark.ct("CT-113")
-@pytest.mark.xfail(strict=True, reason="QA11-08: lance cruzado com aceite de empate, desistência ou fim: os dois lados terminam com FEN diferente")
 @pytest.mark.parametrize("ending", ["aceite", "desistencia"])
 def test_lance_cruzado_com_o_fim_nao_pode_dar_fen_diferente(host_app, guest_app, ending):
     """Brancas propõem e, sem esperar, jogam. Do outro lado, as pretas respondem antes de receber esse lance."""
@@ -425,50 +424,68 @@ def test_quem_esgota_o_proprio_relogio_perde_e_o_outro_registra_tempo(host_app, 
 
 
 @pytest.mark.ct("CT-114")
-def test_relogio_de_la_em_zero_nao_decide_e_jogada_atrasada_vale(host_app, network):
+def test_relogio_do_convidado_zera_na_sala_e_a_jogada_atrasada_e_ignorada(host_app, network):
     scene, player, raw = connect_raw(host_app, network, TimeControl.BLITZ_5)
     player.play("e2e4")
     fast_forward_clock(scene, Color.BLACK, 0.01)
-    player.seconds(1.0)
-    assert scene.engine.result is None, "o relógio do outro lado não decide nada"
-    assert scene.engine.clock.is_flagged(Color.BLACK)
+    player.seconds(0.5)
+    assert scene.engine.result.reason is EndReason.TIMEOUT
+    assert scene.engine.result.winner is Color.WHITE
     raw.send_move("e7e5", 0)
-    wait_until(host_app, lambda: len(scene.engine.history) == 2)
-    assert scene.engine.result is None
-    assert scene.engine.turn is Color.WHITE
+    player.seconds(0.2)
+    assert scene.engine.history == ["e4"], "lance que chega depois do fim é ignorado pela autoridade"
     raw.close()
 
 
 @pytest.mark.ct("CT-114")
-def test_silencio_depois_do_zero_vira_abandono(host_app, network):
-    scene, player, raw = connect_raw(host_app, network, TimeControl.BLITZ_5)
-    player.play("e2e4")
-    fast_forward_clock(scene, Color.BLACK, 0.01)
-    player.seconds(REMOTE_FLAG_GRACE_SECONDS + 0.5)
-    assert scene.engine.result.reason is EndReason.ABANDONMENT
-    assert scene.engine.result.winner is Color.WHITE
-    raw.close()
+def test_no_convidado_nenhum_relogio_decide_e_a_jogada_atrasada_da_sala_vale(host_app, guest_app):
+    table = connected_table(host_app, guest_app, TimeControl.BLITZ_5)
+    host, guest = table.host, table.guest
+    fast_forward_clock(guest, Color.WHITE, 0.0)
+    fast_forward_clock(guest, Color.BLACK, 0.0)
+    table.steps(120)
+    assert guest.engine.result is None and host.engine.result is None
+    table.play("e2e4")
+    table.play("e7e5")
+    table.steps(60)
+    assert guest.engine.result is None, "o relógio dele, na tela dele, também não encerra"
+    assert host.engine.final_fen == guest.engine.final_fen
+
+
+@pytest.mark.ct("CT-114")
+def test_sala_que_some_com_o_relogio_dela_em_zero_nao_prende_o_convidado(host_app, guest_app):
+    table = connected_table(host_app, guest_app, TimeControl.BLITZ_5)
+    guest = table.guest
+    fast_forward_clock(guest, Color.WHITE, 0.0)
+    table.steps(60)
+    assert guest.engine.result is None
+    # Queda brusca: sem `result` nem `bye`.
+    table.host.net.link.session.close()
+    drive([guest_app], lambda: guest.engine.result is not None)
+    assert guest.engine.result.reason is EndReason.ABANDONMENT
+    assert guest.engine.result.winner is Color.BLACK
 
 
 @pytest.mark.ct("CT-114")
 def test_aviso_com_folga_no_relogio_e_desistencia_comum(host_app, network):
     scene, player, raw = connect_raw(host_app, network, TimeControl.BLITZ_5)
     player.play("e2e4")
-    assert scene.engine.clock.remaining(Color.BLACK) > DECLARED_FLAG_WINDOW_SECONDS
     raw.send_resign()
     wait_until(host_app, lambda: scene.engine.result is not None)
     assert scene.engine.result.reason is EndReason.RESIGNATION
 
 
 @pytest.mark.ct("CT-114")
-def test_aviso_com_relogio_ja_em_zero_registra_tempo_sem_erro(host_app, network):
+def test_desistencia_que_chega_depois_do_tempo_nao_muda_o_motivo(host_app, network):
     """`engine.tick(0.0)` precisa encerrar mesmo sem tempo a descontar."""
     scene, player, raw = connect_raw(host_app, network, TimeControl.BLITZ_5)
     player.play("e2e4")
     fast_forward_clock(scene, Color.BLACK, 0.0)
-    raw.send_resign()
     wait_until(host_app, lambda: scene.engine.result is not None)
+    raw.send_resign()
+    player.seconds(0.2)
     assert scene.engine.result.reason is EndReason.TIMEOUT
+    raw.close()
 
 
 @pytest.mark.ct("CT-114")
@@ -480,9 +497,8 @@ def test_empate_por_tempo_quando_quem_fica_so_tem_o_rei(host_app, network):
     for square, piece in list(board.pieces(Color.WHITE)):
         if piece.kind.value != "king":
             board.remove(square)
-    fast_forward_clock(scene, Color.BLACK, 1.0)
-    raw.send_resign()
-    wait_until(host_app, lambda: scene.engine.result is not None)
+    fast_forward_clock(scene, Color.BLACK, 0.01)
+    player.seconds(0.2)
     assert scene.engine.result.winner is None
     assert scene.engine.result.reason is EndReason.TIMEOUT
     raw.close()
@@ -564,7 +580,7 @@ def test_proposta_sem_resposta_nao_trava_nem_para_o_relogio(host_app, guest_app)
     table.host_player.click_square(cell("e4"))
     drive(table.apps, lambda: len(guest.engine.history) == 1)
     assert guest.modals, "o diálogo continua: a resposta ainda é devida"
-    # Enquanto ele não responde, o jogador de pretas não joga, mas o relógio dele corre e ele perde se não responder.
+    # A proposta não prende ninguém: dá para responder a qualquer hora, ou jogar, e isso recusa.
     table.settle()
     guest.modals[-1].buttons[1].activate()
     drive(table.apps, lambda: not guest.modals)
@@ -640,7 +656,6 @@ def test_enter_repetido_no_campo_do_codigo_cria_uma_sessao_so(host_app, guest_ap
 
 
 @pytest.mark.ct("CT-116")
-@pytest.mark.xfail(strict=True, reason="QA11-02: dois Enter no mesmo quadro em 'Criar sala' abrem duas sessões, e a primeira fica órfã com a porta presa")
 def test_enter_repetido_em_criar_sala_abre_uma_sessao_so(host_app, network):
     menu = host_app.scene
     player = Autoplayer(host_app)
@@ -887,15 +902,14 @@ def test_revanche_com_a_cor_errada_encerra_a_sala_em_vez_de_duas_partidas_difere
 
 
 @pytest.mark.ct("CT-114")
-@pytest.mark.xfail(strict=True, reason="QA11-09: quem joga com o relógio em zero nunca perde: cada lance zera a espera de 5 s")
 def test_quem_ignora_o_proprio_relogio_nao_joga_para_sempre(host_app, network):
-    """Uma cópia alterada do jogo não se declara sem tempo. O lance atrasado vale, mas a folga não pode renovar sozinha."""
+    """Uma cópia alterada do jogo não se declara sem tempo: quem mede é a sala."""
     scene, player, raw = connect_raw(host_app, network, TimeControl.BLITZ_5)
     player.play("e2e4")
     white_moves = iter(("d2d4", "g1f3", "b1c3", "f1c4"))
     for black_move in ("e7e5", "b8c6", "g8f6", "f8c5"):
         fast_forward_clock(scene, Color.BLACK, 0.0)
-        player.seconds(REMOTE_FLAG_GRACE_SECONDS * 0.8)
+        player.seconds(4.0)
         if scene.engine.result is not None:
             break
         ply = len(scene.engine.history)
@@ -908,20 +922,20 @@ def test_quem_ignora_o_proprio_relogio_nao_joga_para_sempre(host_app, network):
 
 
 @pytest.mark.ct("CT-114")
-@pytest.mark.xfail(strict=True, reason="QA11-09: com relógios 5 s defasados, quem esperou declara abandono, e os dois lados se dão a vitória")
 def test_relogios_defasados_nao_podem_dar_dois_vencedores(host_app, guest_app):
     """Janela arrastada ou quadro lento: o `dt` é limitado a 0,1 s, e o relógio daquela máquina fica para trás."""
     table = connected_table(host_app, guest_app, TimeControl.BLITZ_5)
     host, guest = table.host, table.guest
     # Vez das brancas. Na tela das pretas, o relógio das brancas já zerou; na das brancas, ainda há tempo.
     fast_forward_clock(guest, Color.WHITE, 0.0)
-    table.steps(round((REMOTE_FLAG_GRACE_SECONDS + 0.5) * 60))
+    table.steps(330)
+    assert guest.engine.result is None, "o convidado não decide: na sala ainda há tempo"
+    fast_forward_clock(host, Color.WHITE, 0.01)
     drive(table.apps, lambda: host.engine.result is not None and guest.engine.result is not None)
-    assert host.engine.result.winner is guest.engine.result.winner
+    assert_same_end(table)
 
 
 @pytest.mark.ct("CT-114")
-@pytest.mark.xfail(strict=True, reason="QA11-09: relógio visto de longe com mais de 2 s de folga: um lado registra tempo esgotado, o outro desistência")
 def test_relogios_defasados_nao_podem_dar_motivos_diferentes(host_app, guest_app):
     table = connected_table(host_app, guest_app, TimeControl.BLITZ_5)
     host, guest = table.host, table.guest
@@ -932,15 +946,16 @@ def test_relogios_defasados_nao_podem_dar_motivos_diferentes(host_app, guest_app
 
 
 @pytest.mark.ct("CT-113")
-@pytest.mark.xfail(strict=True, reason="QA11-12: dois convidados entram com o nome padrão, e a tela de fim diz 'Jogador 1 venceu' sem dizer qual")
 def test_dois_convidados_nao_ficam_com_o_mesmo_nome(host_app, guest_app):
     table = connected_table(host_app, guest_app)
     names = table.host.engine.players
     assert names[Color.WHITE].name != names[Color.BLACK].name
+    assert {player.name for player in names.values()} == {player.name for player in table.guest.engine.players.values()}
+    assert table.host.net.link.peer_name == names[Color.BLACK].name
+    assert table.guest.net.link.peer_name == names[Color.WHITE].name
 
 
 @pytest.mark.ct("CT-116")
-@pytest.mark.xfail(strict=True, reason="QA11-02: com a porta fixa de verdade, a segunda sessão recusa a porta, e a sala órfã a segura até fechar o jogo")
 def test_enter_repetido_em_criar_sala_nao_prende_a_porta(host_app, network):
     probe = socket.socket()
     probe.bind(("127.0.0.1", 0))
@@ -964,7 +979,6 @@ def test_enter_repetido_em_criar_sala_nao_prende_a_porta(host_app, network):
 
 
 @pytest.mark.ct("CT-112")
-@pytest.mark.xfail(strict=True, reason="QA11-19: 'O adversário enviou uma jogada ilegal' some em 0,9 s, na troca para a tela de fim, e ela só diz 'Adversário desconectou'")
 def test_motivo_da_sala_encerrada_chega_a_tela_de_fim(host_app, network):
     scene, player, raw = connect_raw(host_app, network)
     raw.send_move("e7e5", 0)
@@ -978,7 +992,6 @@ def test_motivo_da_sala_encerrada_chega_a_tela_de_fim(host_app, network):
 
 
 @pytest.mark.ct("CT-115")
-@pytest.mark.xfail(strict=True, reason="QA11-20: proposta logo depois da recusa abre outra sobreposição: quem manda sem parar impede o outro de jogar até o tempo acabar")
 def test_proposta_recusada_nao_reabre_sem_um_lance_no_meio(host_app, network):
     """Regra do xadrez: uma proposta por lance. Sem isso, uma cópia alterada do jogo ganha no tempo só mandando propostas."""
     scene, player, raw = connect_raw(host_app, network, TimeControl.BLITZ_5)
@@ -993,3 +1006,377 @@ def test_proposta_recusada_nao_reabre_sem_um_lance_no_meio(host_app, network):
     reopened = bool(scene.modals)
     raw.close()
     assert not reopened, "o mesmo jogador propôs de novo sem nenhum lance no meio"
+
+
+# A sala decide: lances e fins cruzados -------------------------------------------------------------------
+
+
+def guest_moves_without_the_host_seeing(table, uci):
+    """Só o quadro de quem entrou anda: o lance fica no fio enquanto a sala decide outra coisa."""
+    table.guest_player.click_square(cell(uci[:2]))
+    table.guest_player.click_square(cell(uci[2:4]))
+
+
+@pytest.mark.ct("CT-113")
+def test_lance_do_convidado_cruzado_com_a_desistencia_da_sala_volta_atras(host_app, guest_app):
+    table = connected_table(host_app, guest_app)
+    table.play("e2e4")
+    host, guest = table.host, table.guest
+    guest_moves_without_the_host_seeing(table, "e7e5")
+    assert guest.engine.history == ["e4", "e5"]
+    host._resign()
+    table.steps(120)
+    assert_same_end(table)
+    assert guest.engine.history == ["e4"], "o lance que a sala não viu volta"
+    assert guest.engine.board.piece_at(Square.from_name("e7")) is not None
+    assert host.engine.result.winner is Color.BLACK
+
+
+@pytest.mark.ct("CT-113")
+def test_captura_do_convidado_cruzada_com_o_fim_devolve_a_peca(host_app, guest_app):
+    table = connected_table(host_app, guest_app)
+    table.play_all("e2e4 d7d5 g1f3")
+    host, guest = table.host, table.guest
+    guest_moves_without_the_host_seeing(table, "d5e4")
+    assert guest.engine.players[Color.BLACK].captured
+    host._resign()
+    table.steps(120)
+    assert_same_end(table)
+    assert guest.engine.players[Color.BLACK].captured == []
+
+
+@pytest.mark.ct("CT-113")
+def test_mate_do_convidado_cruzado_com_o_tempo_dele_vale_o_tempo(host_app, guest_app):
+    """O pior cruzamento: o motor de quem entrou já deu o mate e a vitória. A sala, que mede o relógio, deu o contrário."""
+    guest_app.account = "Bia"
+    table = connected_table(host_app, guest_app, TimeControl.BLITZ_5)
+    table.play_all("f2f3 e7e5 g2g4")
+    host, guest = table.host, table.guest
+    # A sala decide primeiro: o `result` só sai no quadro seguinte, e o lance dele já está a caminho.
+    fast_forward_clock(host, Color.BLACK, 0.0)
+    host_app.step(FRAME)
+    assert host.engine.result is not None
+    guest_moves_without_the_host_seeing(table, "d8h4")
+    assert guest.engine.result.reason is EndReason.CHECKMATE, "o mate saiu na tela dele"
+    assert not HistoryStore("Bia").records(), "ainda não é definitivo: não pode gravar"
+    table.steps(180)
+    assert_same_end(table)
+    assert host.engine.result == GameResult(Color.WHITE, EndReason.TIMEOUT)
+    assert guest.engine.clock.remaining(Color.BLACK) == 0.0, "o relógio de quem perdeu aparece zerado"
+    points = lambda scene: {color: player.match_points for color, player in scene.engine.players.items()}
+    assert points(host) == points(guest) == {Color.WHITE: 1.0, Color.BLACK: 0.0}, "o ponto do mate desfeito não fica"
+    records = HistoryStore("Bia").records()
+    assert [record.outcome for record in records] == ["derrota"]
+    assert records[0].final_fen == host.engine.final_fen
+
+
+@pytest.mark.ct("CT-113")
+def test_sala_que_sai_com_lance_do_convidado_no_fio_termina_igual(host_app, guest_app):
+    table = connected_table(host_app, guest_app)
+    table.play("e2e4")
+    host, guest = table.host, table.guest
+    guest_moves_without_the_host_seeing(table, "e7e5")
+    host._leave_room()
+    drive([guest_app], lambda: guest.engine.result is not None and guest.net.link.peer_is_gone)
+    assert host.engine.final_fen == guest.engine.final_fen
+    assert guest.engine.result == GameResult(Color.BLACK, EndReason.ABANDONMENT)
+
+
+@pytest.mark.ct("CT-113")
+def test_convidado_que_desiste_espera_a_sala_com_o_tabuleiro_parado(host_app, guest_app):
+    table = connected_table(host_app, guest_app)
+    table.play("e2e4")
+    guest = table.guest
+    guest._resign()
+    assert guest.engine.result is None
+    assert guest.is_board_locked
+    table.guest_player.click_square(cell("e7"))
+    assert guest.selection is None
+    guest._resign()
+    drive(table.apps, lambda: guest.engine.result is not None)
+    assert_same_end(table)
+    assert guest.engine.result == GameResult(Color.WHITE, EndReason.RESIGNATION)
+
+
+@pytest.mark.ct("CT-113")
+def test_sala_que_cai_depois_da_desistencia_vale_a_desistencia(host_app, guest_app):
+    table = connected_table(host_app, guest_app)
+    guest = table.guest
+    table.host.net.link.session.close()
+    guest._resign()
+    drive([guest_app], lambda: guest.engine.result is not None)
+    assert guest.engine.result == GameResult(Color.WHITE, EndReason.RESIGNATION), "ninguém ganha o que entregou"
+    assert "vitória" not in guest.notices.text
+
+
+def attacker_result(**changes):
+    return {"type": "result", "winner": "white", "reason": "resignation", "plies": 0, **changes}
+
+
+@pytest.mark.ct("CT-110")
+def test_resultado_da_sala_vale_em_quem_entrou(guest_app, attacker):
+    _, scene = enter_attacker_room(guest_app, attacker)
+    attacker.send(**attacker_result())
+    wait_until(guest_app, lambda: scene.engine.result is not None)
+    assert scene.engine.result == GameResult(Color.WHITE, EndReason.RESIGNATION)
+
+
+@pytest.mark.ct("CT-110")
+@pytest.mark.parametrize("message", [
+    attacker_result(reason="checkmate"),
+    attacker_result(reason="stalemate", winner=None),
+    attacker_result(reason="fifty_moves", winner=None),
+    attacker_result(plies=5),
+])
+def test_resultado_que_nao_confere_com_o_tabuleiro_encerra_a_sala(guest_app, attacker, message):
+    _, scene = enter_attacker_room(guest_app, attacker)
+    attacker.send(**message)
+    wait_until(guest_app, lambda: scene.engine.result is not None)
+    assert scene.engine.result == GameResult(Color.BLACK, EndReason.ABANDONMENT)
+    assert scene.notices.text == INVALID_RESULT_MESSAGE
+    assert scene.net.link.peer_is_gone
+
+
+@pytest.mark.ct("CT-110")
+@pytest.mark.parametrize("message", [
+    attacker_result(winner="green"),
+    attacker_result(winner=None),
+    attacker_result(reason="stalemate"),
+    attacker_result(reason="desistiu"),
+    attacker_result(plies=-1),
+    attacker_result(plies=1.5),
+    attacker_result(plies=True),
+    attacker_result(extra=1),
+])
+def test_resultado_malformado_vira_erro_de_rede(guest_app, attacker, message):
+    _, scene = enter_attacker_room(guest_app, attacker)
+    attacker.send(**message)
+    wait_until(guest_app, lambda: scene.engine.result is not None)
+    assert scene.engine.result == GameResult(Color.BLACK, EndReason.ABANDONMENT)
+    assert scene.net.link.peer_is_gone
+
+
+@pytest.mark.ct("CT-110")
+def test_sala_viva_que_nao_responde_nao_prende_quem_desistiu(guest_app, attacker):
+    _, scene = enter_attacker_room(guest_app, attacker)
+    scene._resign()
+    player = Autoplayer(guest_app)
+    player.seconds(DECISION_WAIT_SECONDS - 1.0)
+    assert scene.engine.result is None
+    player.seconds(1.5)
+    assert scene.engine.result == GameResult(Color.WHITE, EndReason.RESIGNATION)
+    assert scene.notices.text == NO_DECISION_MESSAGE
+    assert scene.net.link.peer_is_gone
+
+
+# Proposta de empate não prende ninguém ------------------------------------------------------------------
+
+
+def offer_to_guest(table):
+    table.play("e2e4")
+    host, guest = table.host, table.guest
+    host.net.send_draw_offer()
+    drive(table.apps, lambda: guest.modals)
+    return host, guest
+
+
+@pytest.mark.ct("CT-115")
+def test_quem_recebe_a_proposta_joga_e_isso_recusa(host_app, guest_app):
+    table = connected_table(host_app, guest_app)
+    host, guest = offer_to_guest(table)
+    table.guest_player.click_square(cell("e7"))
+    assert guest.selection is not None, "a proposta não bloqueia o tabuleiro"
+    table.guest_player.click_square(cell("e5"))
+    assert guest.modals == [], "jogar responde à proposta"
+    drive(table.apps, lambda: "recusou" in host.notices.text)
+    assert len(host.engine.history) == 2
+    assert host.net.draw_answer_pending is False
+    assert host.engine.result is None
+
+
+@pytest.mark.ct("CT-115")
+def test_recusa_barra_nova_proposta_ate_o_proximo_lance_de_quem_propos(host_app, guest_app):
+    table = connected_table(host_app, guest_app)
+    host, guest = offer_to_guest(table)
+    table.guest_player.press(pygame.K_ESCAPE)
+    drive(table.apps, lambda: not host.net.draw_answer_pending)
+    assert host.net.may_offer_draw is False
+    table.host_player.press(pygame.K_p)
+    table.host_player.click_widget(host.modals[-1].buttons[1])
+    assert host.net.draw_answer_pending is False, "não sai outra proposta"
+    assert DRAW_OFFER_AGAIN_NOTICE in host.notices.text
+    table.play("e7e5")
+    assert host.net.may_offer_draw is False, "o lance do outro não libera"
+    table.play("g1f3")
+    assert host.net.may_offer_draw is True
+
+
+@pytest.mark.ct("CT-115")
+def test_proposta_volta_a_abrir_depois_de_um_lance_de_quem_propos(host_app, network):
+    scene, player, raw = connect_raw(host_app, network, TimeControl.BLITZ_5)
+    player.play("e2e4")
+    raw.send_draw_offer()
+    wait_until(host_app, lambda: scene.modals)
+    player.press(pygame.K_ESCAPE)
+    raw.send_move("e7e5", 0)
+    wait_until(host_app, lambda: len(scene.engine.history) == 2)
+    player.settle()
+    raw.send_draw_offer()
+    wait_until(host_app, lambda: scene.modals)
+    assert scene.modals[-1].title == "Proposta de empate"
+    raw.close()
+
+
+@pytest.mark.ct("CT-115")
+def test_proposta_depois_do_fim_e_ignorada(host_app, network):
+    scene, player, raw = connect_raw(host_app, network)
+    scene._resign()
+    raw.send_draw_offer()
+    player.seconds(0.3)
+    assert scene.modals == []
+    raw.close()
+
+
+@pytest.mark.ct("CT-115")
+def test_cartao_da_proposta_responde_ao_teclado_e_deixa_as_setas_para_o_tabuleiro(host_app, guest_app):
+    table = connected_table(host_app, guest_app)
+    host, guest = offer_to_guest(table)
+    table.settle()
+    table.guest_player.press(pygame.K_UP)
+    assert guest.cursor is not None, "as setas seguem com o tabuleiro"
+    assert guest.modals, "e o cartão continua"
+    table.guest_player.press(pygame.K_a)
+    drive(table.apps, lambda: guest.engine.result is not None)
+    assert_same_end(table)
+    assert guest.engine.result == GameResult(None, EndReason.AGREEMENT)
+
+
+@pytest.mark.ct("CT-115")
+def test_cartao_fica_sobre_a_planilha_com_o_tabuleiro_inteiro_a_vista(host_app, guest_app):
+    table = connected_table(host_app, guest_app)
+    host, guest = offer_to_guest(table)
+    table.settle()
+    card = guest.modals[-1]
+    assert not card._panel.colliderect(guest.hud.viewport), "o cartão não pode esconder casas"
+    assert card._panel.colliderect(guest.hud.sheet.rect)
+    width, height = guest_app.size
+    assert card._panel.right <= width and card._panel.bottom <= height
+    post_click(card._panel.center)
+    table.guest_player.frames(1)
+    assert guest.modals == [card], "clique no corpo do cartão não responde nada"
+
+
+@pytest.mark.ct("CT-115")
+def test_sobreposicao_aberta_por_cima_do_cartao_fecha_primeiro(host_app, guest_app):
+    table = connected_table(host_app, guest_app)
+    host, guest = offer_to_guest(table)
+    table.settle()
+    card = guest.modals[-1]
+    table.guest_player.press(pygame.K_p)
+    assert len(guest.modals) == 2 and guest.modals[0] is card
+    table.guest_player.press(pygame.K_p)
+    assert guest.modals == [card], "fechar a pausa não fecha a proposta"
+
+
+@pytest.mark.ct("CT-115")
+def test_ajuda_em_rede_nao_lista_o_que_nao_vale(host_app, guest_app):
+    table = connected_table(host_app, guest_app)
+    table.host_player.press(pygame.K_h)
+    keys = [hint.keys for hint in table.host.modals[-1]._hints]
+    assert "R" not in keys and "T" not in keys and "F" in keys
+
+
+@pytest.mark.ct("CT-114")
+def test_na_revanche_quem_criou_a_sala_continua_decidindo(host_app, guest_app):
+    """A cor troca, a autoridade não: é a sala, mesmo jogando de Pretas."""
+    table = connected_table(host_app, guest_app, TimeControl.BLITZ_5)
+    play_to_end(table)
+    table.host.rematch()
+    table.guest.rematch()
+    drive(table.apps, lambda: isinstance(table.host, GameScene) and isinstance(table.guest, GameScene))
+    table.settle()
+    host, guest = table.host, table.guest
+    assert host.local_color is Color.BLACK and host.net.is_authority and not guest.net.is_authority
+    fast_forward_clock(guest, Color.WHITE, 0.0)
+    table.steps(60)
+    assert guest.engine.result is None, "o relógio dele, na tela dele, não encerra"
+    fast_forward_clock(host, Color.WHITE, 0.01)
+    drive(table.apps, lambda: host.engine.result is not None and guest.engine.result is not None)
+    assert_same_end(table)
+    assert host.engine.result == GameResult(Color.BLACK, EndReason.TIMEOUT)
+
+
+# Todo fim cruzado: nenhum dos dois lados lê a rede entre uma ação e outra --------------------------------
+
+
+OPENING = ("e2e4", "e7e5", "g1f3")
+NEXT_MOVE = {2: "g1f3", 3: "b8c6"}
+
+
+def cross_move(scene, plies):
+    """Joga pelo mesmo caminho do clique, mas sem quadro: o que está no fio continua sem ser lido."""
+    uci = NEXT_MOVE[plies]
+    if scene.engine.turn is scene.local_color:
+        scene._submit_move(Square.from_name(uci[:2]), Square.from_name(uci[2:4]))
+
+
+def host_acts(host, action, plies):
+    if action == "lance":
+        cross_move(host, plies)
+    elif action == "desiste":
+        host._resign()
+    elif action == "tempo":
+        fast_forward_clock(host, host.engine.turn, 0.0)
+    elif action == "propoe":
+        host.net.send_draw_offer()
+    elif action == "sai":
+        host._leave_room()
+
+
+def guest_acts(guest, action, plies):
+    if action == "lance":
+        cross_move(guest, plies)
+    elif action == "desiste":
+        guest._resign()
+    elif action == "aceita":
+        guest.modals[-1].buttons[0].activate()
+    elif action == "propoe":
+        guest.net.send_draw_offer()
+
+
+@pytest.mark.ct("CT-113")
+@pytest.mark.parametrize("plies", [2, 3], ids=["vez-da-sala", "vez-de-quem-entrou"])
+@pytest.mark.parametrize("guest_action", ["lance", "desiste", "aceita", "propoe"])
+@pytest.mark.parametrize("host_action", ["lance", "desiste", "tempo", "propoe", "sai"])
+def test_fins_cruzados_terminam_iguais_nos_dois_lados(host_app, guest_app, host_action, guest_action, plies):
+    """Quem entrou age primeiro: o que ele mandou fica por ler na sala, e até o fechamento dela precisa aguentar isso."""
+    table = connected_table(host_app, guest_app, TimeControl.BLITZ_5)
+    table.play_all(" ".join(OPENING[:plies]))
+    host, guest = table.host, table.guest
+    if guest_action == "aceita":
+        host.net.send_draw_offer()
+        drive(table.apps, lambda: guest.modals)
+    guest_acts(guest, guest_action, plies)
+    host_acts(host, host_action, plies)
+    table.steps(90)
+    if host.engine.result is None:
+        host._resign()
+        table.steps(60)
+    assert host.engine.result is not None and guest.engine.result is not None
+    assert host.engine.result == guest.engine.result
+    assert host.engine.final_fen == guest.engine.final_fen
+    assert host.engine.history == guest.engine.history
+    points = lambda scene: {color: player.match_points for color, player in scene.engine.players.items()}
+    assert points(host) == points(guest)
+
+
+@pytest.mark.ct("CT-113")
+def test_convidado_que_sai_com_lance_da_sala_a_caminho_continua_derrotado_nos_dois(host_app, guest_app):
+    """Único caso sem como igualar o FEN: quem saiu não está mais lá para receber o lance. O vencedor é o mesmo."""
+    table = connected_table(host_app, guest_app, TimeControl.BLITZ_5)
+    table.play_all("e2e4 e7e5")
+    host, guest = table.host, table.guest
+    cross_move(host, 2)
+    guest._leave_room()
+    drive([host_app], lambda: host.engine.result is not None and not host.view.is_flying)
+    assert host.engine.result.winner is guest.engine.result.winner is Color.WHITE

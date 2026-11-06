@@ -34,10 +34,10 @@ from xadrez.ui.board_view import BoardView
 from xadrez.ui.cpu_player import CpuPlayer
 from xadrez.ui.debug_panels import DidacticPanel, PerformancePanel
 from xadrez.ui.hud import NOTICE_DANGER, NOTICE_TURN, NOTICE_WARNING, Hud, NoticeBar
-from xadrez.ui.match import OPPONENT_CPU, GameMode, MatchOptions
+from xadrez.ui.match import OPPONENT_CPU, GameMode, MatchOptions, pgn_without_check_marks
 from xadrez.ui.match_record import save_match
 from xadrez.ui.net_link import NetLink, NetMatch
-from xadrez.ui.overlays import ChoiceOverlay, HelpOverlay, Overlay, PromotionDialog
+from xadrez.ui.overlays import ChoiceOverlay, HelpOverlay, Overlay, PeerOfferCard, PromotionDialog
 from xadrez.ui.scene import Scene
 from xadrez.ui.widgets import STYLE_DANGER, STYLE_PRIMARY, Button
 
@@ -50,6 +50,7 @@ GENERIC_REFUSAL = "Lance inválido."
 CPU_TURN_NOTICE = "Aguarde: é a vez da CPU."
 PEER_TURN_NOTICE = "Aguarde: é a vez do adversário."
 CPU_FAILURE_NOTICE = "A busca da CPU falhou, e ela fez um lance simples para a partida seguir."
+DRAW_OFFER_AGAIN_NOTICE = "O adversário recusou: proponha de novo depois do seu próximo lance."
 _DOUBLE_CLICK_SECONDS = 0.25
 _DOUBLE_CLICK_PIXELS = 6
 _DRAG_START_PIXELS = 6
@@ -120,6 +121,8 @@ class GameScene(Scene):
         self._firework_left = 0.0
         self._is_saved = False
         self._save_warning: str | None = None
+        self._closing_notice: str | None = None
+        self._peer_offer: PeerOfferCard | None = None
         self._rotation_button = Button(self._rotation_label(), self._toggle_rotation, hint="T", font_size=16)
         self.hud = Hud(app.theme, self.view.renderer, app.meshes, engine, self._hud_buttons(),
                        options.mode.label, self.hides_hints)
@@ -182,6 +185,7 @@ class GameScene(Scene):
         self._ending_left = None
         self._is_saved = False
         self._save_warning = None
+        self._closing_notice = None
         self.notices.clear_message()
         self._begin_turn()
         self._restore_view()
@@ -190,7 +194,9 @@ class GameScene(Scene):
         """Início de um turno: é o único ponto em que ameaças e xeque são recalculados."""
         engine = self.engine
         if engine.result is not None:
-            self._begin_ending(engine.result)
+            # Em rede, quem entrou na sala ainda espera a palavra dela: `end_match` chama o fim.
+            if self._is_result_final:
+                self._begin_ending(engine.result)
             return
         self._alerts = self._compute_alerts()
         self.hud.active_color = engine.turn
@@ -265,8 +271,9 @@ class GameScene(Scene):
         if self._ending_left <= 0.0:
             self.next_scene = self.app.game_over_scene(self.engine, self.options, self.view, self.local_player,
                                                        self.net.link if self.net else None)
-            if self._save_warning is not None:
-                self.next_scene.notices.show(self._save_warning)
+            message = self._save_warning or self._closing_notice
+            if message is not None:
+                self.next_scene.notices.show(message)
 
     def _launch_ending_fireworks(self, dt: float) -> None:
         result = self.engine.result
@@ -279,16 +286,23 @@ class GameScene(Scene):
 
     def _save_result(self) -> None:
         """Só conta quem está logado, e uma vez por partida. Falha ao gravar vira aviso, nunca queda."""
-        store = None if self._is_saved or self.engine.result is None else self.app.history_store()
+        store = None if self._is_saved or self.engine.result is None or not self._is_result_final else self.app.history_store()
         if store is not None:
             self._is_saved = True
             self._save_warning = save_match(store, self.engine, self.options, self.local_player)
         if self._save_warning is not None:
             self.notices.show(self._save_warning)
 
-    def end_match(self, result: GameResult) -> None:
-        """O outro lado da rede encerrou a partida: desistiu, saiu, ficou sem tempo ou aceitou o empate."""
+    def end_match(self, result: GameResult, closing_notice: str | None = None) -> None:
+        """A rede encerrou a partida. O motivo, quando há, segue até a tela de fim."""
         self._begin_ending(result)
+        if closing_notice is not None:
+            self._closing_notice = closing_notice
+            self.notices.show(closing_notice)
+
+    @property
+    def _is_result_final(self) -> bool:
+        return self.net is None or self.net.is_decided
 
     # Entrada -------------------------------------------------------------------------------------
 
@@ -300,8 +314,10 @@ class GameScene(Scene):
         if event.type == pygame.KEYDOWN and self._handle_panel_key(event.key):
             return
         if self.modals:
-            self.modals[-1].handle_event(event)
-            return
+            top = self.modals[-1]
+            was_taken = top.handle_event(event)
+            if top.blocks_game or was_taken:
+                return
         if self.hud.handle_event(event):
             return
         if event.type == pygame.KEYDOWN:
@@ -453,7 +469,8 @@ class GameScene(Scene):
     @property
     def is_board_locked(self) -> bool:
         """Durante o voo o clique fica bloqueado. Só o relógio e o cursor continuam."""
-        return self.view.is_flying or self._ending_left is not None or self.engine.state is not GameState.IN_PROGRESS
+        return (self.view.is_flying or self._ending_left is not None or self._awaits_room
+                or self.engine.state is not GameState.IN_PROGRESS)
 
     def _activate_square(self, cell: Cell | None) -> None:
         if self.is_board_locked:
@@ -546,6 +563,12 @@ class GameScene(Scene):
         """Jogada que chegou de fora: anima igual à de quem está na tela. Se havia seleção, ela já não vale."""
         self._set_selection(None)
         self._show_move(outcome)
+
+    def retract_last_move(self) -> None:
+        """A sala não aceitou o último lance daqui, que cruzou com o fim da partida: a peça volta para a casa."""
+        self.view.reset()
+        self.view.sync(self.engine.board)
+        self._last_move = None
 
     def _set_selection(self, square: Square | None) -> None:
         self._end_press()
@@ -647,7 +670,8 @@ class GameScene(Scene):
 
     def _refresh_hover(self) -> None:
         """Só refaz o picking quando o mouse ou a câmera mudaram (RNF03), e nunca sobre o teclado."""
-        if self._input_mode != _MOUSE_MODE or self._mouse_pos is None or self.modals or self._ending_left is not None:
+        has_blocking_overlay = any(overlay.blocks_game for overlay in self.modals)
+        if self._input_mode != _MOUSE_MODE or self._mouse_pos is None or has_blocking_overlay or self._ending_left is not None:
             return
         key = (self._mouse_pos, self.view.camera.revision)
         if key != self._hover_key:
@@ -707,7 +731,13 @@ class GameScene(Scene):
 
     def open_help(self) -> None:
         if self._ending_left is None:
-            self._push_modal(HelpOverlay(self.app.theme, self._pop_modal))
+            self._push_modal(HelpOverlay(self.app.theme, self._pop_modal, self._keys_without_effect()))
+
+    def _keys_without_effect(self) -> tuple[str, ...]:
+        """A ajuda só lista o que vale nesta partida: em rede não há reinício, e o giro por turno é só de 2 jogadores."""
+        if self.options.is_local:
+            return ()
+        return ("R", "T") if self.net is not None else ("T",)
 
     def confirm_restart(self) -> None:
         if self._ending_left is not None or self.engine.result is not None or self.net is not None:
@@ -722,7 +752,7 @@ class GameScene(Scene):
         self._start_game()
 
     def _confirm_resign(self) -> None:
-        if self._ending_left is not None or self.engine.result is not None:
+        if self._ending_left is not None or self.engine.result is not None or self._awaits_room:
             return
         resigning = self.engine.current_player if self.options.is_local else self.local_player
         opponent = self.engine.players[resigning.color.opposite]
@@ -730,10 +760,16 @@ class GameScene(Scene):
         self._confirm("Desistir da partida?", lines, "Desistir", self._resign, STYLE_DANGER)
 
     def _resign(self) -> None:
-        color = self.engine.turn if self.options.is_local else self.local_color
         if self.net is not None:
-            self.net.send_resign()
+            self._close_all_modals()
+            self.net.resign()
+            return
+        color = self.engine.turn if self.options.is_local else self.local_color
         self._begin_ending(self.engine.resign(color))
+
+    @property
+    def _awaits_room(self) -> bool:
+        return self.net is not None and self.net.awaits_decision
 
     def _propose_draw(self) -> None:
         if self.net is not None:
@@ -759,29 +795,37 @@ class GameScene(Scene):
 
     def _propose_draw_to_peer(self) -> None:
         self._pop_modal()
+        if self._awaits_room:
+            return
         if self.net.draw_answer_pending:
             self.notices.show("A proposta de empate já foi enviada.", NOTICE_TURN, _SHORT_NOTICE_SECONDS)
+            return
+        if not self.net.may_offer_draw:
+            self.notices.show(DRAW_OFFER_AGAIN_NOTICE, NOTICE_TURN, _SHORT_NOTICE_SECONDS)
             return
         self.net.send_draw_offer()
         self.notices.show(f"Proposta de empate enviada a {self.net.link.peer_name}.", NOTICE_TURN)
 
     def show_peer_draw_offer(self, answer: Callable[[bool], None]) -> None:
-        """O outro jogador propôs empate pela rede. A resposta é daqui, e o foco começa na recusa."""
-        def respond(accept: bool) -> None:
-            self._pop_modal()
-            answer(accept)
-            if accept:
-                self._begin_ending(self.engine.agree_draw())
-
+        """O outro jogador propôs empate pela rede. O cartão fica na base da pilha: as outras sobreposições fecham antes dele."""
         peer = self.net.link.peer_name
-        self._push_modal(ChoiceOverlay(
+        self._peer_offer = PeerOfferCard(
             self.app.theme,
             "Proposta de empate",
-            [f"{peer} propõe empate.", "O relógio continua correndo."],
-            [Button("Aceitar empate", lambda: respond(True), STYLE_PRIMARY), Button("Recusar", lambda: respond(False))],
-            on_cancel=lambda: respond(False),
-            initial_focus=1,
-        ))
+            [f"{peer} propõe empate.", "Jogar um lance também recusa."],
+            on_accept=lambda: answer(True),
+            on_refuse=lambda: answer(False),
+            anchor=lambda: self.hud.sheet.rect,
+        )
+        self._peer_offer.layout(self.app.size)
+        self.modals.insert(0, self._peer_offer)
+
+    def close_peer_draw_offer(self) -> None:
+        if self._peer_offer in self.modals:
+            self.modals.remove(self._peer_offer)
+            self._arm_click_guard()
+            self._hover_key = None
+        self._peer_offer = None
 
     def _confirm_menu(self) -> None:
         if self.net is not None:
@@ -792,9 +836,6 @@ class GameScene(Scene):
         self._confirm("Voltar ao menu?", lines, "Voltar ao menu", self._go_to_menu)
 
     def _leave_room(self) -> None:
-        if self.engine.result is None:
-            self.engine.abandon(self.local_color)
-            self._save_result()
         self._go_to_menu()
 
     def _go_to_menu(self) -> None:
@@ -810,14 +851,23 @@ class GameScene(Scene):
         ))
 
     def shutdown(self) -> None:
+        """Em rede, sair ou fechar a janela é abandono: a derrota é gravada antes de a conexão fechar."""
         self._stop_cpu()
-        if self.net is not None:
-            self.net.link.leave()
+        if self.net is None:
+            return
+        self.net.conclude_on_exit()
+        self._save_result()
+        self.net.link.leave()
 
     # Mesa ----------------------------------------------------------------------------------------
 
+    def _copyable_pgn(self) -> str:
+        """No modo Partida, enquanto ela corre, a cópia não pode entregar o xeque que a tela esconde."""
+        pgn = game_to_pgn(self.engine)
+        return pgn_without_check_marks(pgn) if self.hides_hints and self.engine.result is None else pgn
+
     def copy_pgn(self) -> None:
-        if clipboard.copy_text(game_to_pgn(self.engine)):
+        if clipboard.copy_text(self._copyable_pgn()):
             self.notices.show("PGN copiado para a área de transferência.", NOTICE_TURN, _SHORT_NOTICE_SECONDS)
         else:
             self.notices.show(clipboard.COPY_FAILED_MESSAGE, NOTICE_WARNING)

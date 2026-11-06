@@ -8,11 +8,12 @@ import time
 import pytest
 from net_helpers import LOCALHOST, QUICK, WAIT_SECONDS, FakeHost, Inbox, RawPeer, open_client, open_host, start_message
 
-from xadrez.core import Color, EndReason, GameEngine, GameState, TimeControl, legal_moves
+from xadrez.core import Color, EndReason, GameEngine, GameResult, GameState, TimeControl, legal_moves
 from xadrez.net import (
     ClientSession,
     DrawAnswered,
     DrawOffered,
+    GameDecided,
     GameStart,
     HostSession,
     MoveReceived,
@@ -759,3 +760,64 @@ def test_net_defeito_inesperado_na_thread_vira_erro_e_nao_morte_silenciosa(opene
     monkeypatch.setattr(host, "_check_timers", explode)
     assert "inesperado" in Inbox(host).wait_for(NetworkError).message
     wait_finished(host)
+
+
+@pytest.mark.ct("CT-86")
+def test_net_resultado_da_sala_chega_a_quem_entrou(pair):
+    host, client, host_inbox, client_inbox = pair
+    assert host.is_authority is True and client.is_authority is False
+    result = GameResult(Color.BLACK, EndReason.TIMEOUT)
+    host.send_result(result, 12)
+    decided = client_inbox.wait_for(GameDecided)
+    assert decided.result == result and decided.plies == 12
+
+
+@pytest.mark.ct("CT-86")
+def test_net_resultado_sai_antes_da_despedida(pair):
+    host, client, host_inbox, client_inbox = pair
+    host.send_result(GameResult(None, EndReason.AGREEMENT), 0)
+    host.send_bye()
+    host.close()
+    client_inbox.wait_for(GameDecided)
+    client_inbox.wait_for(PeerLeft)
+
+
+@pytest.mark.ct("CT-86")
+def test_net_quem_entrou_nao_pode_mandar_resultado(opened):
+    host = open_host(opened)
+    inbox = Inbox(host)
+    peer = opened(RawPeer.connect(host.port))
+    peer.hello()
+    assert peer.read_message()["type"] == "start"
+    peer.send(type="result", winner="black", reason="resignation", plies=0)
+    inbox.wait_for(NetworkError)
+    assert not inbox.has(GameDecided)
+
+
+@pytest.mark.ct("CT-87")
+@pytest.mark.parametrize("attempt", range(5))
+def test_net_resultado_chega_mesmo_com_dados_do_outro_lado_por_ler(pair, attempt):
+    """Fechar com dados por ler vira RST, que apagaria o resultado no outro lado antes de ele ler."""
+    host, client, host_inbox, client_inbox = pair
+    client.send_resign()
+    client.send_draw_offer()
+    time.sleep(0.01)
+    host.send_result(GameResult(None, EndReason.AGREEMENT), 0)
+    host.send_bye()
+    host.close()
+    client_inbox.wait_for(GameDecided)
+    client_inbox.wait_for(PeerLeft)
+
+
+@pytest.mark.ct("CT-87")
+def test_net_fechar_nao_espera_quem_fica_mudo(opened):
+    host = open_host(opened)
+    inbox = Inbox(host)
+    peer = opened(RawPeer.connect(host.port))
+    peer.hello()
+    assert peer.read_message()["type"] == "start"
+    inbox.wait_for(GameStart)
+    started = time.monotonic()
+    host.send_bye()
+    host.close()
+    assert time.monotonic() - started < 1.0

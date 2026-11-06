@@ -4,7 +4,7 @@ import math
 
 import pytest
 
-from xadrez.core import PieceType, Square
+from xadrez.core import Color, EndReason, GameResult, PieceType, Square
 from xadrez.net import parse_uci
 from xadrez.net.protocol import (
     MAX_CLOCK_MS,
@@ -17,6 +17,8 @@ from xadrez.net.protocol import (
     encode_message,
     is_valid_name,
     is_valid_uci,
+    parse_result,
+    result_fields,
     sanitize_name,
 )
 
@@ -39,6 +41,13 @@ VALID_MESSAGES = [
     {"type": "rematch"},
     {"type": "bye"},
     {"type": "ping"},
+    {"type": "result", "winner": "white", "reason": "checkmate", "plies": 3},
+    {"type": "result", "winner": "black", "reason": "resignation", "plies": 0},
+    {"type": "result", "winner": "white", "reason": "abandonment", "plies": 65535},
+    {"type": "result", "winner": None, "reason": "stalemate", "plies": 9},
+    {"type": "result", "winner": None, "reason": "agreement", "plies": 9},
+    {"type": "result", "winner": None, "reason": "timeout", "plies": 9},
+    {"type": "result", "winner": "black", "reason": "timeout", "plies": 9},
 ]
 
 INVALID_MESSAGES = [
@@ -285,3 +294,59 @@ def test_net_jogada_mal_formada_nao_vira_casa(uci):
     assert not is_valid_uci(uci)
     with pytest.raises(ValueError):
         parse_uci(uci)
+
+
+@pytest.mark.parametrize("message", [
+    {"type": "result"},
+    {"type": "result", "winner": "white", "reason": "checkmate"},
+    {"type": "result", "reason": "checkmate", "plies": 1},
+    {"type": "result", "winner": "white", "plies": 1},
+    {"type": "result", "winner": "white", "reason": "checkmate", "plies": 1, "fen": "x"},
+    {"type": "result", "winner": "red", "reason": "checkmate", "plies": 1},
+    {"type": "result", "winner": 1, "reason": "checkmate", "plies": 1},
+    {"type": "result", "winner": "white", "reason": "CHECKMATE", "plies": 1},
+    {"type": "result", "winner": "white", "reason": "Xeque-mate", "plies": 1},
+    {"type": "result", "winner": "white", "reason": ["checkmate"], "plies": 1},
+    {"type": "result", "winner": "white", "reason": "checkmate", "plies": -1},
+    {"type": "result", "winner": "white", "reason": "checkmate", "plies": 65536},
+    {"type": "result", "winner": "white", "reason": "checkmate", "plies": 1.0},
+    {"type": "result", "winner": "white", "reason": "checkmate", "plies": True},
+    {"type": "result", "winner": None, "reason": "checkmate", "plies": 1},
+    {"type": "result", "winner": None, "reason": "resignation", "plies": 1},
+    {"type": "result", "winner": None, "reason": "abandonment", "plies": 1},
+    {"type": "result", "winner": "white", "reason": "stalemate", "plies": 1},
+    {"type": "result", "winner": "white", "reason": "insufficient_material", "plies": 1},
+    {"type": "result", "winner": "white", "reason": "fifty_moves", "plies": 1},
+    {"type": "result", "winner": "white", "reason": "threefold_repetition", "plies": 1},
+    {"type": "result", "winner": "white", "reason": "agreement", "plies": 1},
+])
+def test_resultado_invalido_e_recusado_nos_dois_sentidos(message):
+    with pytest.raises(ProtocolError):
+        decode_message(json.dumps(message).encode())
+    with pytest.raises(ProtocolError):
+        encode_message(message)
+
+
+@pytest.mark.parametrize("winner", [Color.WHITE, Color.BLACK, None])
+def test_resultado_ida_e_volta_para_cada_motivo_possivel(winner):
+    for reason in EndReason:
+        fields = result_fields(GameResult(winner, reason), 7)
+        message = {"type": "result", **fields}
+        try:
+            decoded = decode_message(encode_message(message).strip())
+        except ProtocolError:
+            continue
+        assert parse_result(decoded) == GameResult(winner, reason)
+        assert decoded["plies"] == 7
+
+
+def test_todo_motivo_de_fim_tem_um_vencedor_valido_no_protocolo():
+    for reason in EndReason:
+        accepted = []
+        for winner in (Color.WHITE, None):
+            try:
+                encode_message({"type": "result", **result_fields(GameResult(winner, reason), 0)})
+            except ProtocolError:
+                continue
+            accepted.append(winner)
+        assert accepted, reason

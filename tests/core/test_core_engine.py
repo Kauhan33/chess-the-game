@@ -2,7 +2,19 @@
 import pytest
 from core_helpers import IndexLikeInteger, play_all, sq, target_names
 
-from xadrez.core import STARTING_FEN, Color, GameEngine, GameState, Move, MoveError, MoveOutcome, PieceType, Square
+from xadrez.core import (
+    STARTING_FEN,
+    Color,
+    EndReason,
+    GameEngine,
+    GameResult,
+    GameState,
+    Move,
+    MoveError,
+    MoveOutcome,
+    PieceType,
+    Square,
+)
 
 
 @pytest.mark.ct("CT-01")
@@ -246,3 +258,63 @@ def test_promotion_is_reported_in_history():
     outcome = engine.play(sq("e7"), sq("e8"), PieceType.QUEEN)
     assert outcome.san == "e8=Q+"
     assert engine.history == ["e8=Q+"]
+
+
+def test_take_back_restores_the_position_exactly():
+    engine = GameEngine()
+    play_all(engine, "e2e4", "d7d5")
+    fen = engine.final_fen
+    play_all(engine, "e4d5")
+    assert engine.players[Color.WHITE].captured
+    engine.take_back_last_move()
+    assert engine.final_fen == fen
+    assert engine.history == ["e4", "d5"]
+    assert engine.players[Color.WHITE].captured == []
+    assert engine.turn is Color.WHITE
+
+
+def test_take_back_reopens_a_finished_game_and_removes_the_point():
+    engine = GameEngine()
+    play_all(engine, "f2f3", "e7e5", "g2g4", "d8h4")
+    assert engine.result.reason is EndReason.CHECKMATE
+    engine.take_back_last_move()
+    assert engine.result is None and engine.state is GameState.IN_PROGRESS
+    assert engine.players[Color.BLACK].match_points == 0.0
+    assert engine.legal_moves_from(Square.from_name("d8"))
+
+
+def test_take_back_removes_the_half_point_of_a_draw():
+    engine = GameEngine(fen="4k3/8/8/8/8/8/4q3/4K3 w - - 0 1")
+    assert engine.play(Square.from_name("e1"), Square.from_name("e2")).result.reason is EndReason.INSUFFICIENT_MATERIAL
+    engine.take_back_last_move()
+    assert all(player.match_points == 0.0 for player in engine.players.values())
+    assert engine.result is None
+
+
+def test_take_back_does_not_count_the_repetition():
+    engine = GameEngine()
+    shuffle = "g1f3 g8f6 f3g1 f6g8 g1f3 g8f6 f3g1"
+    play_all(engine, *shuffle.split())
+    engine.play(Square.from_name("f6"), Square.from_name("g8"))
+    assert engine.result.reason is EndReason.THREEFOLD_REPETITION
+    engine.take_back_last_move()
+    assert engine.result is None
+    assert engine.play(Square.from_name("f6"), Square.from_name("g8")).result.reason is EndReason.THREEFOLD_REPETITION
+
+
+def test_take_back_undoes_a_single_move_and_refuses_without_one():
+    engine = GameEngine()
+    with pytest.raises(IndexError):
+        engine.take_back_last_move()
+    play_all(engine, "e2e4")
+    engine.take_back_last_move()
+    with pytest.raises(IndexError):
+        engine.take_back_last_move()
+
+
+def test_finish_with_does_not_change_a_finished_game():
+    engine = GameEngine()
+    decided = engine.finish_with(GameResult(Color.WHITE, EndReason.TIMEOUT))
+    assert decided.reason is EndReason.TIMEOUT and engine.state is GameState.FINISHED
+    assert engine.finish_with(GameResult(None, EndReason.AGREEMENT)) == decided
+    assert engine.players[Color.WHITE].match_points == 1.0

@@ -5,9 +5,9 @@ import json
 import re
 from typing import Callable
 
-from xadrez.core import Color, PieceType, Square
+from xadrez.core import Color, EndReason, GameResult, PieceType, Square
 
-PROTOCOL_VERSION = 1
+PROTOCOL_VERSION = 2
 MAX_LINE_BYTES = 4096
 MAX_NAME_CHARS = 16
 MAX_CLOCK_MS = 7 * 24 * 60 * 60 * 1000
@@ -18,9 +18,19 @@ REFUSED_ROOM_FULL = "room_full"
 _MAX_MINUTES = 24 * 60
 _MAX_INCREMENT_SECONDS = 60 * 60
 _MAX_VERSION = 65_535
+_MAX_PLIES = 65_535
 _UCI_PATTERN = re.compile(r"[a-h][1-8][a-h][1-8][qrbn]?")
 _PROMOTIONS = {"q": PieceType.QUEEN, "r": PieceType.ROOK, "b": PieceType.BISHOP, "n": PieceType.KNIGHT}
 _COLORS = {color.value for color in Color}
+_REASONS = {reason.name.lower(): reason for reason in EndReason}
+_REASONS_WITH_WINNER = frozenset({EndReason.CHECKMATE, EndReason.RESIGNATION, EndReason.ABANDONMENT})
+_REASONS_WITHOUT_WINNER = frozenset({
+    EndReason.STALEMATE,
+    EndReason.INSUFFICIENT_MATERIAL,
+    EndReason.FIFTY_MOVES,
+    EndReason.THREEFOLD_REPETITION,
+    EndReason.AGREEMENT,
+})
 
 
 class ProtocolError(Exception):
@@ -58,6 +68,14 @@ def _is_color(value: object) -> bool:
     return isinstance(value, str) and value in _COLORS
 
 
+def _is_winner(value: object) -> bool:
+    return value is None or _is_color(value)
+
+
+def _is_reason(value: object) -> bool:
+    return isinstance(value, str) and value in _REASONS
+
+
 _SCHEMAS: dict[str, dict[str, Callable[[object], bool]]] = {
     "hello": {"version": _is_int_up_to(_MAX_VERSION), "name": is_valid_name},
     "start": {
@@ -70,6 +88,7 @@ _SCHEMAS: dict[str, dict[str, Callable[[object], bool]]] = {
     "refused": {"code": _is_refusal},
     "move": {"uci": is_valid_uci, "clock_ms": _is_int_up_to(MAX_CLOCK_MS)},
     "draw_answer": {"accept": _is_bool},
+    "result": {"winner": _is_winner, "reason": _is_reason, "plies": _is_int_up_to(_MAX_PLIES)},
     "resign": {},
     "draw_offer": {},
     "rematch": {},
@@ -113,6 +132,16 @@ def _require_valid(message: object) -> None:
         raise ProtocolError(f"Campos errados na mensagem {kind}.")
     if not all(is_valid(message[field]) for field, is_valid in schema.items()):
         raise ProtocolError(f"Valor inválido na mensagem {kind}.")
+    if kind == "result" and not _is_coherent_result(message):
+        raise ProtocolError("Vencedor e motivo não combinam na mensagem result.")
+
+
+def _is_coherent_result(message: dict[str, object]) -> bool:
+    """Mate, por exemplo, sempre tem vencedor, e afogamento nunca. Só o tempo esgotado aceita os dois."""
+    reason = _REASONS[message["reason"]]
+    if message["winner"] is None:
+        return reason not in _REASONS_WITH_WINNER
+    return reason not in _REASONS_WITHOUT_WINNER
 
 
 class LineSplitter:
@@ -144,6 +173,18 @@ def clock_to_wire(clock_ms: object) -> int:
         return min(max(int(clock_ms), 0), MAX_CLOCK_MS)
     except (TypeError, ValueError, OverflowError):
         return 0
+
+
+def result_fields(result: GameResult, plies: int) -> dict[str, object]:
+    """Campos da mensagem `result`. `plies` diz em que lance a partida parou, para os dois lados terminarem iguais."""
+    winner = None if result.winner is None else result.winner.value
+    return {"winner": winner, "reason": result.reason.name.lower(), "plies": plies}
+
+
+def parse_result(message: dict[str, object]) -> GameResult:
+    """Traduz uma mensagem `result` já conferida por `decode_message`."""
+    winner = message["winner"]
+    return GameResult(None if winner is None else Color(winner), _REASONS[message["reason"]])
 
 
 def parse_uci(uci: str) -> tuple[Square, Square, PieceType | None]:

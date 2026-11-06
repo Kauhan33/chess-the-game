@@ -141,7 +141,7 @@ def test_sala_criar_e_entrar_com_erro(network, size):
 
 
 @pytest.mark.ct("CT-131")
-@pytest.mark.xfail(strict=True, reason="QA11-17: em 640x360, o formulário não cabe: botão sai da janela ou fica por cima de 'Ver todos os controles'")
+@pytest.mark.xfail(strict=True, reason="QA11-17, aceito: abaixo de 640x480 o formulário não cabe. Basta não derrubar: ver os dois testes abaixo")
 @pytest.mark.parametrize("form", ["login_criar", "menu_local", "menu_cpu", "menu_rede"])
 def test_formularios_na_menor_janela(form):
     application = make_app(size=TINY, require_login=True)
@@ -155,6 +155,37 @@ def test_formularios_na_menor_janela(form):
     application.step(0.0)
     assert_inside(widgets_of(application.scene), TINY)
     assert_no_overlap(widgets_of(application.scene), TINY)
+
+
+def open_form(form, size):
+    application = make_app(size=size, require_login=True)
+    if form == "login_criar":
+        application.scene.mode_selector.select(1)
+        application.scene._show_error("O nome precisa ter de 3 a 16 caracteres e não pode ser repetido, nem ter caracteres estranhos.")
+    else:
+        application.scene.next_scene = application.menu_scene(MatchOptions(LONG, LONG2, TimeControl.CLASSIC_15_10))
+        application.step(0.0)
+        application.scene.opponent_selector.select(("menu_local", "menu_cpu", "menu_rede").index(form))
+    application.step(0.0)
+    return application
+
+
+@pytest.mark.ct("CT-131")
+@pytest.mark.parametrize("form", ["login_criar", "menu_local", "menu_cpu", "menu_rede"])
+def test_formularios_cabem_a_partir_de_640x480(form):
+    size = (640, 480)
+    application = open_form(form, size)
+    assert_inside(widgets_of(application.scene), size)
+    assert_no_overlap(widgets_of(application.scene), size)
+
+
+@pytest.mark.ct("CT-131")
+@pytest.mark.parametrize("size", [TINY, (320, 200), (1, 1)])
+@pytest.mark.parametrize("form", ["login_criar", "menu_local", "menu_cpu", "menu_rede"])
+def test_formularios_em_janela_pequena_nao_derrubam(form, size):
+    application = open_form(form, size)
+    Autoplayer(application).frames(2)
+    application.scene.draw(application.screen)
 
 
 def hud_items(scene):
@@ -236,7 +267,6 @@ def test_faixa_de_avisos_com_nome_longo_cabe_no_tabuleiro(size):
 
 
 @pytest.mark.ct("CT-133")
-@pytest.mark.xfail(strict=True, reason="QA11-13: com nome longo, o botão de revanche corta justamente 'aceitar', e ninguém sabe o que ele faz")
 def test_botao_de_aceitar_revanche_mantem_a_acao_a_vista(host_app, guest_app):
     table = connected_table(host_app, guest_app)
     # Quem está na tela tem o nome longo do outro lado.
@@ -265,7 +295,6 @@ def test_painel_lateral_nao_passa_da_metade_da_janela(size):
 
 
 @pytest.mark.ct("CT-134")
-@pytest.mark.xfail(strict=True, reason="QA11-15: quem saiu da sala lê 'Adversário desconectou' no próprio histórico")
 def test_quem_abandona_nao_le_que_o_adversario_desconectou(host_app, guest_app):
     host_app.account = "Ana"
     host_app.scene.next_scene = host_app.menu_scene()

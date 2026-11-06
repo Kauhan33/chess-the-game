@@ -173,7 +173,7 @@ class GameOverScene(Scene):
         elif link.rematch_requested:
             button.label = f"Aguardando {link.peer_name}"
         elif link.peer_wants_rematch:
-            button.label = f"{link.peer_name} pediu revanche: aceitar"
+            button.label = "Aceitar: o adversário pediu revanche"
         else:
             button.label = "Pedir revanche"
 

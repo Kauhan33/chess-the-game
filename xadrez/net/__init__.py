@@ -2,6 +2,7 @@
 from .events import (
     DrawAnswered,
     DrawOffered,
+    GameDecided,
     GameStart,
     MoveReceived,
     NetEvent,
@@ -20,6 +21,7 @@ __all__ = [
     "DEFAULT_PORT",
     "DrawAnswered",
     "DrawOffered",
+    "GameDecided",
     "GameStart",
     "HostSession",
     "MAX_NAME_CHARS",

@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from enum import Enum
 
 from xadrez.core import Color, Difficulty, GameEngine, TimeControl
+from xadrez.net import MAX_NAME_CHARS
 
 DEFAULT_WHITE_NAME = "Jogador 1"
 DEFAULT_BLACK_NAME = "Jogador 2"
@@ -24,6 +25,8 @@ TIME_CONTROLS = (
 )
 _SECONDS_PER_HOUR = 3600
 _SECONDS_PER_MINUTE = 60
+_SECOND_PLAYER_SUFFIX = " (2)"
+_CHECK_MARKS = str.maketrans("", "", "+#")
 
 
 class GameMode(Enum):
@@ -68,10 +71,17 @@ class MatchOptions:
     def create_engine(self, fen: str | None = None, human_color: Color | None = None) -> GameEngine:
         """Contra a CPU, `human_color` é a cor já sorteada. Sem ela, vale a escolha do menu, e o padrão são as Brancas."""
         if self.opponent_kind != OPPONENT_CPU:
-            return GameEngine(self.white_name, self.black_name, self.time_control, fen)
+            return GameEngine(*distinct_player_names(self.white_name, self.black_name), self.time_control, fen)
         color = human_color or self.human_color or Color.WHITE
         names = (self.white_name, self.cpu_name) if color is Color.WHITE else (self.cpu_name, self.white_name)
-        return GameEngine(*names, self.time_control, fen)
+        return GameEngine(*distinct_player_names(*names), self.time_control, fen)
+
+
+def distinct_player_names(white: str, black: str) -> tuple[str, str]:
+    """Dois "Jogador 1" na mesma mesa: as Pretas ganham um sufixo. Os dois lados da rede chegam ao mesmo nome."""
+    if white != black:
+        return white, black
+    return white, f"{black[:MAX_NAME_CHARS - len(_SECOND_PLAYER_SUFFIX)].rstrip()}{_SECOND_PLAYER_SUFFIX}"
 
 
 def time_control_label(time_control: TimeControl) -> str:
@@ -95,6 +105,12 @@ def format_clock(seconds: float) -> str:
 def format_points(points: float) -> str:
     """Placar da série em português: 1, 0,5 e 1,5."""
     return f"{points:g}".replace(".", ",")
+
+
+def pgn_without_check_marks(pgn: str) -> str:
+    """PGN sem `+` nem `#` nos lances. O cabeçalho fica como está: um nome pode ter esses sinais."""
+    header, moves = pgn.split("\n\n", 1)
+    return f"{header}\n\n{moves.translate(_CHECK_MARKS)}"
 
 
 def without_check_marks(san: str) -> str:

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from collections import Counter
 
-from .board import STARTING_FEN, Board
+from .board import STARTING_FEN, AppliedMove, Board
 from .clock import ChessClock, TimeControl
 from .move import Move, MoveOutcome
 from .notation import move_to_san
@@ -49,6 +49,7 @@ class GameEngine:
         self.state = GameState.IN_PROGRESS
         self.result: GameResult | None = None
         self.history: list[str] = []
+        self._last_applied: AppliedMove | None = None
         self._position_counts: Counter[str] = Counter()
         for player in self.players.values():
             player.captured.clear()
@@ -130,6 +131,7 @@ class GameEngine:
         mover = self.current_player
         san = move_to_san(self.board, move)
         applied = self.board.apply(move)
+        self._last_applied = applied
         if applied.captured is not None:
             mover.captured.append(applied.captured.kind)
         self.clock.add_increment(mover.color)
@@ -184,12 +186,15 @@ class GameEngine:
             return self.result
         self.state = GameState.FINISHED
         self.result = result
+        self._award_points(result, 1)
+        return result
+
+    def _award_points(self, result: GameResult, factor: int) -> None:
         if result.winner is None:
             for player in self.players.values():
-                player.match_points += _DRAW_POINTS
+                player.match_points += _DRAW_POINTS * factor
         else:
-            self.players[result.winner].match_points += _WIN_POINTS
-        return result
+            self.players[result.winner].match_points += _WIN_POINTS * factor
 
     def threatened_pieces(self, color: Color) -> list[Square]:
         """Peças da cor atacadas por ao menos uma inimiga, sem contar o rei (ele já tem o xeque).
@@ -247,6 +252,30 @@ class GameEngine:
 
     def agree_draw(self) -> GameResult:
         return self._finish(GameResult(None, EndReason.AGREEMENT))
+
+    def finish_with(self, result: GameResult) -> GameResult:
+        """Encerra com um resultado decidido fora daqui, como pela sala em rede. Partida já encerrada não muda."""
+        return self._finish(result)
+
+    def take_back_last_move(self) -> None:
+        """Desfaz o último lance e reabre a partida, se foi ele que a encerrou. Só desfaz um lance por vez.
+
+        É para o lance que cruzou com o fim da partida na rede, que é decidido em seguida: por isso o relógio fica como está.
+        """
+        applied = self._last_applied
+        if applied is None:
+            raise IndexError("Não há lance para desfazer")
+        if self.result is not None:
+            self._award_points(self.result, -1)
+        self._position_counts[position_key(self.board)] -= 1
+        self.board.undo()
+        self._repetitions = self._position_counts[position_key(self.board)]
+        self.history.pop()
+        if applied.captured is not None:
+            self.players[applied.piece.color].captured.pop()
+        self.state = GameState.IN_PROGRESS
+        self.result = None
+        self._last_applied = None
 
     def abandon(self, color: Color) -> GameResult:
         """Quem abandona a partida (queda de rede) perde. Partida já encerrada não muda de resultado."""

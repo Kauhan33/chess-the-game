@@ -19,6 +19,8 @@ OPTIONS = MatchOptions("Jogador 1", "Jogador 2", TimeControl.BLITZ_3_2, opponent
 class FakeSession:
     """Sessão de mentira: o teste escolhe o que `poll` entrega, sem depender de tempo de rede."""
 
+    is_authority = False
+
     def __init__(self, code="GEJXWVH", warning=None):
         self.code = code
         self.offline_warning = warning

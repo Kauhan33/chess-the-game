@@ -5,7 +5,7 @@ import struct
 import time
 
 from xadrez.core import TimeControl
-from xadrez.net import ClientSession, HostSession, NetTimings
+from xadrez.net import PROTOCOL_VERSION, ClientSession, HostSession, NetTimings
 
 LOCALHOST = "127.0.0.1"
 # Prazo só de falha: o teste segue assim que o evento chega, então a folga não o deixa mais lento.
@@ -63,7 +63,7 @@ class RawPeer:
     def send(self, **message):
         self.send_bytes(json.dumps(message).encode() + b"\n")
 
-    def hello(self, name="Pretas", version=1):
+    def hello(self, name="Pretas", version=PROTOCOL_VERSION):
         self.send(type="hello", version=version, name=name)
 
     def read_message(self):

@@ -16,6 +16,7 @@ from xadrez.net import (
     PeerJoined,
     PeerLeft,
 )
+from xadrez.net import PROTOCOL_VERSION
 from xadrez.net import session as session_module
 from xadrez.net.protocol import MAX_LINE_BYTES
 
@@ -24,7 +25,7 @@ SHORT_HANDSHAKE = NetTimings(handshake_timeout=0.2, tick=0.002)
 
 
 def hello_line(**changes):
-    return json.dumps({"type": "hello", "version": 1, "name": "Pretas", **changes}).encode() + b"\n"
+    return json.dumps({"type": "hello", "version": PROTOCOL_VERSION, "name": "Pretas", **changes}).encode() + b"\n"
 
 
 # Linhas inválidas em qualquer momento da conversa, para quem cria a sala e para quem entra.

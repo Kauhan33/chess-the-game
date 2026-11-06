@@ -52,6 +52,9 @@ class LoginScene(ArenaScene):
         self.error = ""
         self.repeat_input.clear()
         self.submit_button.label = "Criar conta" if self.is_creating else "Entrar"
+        # Só o último campo envia: ao criar conta, Enter em "Senha" vai para "Repita a senha".
+        self.password_input.on_submit = None if self.is_creating else self.submit
+        self.password_input.advances_on_enter = self.is_creating
         repeat = [self.repeat_input] if self.is_creating else []
         widgets = [self.mode_selector, self.username_input, self.password_input, *repeat,
                    self.submit_button, self.guest_button, self.quit_button]

@@ -12,6 +12,9 @@ import pygame
 import pytest
 from test_ataque_v11_apoio import *  # noqa: F403
 
+from xadrez.net import MAX_NAME_CHARS
+from xadrez.ui.match import distinct_player_names
+
 from xadrez.core import Color, Difficulty, EndReason, TimeControl
 from xadrez.graphics import CellState
 from xadrez.ui import clipboard
@@ -274,7 +277,6 @@ def test_xeque_comum_nao_aparece_na_planilha_do_modo_partida(app):
 
 
 @pytest.mark.ct("CT-103")
-@pytest.mark.xfail(strict=True, reason="QA11-14: 'Copiar PGN' no meio da partida leva `+` e `#` para a área de transferência")
 def test_copiar_pgn_no_meio_da_partida_nao_entrega_o_xeque(app, monkeypatch):
     copied = []
     monkeypatch.setattr(clipboard, "copy_text", lambda text: copied.append(text) or True)
@@ -304,3 +306,49 @@ def test_treinamento_avisa_a_peca_sem_jogada(app):
     scene, player = open_game(app, PINNED_KNIGHT, mode=GameMode.TRAINING)
     player.click_square(cell("e4"))
     assert scene.notices.text == "Essa peça não tem jogada válida agora."
+
+
+@pytest.mark.ct("CT-103")
+def test_copiar_pgn_mantem_o_cabecalho_com_os_sinais_de_um_nome(app, monkeypatch):
+    copied = []
+    monkeypatch.setattr(clipboard, "copy_text", lambda text: copied.append(text) or True)
+    scene, player = open_game(app, mode=GameMode.MATCH, names=("Ana+", "Bia#"))
+    player.play_all("e2e4 f7f6 d2d4 a7a6 d1h5")
+    player.press(pygame.K_c)
+    header, moves = copied[-1].split("\n\n", 1)
+    assert 'White "Ana+"' in header and 'Black "Bia#"' in header
+    assert "Qh5" in moves and "+" not in moves
+
+
+@pytest.mark.ct("CT-103")
+def test_copiar_pgn_com_a_partida_encerrada_traz_a_notacao_completa(app, monkeypatch):
+    copied = []
+    monkeypatch.setattr(clipboard, "copy_text", lambda text: copied.append(text) or True)
+    scene, player = open_game(app, mode=GameMode.MATCH)
+    player.play_all("f2f3 e7e5 g2g4 d8h4")
+    assert scene.engine.result is not None
+    player.press(pygame.K_c)
+    assert "Qh4#" in copied[-1]
+
+
+@pytest.mark.ct("CT-104")
+def test_copiar_pgn_em_treinamento_continua_com_xeque(app, monkeypatch):
+    copied = []
+    monkeypatch.setattr(clipboard, "copy_text", lambda text: copied.append(text) or True)
+    scene, player = open_game(app, mode=GameMode.TRAINING)
+    player.play_all("e2e4 f7f6 d2d4 a7a6 d1h5")
+    player.press(pygame.K_c)
+    assert "Qh5+" in copied[-1]
+
+
+@pytest.mark.ct("CT-104")
+def test_dois_jogadores_com_o_mesmo_nome_ficam_diferentes_na_tela(app):
+    scene, player = open_game(app, mode=GameMode.TRAINING, names=("Ana", "Ana"))
+    names = [scene.engine.players[color].name for color in (Color.WHITE, Color.BLACK)]
+    assert names == ["Ana", "Ana (2)"]
+
+
+def test_nome_com_sufixo_continua_no_limite_de_tamanho():
+    white, black = distinct_player_names("W" * MAX_NAME_CHARS, "W" * MAX_NAME_CHARS)
+    assert white != black and len(black) == MAX_NAME_CHARS and black.endswith(" (2)")
+    assert distinct_player_names("Ana", "Bia") == ("Ana", "Bia")

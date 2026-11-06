@@ -391,7 +391,7 @@ Decisões do grupo:
 - **Rede:** só rede local, sem servidor: um cria a sala e o outro digita um código de 7 letras.
 - **Contas:** login com senha, guardado neste computador, com "Jogar como convidado". Convidado não grava histórico.
 
-No modo Partida ficam só os indicadores neutros, que dizem o que aconteceu e não o que fazer: a peça selecionada, o cursor e o último lance. A planilha do HUD omite `+` e `#` enquanto a partida corre. O PGN guarda a notação completa.
+No modo Partida ficam só os indicadores neutros, que dizem o que aconteceu e não o que fazer: a peça selecionada, o cursor e o último lance. A planilha do HUD e o texto de "Copiar PGN" omitem `+` e `#` enquanto a partida corre. O PGN gravado guarda a notação completa.
 
 ### 10.1 Novas camadas
 
@@ -424,6 +424,7 @@ def game_to_pgn(engine: GameEngine, event: str = "Chess - The Game", date: str |
 # types.py: EndReason ganha ABANDONMENT ("Adversário desconectou")
 # clock.py: TimeControl ganha BLITZ_3_2, CLASSIC_15_10. Os presets antigos continuam.
 # engine.py: GameEngine ganha abandon(color) -> GameResult e final_fen -> str
+#            e, para a sala em rede ser a autoridade do resultado, finish_with(result) -> GameResult e take_back_last_move()
 ```
 
 Acréscimos feitos na implementação: `search_board.py` (tabuleiro compacto de inteiros, só para a busca, provado pelos mesmos perft do motor) e `evaluation.py`; `analyze` e `SearchReport`; `Board.copy()`, `Board.undoable_moves` e `GameEngine.start_fen`.
@@ -457,7 +458,7 @@ class HistoryStore:
     def stats(self) -> HistoryStats                # played, wins, losses, draws
 ```
 
-Regras: escrita atômica (arquivo temporário e troca). Arquivo corrompido não derruba o jogo: é guardado com outro nome, e a lista começa vazia. Nada disso vai para o repositório.
+Regras: escrita atômica (arquivo temporário e troca). Arquivo corrompido não derruba o jogo: é guardado com outro nome, e a lista começa vazia. O histórico lido do disco é entrada não confiável: ao carregar, cada texto é cortado no limite do campo, e lances e duração param em um teto, sem perder o registro. Nada disso vai para o repositório.
 
 ### 10.4 Contrato de `xadrez.net`
 
@@ -475,14 +476,16 @@ class HostSession:
 class ClientSession:
     def __init__(self, name: str, code_or_host: str, port: int = DEFAULT_PORT, timeout: float = 5.0)
     start(); poll() -> list[NetEvent]; send_*(...); close()
-# Comum: send_move(uci, clock_ms), send_resign(), send_draw_offer(), send_draw_answer(accept), send_rematch(), send_bye()
+# Comum: send_move(uci, clock_ms), send_resign(), send_draw_offer(), send_draw_answer(accept), send_rematch(), send_bye(), is_authority
+# Só HostSession: send_result(result, plies)
 # NetEvent: PeerJoined(name), GameStart(white, black, your_color, minutes, increment), MoveReceived(uci, clock_ms),
-#           PeerResigned(), DrawOffered(), DrawAnswered(accept), RematchRequested(), PeerLeft(reason), NetworkError(message)
+#           PeerResigned(), DrawOffered(), DrawAnswered(accept), RematchRequested(), PeerLeft(reason), NetworkError(message),
+#           GameDecided(result, plies), só em quem entrou na sala
 ```
 
-Protocolo: uma mensagem JSON por linha, com versão. Quem cria a sala joga de brancas. Uma thread cuida do socket e entrega os eventos a `poll()`: a interface nunca bloqueia. Sinal de vida a cada 2 s, e 8 s sem resposta viram `PeerLeft`.
+Protocolo: uma mensagem JSON por linha, com versão, hoje a 2. Quem cria a sala joga de brancas na primeira partida e é a autoridade do resultado: valida as jogadas, mede os dois relógios, decide o fim e manda `result`, com vencedor, motivo e em que lance a partida parou. Regras completas em `docs/plans/notas-ui.md`. Uma thread cuida do socket e entrega os eventos a `poll()`: a interface só espera em `close()`, por pouco tempo. Sinal de vida a cada 2 s, e 8 s sem resposta viram `PeerLeft`.
 
-Segurança, porque a entrada vem da rede e não é confiável: só JSON, nunca `pickle` ou `eval`; linha de no máximo 4096 bytes; tipos conferidos; mensagem inválida encerra a conexão; o segundo a tentar entrar é recusado; a porta só fica aberta enquanto a sala existe. Quem recebe uma jogada a valida no próprio `GameEngine` antes de aceitar: jogada ilegal do outro lado encerra a sala.
+Segurança, porque a entrada vem da rede e não é confiável: só JSON, nunca `pickle` ou `eval`; linha de no máximo 4096 bytes; tipos conferidos; mensagem inválida encerra a conexão; o segundo a tentar entrar é recusado; a porta só fica aberta enquanto a sala existe. Quem recebe uma jogada a valida no próprio `GameEngine` antes de aceitar: jogada ilegal do outro lado encerra a sala. Quem entrou também confere o `result` contra o próprio tabuleiro.
 
 ### 10.5 Contrato de `xadrez.ui`: acréscimos
 
@@ -503,7 +506,7 @@ Divergências da implementação:
 - **`App()` não tem contas nem rede.** Abre no menu como convidado, e "Criar sala" só avisa. O jogo do jogador é `App(require_login=True)`, que é o `main()` de `app.py`. Assim, testes e ferramentas não tocam a pasta de dados nem abrem porta, nem por um clique do macaco. Os testes de rede passam `App(network=...)`, com sessões em `127.0.0.1`. `LoginScene` e `LobbyScene` são cenas à parte, e só existem nesses dois casos.
 - **Ordem dos tempos:** Sem limite, Blitz 3+2, Blitz 5, Rápida 10+0, Clássica 30 e Clássica 15+10. Clássica 30 vem antes de 15+10 porque `tests/ataque/` espera que ela venha logo depois de Rápida 10+0, como na versão 1.0.
 - **Contra a CPU não há "Propor empate".** Não há com quem combinar.
-- **Módulos a mais:** `arena_scene.py` (a mesa ao fundo e a base das telas fora da partida), `clipboard.py`, `cpu_player.py`, `match_record.py` e `net_link.py` (a sessão entre as cenas e as regras da mesa em rede). Tempo esgotado em rede: ver `docs/plans/notas-ui.md`.
+- **Módulos a mais:** `arena_scene.py` (a mesa ao fundo e a base das telas fora da partida), `clipboard.py`, `cpu_player.py`, `match_record.py` e `net_link.py` (a sessão entre as cenas e as regras da mesa em rede). Resultado, tempo e proposta de empate em rede: ver `docs/plans/notas-ui.md`.
 
 ### 10.6 Identificadores novos
 

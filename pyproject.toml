@@ -1,7 +1,7 @@
 [project]
 name = "chess-the-game"
 version = "1.1.0"
-description = "Xadrez 3D low-poly para 2 jogadores em Python, com pipeline gráfico próprio"
+description = "Xadrez 3D low-poly em Python, para 2 jogadores, contra a CPU ou em rede local, com pipeline gráfico próprio"
 requires-python = ">=3.10"
 dependencies = ["pygame>=2.5", "numpy>=1.24"]
 

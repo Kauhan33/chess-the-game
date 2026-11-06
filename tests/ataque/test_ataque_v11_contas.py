@@ -23,6 +23,7 @@ from xadrez.core import Color, Difficulty, EndReason, TimeControl
 from xadrez.data import LOGIN_FAILED_MESSAGE, AccountStore, HistoryStore, MatchRecord
 from xadrez.ui import LoginScene, MenuScene
 from xadrez.ui.login_scene import PASSWORD_MISMATCH_MESSAGE
+from xadrez.ui.match_record import ABANDONED_REASON
 
 PASSWORD = "Abacaxi!123"
 SECRET_MARK = "ZZSENHASECRETAZZ"
@@ -194,7 +195,6 @@ def test_senha_errada_e_conta_inexistente_recebem_a_mesma_mensagem():
 
 
 @pytest.mark.ct("CT-118")
-@pytest.mark.xfail(strict=True, reason="QA11-03: criar conta só pelo teclado: Enter em 'Senha' já envia, e o formulário recusa e apaga a senha")
 def test_criar_conta_so_pelo_teclado_com_enter_entre_os_campos():
     """Usuário, Enter, senha, Enter, repetir, Enter: é o caminho de quem preenche um formulário sem o mouse."""
     application, player = login_app()
@@ -402,7 +402,6 @@ def test_historico_editado_abre_lista_e_folha(field, value):
 
 
 @pytest.mark.ct("CT-121")
-@pytest.mark.xfail(strict=True, raises=OverflowError, reason="QA11-01: inteiro gigante em `seconds` passa na validação e derruba o jogo ao abrir a aba Meu histórico")
 def test_duracao_com_inteiro_gigante_nao_derruba_a_aba():
     application, player, menu = open_tampered_history([valid_entry(seconds=10**400)])
     application.step(0.0)
@@ -451,7 +450,6 @@ def test_historico_que_nao_se_consegue_gravar_vira_aviso_e_a_partida_termina(mon
 
 
 @pytest.mark.ct("CT-121")
-@pytest.mark.xfail(strict=True, reason="QA11-16: nome gigante no arquivo: cortar com reticências custa um `font.size` por caractere, a cada quadro")
 def test_nome_gigante_no_historico_nao_trava_a_lista():
     application, player, menu = open_tampered_history([valid_entry(opponent="W" * 20000)])
     started = time.perf_counter()
@@ -603,8 +601,9 @@ def test_em_rede_os_dois_gravam_visoes_opostas_mesmo_depois_da_revanche(host_app
     table.guest.rematch()
     drive(table.apps, lambda: isinstance(table.host, GameScene) and isinstance(table.guest, GameScene))
     table.settle()
-    table.guest._resign()
-    drive(table.apps, lambda: table.host.engine.result is not None)
+    guest = table.guest
+    guest._resign()
+    drive(table.apps, lambda: table.host.engine.result is not None and guest.engine.result is not None)
     second_host, second_guest = latest("Ana"), latest("Bia")
     assert (second_host.outcome, second_host.color) == ("vitoria", "Pretas")
     assert (second_guest.outcome, second_guest.color) == ("derrota", "Brancas")
@@ -624,11 +623,11 @@ def test_abandono_em_rede_grava_para_os_dois(host_app, guest_app):
     table.host._leave_room()
     drive([guest_app], lambda: guest.engine.result is not None)
     assert latest("Ana").outcome == "derrota" and latest("Bia").outcome == "vitoria"
-    assert latest("Ana").reason == latest("Bia").reason == EndReason.ABANDONMENT.label
+    assert latest("Ana").reason == ABANDONED_REASON, "quem saiu não lê que o adversário desconectou"
+    assert latest("Bia").reason == EndReason.ABANDONMENT.label
 
 
 @pytest.mark.ct("CT-122")
-@pytest.mark.xfail(strict=True, reason="QA11-10: fechar a janela no meio da partida em rede dá a vitória ao outro, e quem saiu não tem derrota gravada")
 def test_fechar_a_janela_em_rede_grava_a_derrota_de_quem_saiu(host_app, guest_app):
     host_app.account = "Ana"
     guest_app.account = "Bia"
@@ -744,7 +743,6 @@ def test_clique_fora_das_linhas_e_lista_vazia_nao_abrem_nada():
 
 
 @pytest.mark.ct("CT-123")
-@pytest.mark.xfail(strict=True, reason="QA11-04: voltar do histórico com Esc deixa o foco em 'Sair da conta', e o próximo Enter desloga")
 def test_esc_esc_enter_no_historico_nao_sai_da_conta():
     application = make_app(require_login=True)
     application.account = "Ana"
@@ -798,3 +796,86 @@ def test_historico_somente_leitura_vira_aviso_na_tela_de_fim():
         assert len(HistoryStore("Ana").records()) == 1, "a partida antiga continua lá"
     finally:
         os.chmod(path, stat.S_IREAD | stat.S_IWRITE)
+
+
+# Histórico lido do disco é entrada não confiável ------------------------------------------------------------
+
+
+@pytest.mark.ct("CT-121")
+@pytest.mark.parametrize("field, value, limit", [
+    ("opponent", "W" * 20000, 64),
+    ("played_at", "x" * 20000, 40),
+    ("reason", "y" * 20000, 64),
+    ("final_fen", "z" * 20000, 128),
+    ("pgn", "1. e4 " * 50000, 100_000),
+])
+def test_texto_gigante_e_cortado_ao_carregar(field, value, limit):
+    write_history("Ana", [valid_entry(**{field: value})])
+    record = HistoryStore("Ana").records()[0]
+    assert len(getattr(record, field)) == limit
+
+
+@pytest.mark.ct("CT-121")
+@pytest.mark.parametrize("seconds", [10**400, 10**30, 1e308])
+def test_duracao_gigante_fica_no_limite_ao_carregar(seconds):
+    write_history("Ana", [valid_entry(seconds=seconds)])
+    assert HistoryStore("Ana").records()[0].seconds == 1_000_000_000
+
+
+@pytest.mark.ct("CT-121")
+def test_lances_gigantes_ficam_no_limite_ao_carregar():
+    write_history("Ana", [valid_entry(moves=10**400)])
+    assert HistoryStore("Ana").records()[0].moves == 1_000_000
+
+
+@pytest.mark.ct("CT-121")
+@pytest.mark.parametrize("seconds", ["Infinity", "-Infinity", "NaN", "-1"])
+def test_limite_nao_faz_aceitar_numero_invalido(seconds):
+    path = history_path("Ana")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    text = json.dumps({"version": 1, "records": [valid_entry(seconds=123456)]})
+    path.write_text(text.replace("123456", seconds), encoding="utf-8")
+    assert HistoryStore("Ana").records() == []
+
+
+@pytest.mark.ct("CT-121")
+def test_partida_nova_continua_entrando_com_registro_gigante_no_arquivo():
+    write_history("Ana", [valid_entry(opponent="W" * 20000, seconds=10**400)])
+    application = make_app()
+    application.account = "Ana"
+    scene, player = open_game(application, mode=GameMode.TRAINING)
+    player.play_all(FOOLS_MATE)
+    records = HistoryStore("Ana").records()
+    assert len(records) == 2
+    assert len(records[1].opponent) == 64
+
+
+@pytest.mark.ct("CT-118")
+def test_voltar_de_criar_conta_devolve_o_enter_que_envia_na_senha():
+    AccountStore().create("Ana", PASSWORD)
+    application, player = login_app()
+    scene = application.scene
+    player.click_segment(scene.mode_selector, 1)
+    player.click_segment(scene.mode_selector, 0)
+    player.click_widget(scene.username_input)
+    player.type_text("Ana")
+    player.press(pygame.K_RETURN)
+    player.type_text(PASSWORD)
+    player.press(pygame.K_RETURN)
+    assert isinstance(application.scene, MenuScene)
+
+
+@pytest.mark.ct("CT-118")
+def test_senhas_diferentes_avisam_antes_de_pedir_de_novo():
+    application, player = login_app()
+    scene = application.scene
+    player.click_segment(scene.mode_selector, 1)
+    player.click_widget(scene.username_input)
+    player.type_text("Ana")
+    player.press(pygame.K_RETURN)
+    player.type_text(PASSWORD)
+    player.press(pygame.K_RETURN)
+    player.type_text("outra-senha")
+    player.press(pygame.K_RETURN)
+    assert scene.error == PASSWORD_MISMATCH_MESSAGE, "nunca apaga a senha em silêncio"
+    assert scene.password_input.text == "" and scene.focus.focused is scene.password_input

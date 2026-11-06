@@ -11,7 +11,7 @@ from xadrez.graphics import Mesh, Renderer3D
 from xadrez.ui import theme as tokens
 from xadrez.ui.board_view import PIECE_COLORS
 from xadrez.ui.theme import PlateStyle, Theme
-from xadrez.ui.widgets import STYLE_SECONDARY, Button, FocusGroup, draw_keycap
+from xadrez.ui.widgets import STYLE_PRIMARY, STYLE_SECONDARY, Button, FocusGroup, draw_keycap
 
 _VEIL_ALPHA = 168
 _PANEL_PADDING = 26
@@ -28,6 +28,11 @@ PROMOTION_CHOICES = (
 _CHOICE_SIZE = 112
 _CHOICE_GAP = 12
 _CHOICE_ICON = 74
+_CARD_PADDING = 14
+_CARD_LINE_HEIGHT = 22
+_CARD_TITLE_HEIGHT = 30
+_CARD_BUTTON_HEIGHT = 38
+_CARD_BUTTON_GAP = 8
 
 
 class ControlHint(NamedTuple):
@@ -59,9 +64,10 @@ _HELP_CLOSE_KEYS = (pygame.K_ESCAPE, pygame.K_h, pygame.K_F1, pygame.K_RETURN, p
 
 
 class Overlay(ABC):
-    """Tela sobre a partida. `freezes_clock` diz se o relógio para enquanto ela está aberta."""
+    """Tela sobre a partida. `freezes_clock` diz se o relógio para, e `blocks_game` se o jogo fica sem entrada."""
 
     freezes_clock = True
+    blocks_game = True
 
     def __init__(self, theme: Theme):
         self._theme = theme
@@ -75,7 +81,8 @@ class Overlay(ABC):
         self._veil.set_alpha(_VEIL_ALPHA)
 
     @abstractmethod
-    def handle_event(self, event: pygame.event.Event) -> None: ...
+    def handle_event(self, event: pygame.event.Event) -> bool | None:
+        """Quem não bloqueia o jogo devolve se o evento era seu. O resto segue para o tabuleiro."""
 
     def update(self, dt: float) -> None:
         """Por padrão, nada se move sozinho em uma sobreposição."""
@@ -149,6 +156,70 @@ class ChoiceOverlay(Overlay):
             text = theme.text_fit(line, tokens.ROLE_LABEL, theme.px(17), tokens.TEXT_MUTED, available)
             surface.blit(text, (self._panel.x + pad, y))
             y += theme.px(25)
+
+
+class PeerOfferCard(Overlay):
+    """Proposta que veio da rede: um cartão sem véu, sobre a planilha. Quem recebe responde aqui ou segue jogando.
+
+    O tabuleiro fica todo à vista: as setas, o Enter e o clique nele continuam sendo da partida. Do cartão são os
+    botões, A e Esc. `anchor` diz onde está a planilha, que muda com o tamanho da janela.
+    """
+
+    freezes_clock = False
+    blocks_game = False
+
+    def __init__(self, theme: Theme, title: str, lines: Sequence[str], on_accept: Callable[[], None],
+                 on_refuse: Callable[[], None], anchor: Callable[[], pygame.Rect]):
+        super().__init__(theme)
+        self.title = title
+        self.lines = list(lines)
+        self._anchor = anchor
+        self.buttons = [Button("Aceitar", on_accept, STYLE_PRIMARY, hint="A"), Button("Recusar", on_refuse, hint="Esc")]
+        self._panel = pygame.Rect(0, 0, 1, 1)
+
+    def layout(self, size: tuple[int, int]) -> None:
+        super().layout(size)
+        theme = self._theme
+        pad, gap = theme.px(_CARD_PADDING), theme.px(_CARD_BUTTON_GAP)
+        button_height = theme.px(_CARD_BUTTON_HEIGHT)
+        text_height = theme.px(_CARD_TITLE_HEIGHT) + len(self.lines) * theme.px(_CARD_LINE_HEIGHT)
+        anchor = self._anchor()
+        height = 2 * pad + text_height + gap + button_height
+        self._panel = pygame.Rect(anchor.x, min(anchor.y, max(self._size[1] - height, 0)), anchor.width, height)
+        half = (self._panel.width - 2 * pad - gap) // 2
+        y = self._panel.bottom - pad - button_height
+        self.buttons[0].rect = pygame.Rect(self._panel.x + pad, y, half, button_height)
+        self.buttons[1].rect = pygame.Rect(self._panel.x + pad + half + gap, y, half, button_height)
+
+    def handle_event(self, event: pygame.event.Event) -> bool:
+        if event.type == pygame.KEYDOWN:
+            return self._handle_key(event.key)
+        if event.type not in (pygame.MOUSEMOTION, pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP):
+            return False
+        was_on_button = any(button.handle_mouse(event) for button in self.buttons)
+        return was_on_button or (event.type == pygame.MOUSEBUTTONDOWN and self._panel.collidepoint(event.pos))
+
+    def _handle_key(self, key: int) -> bool:
+        if key == pygame.K_a:
+            self.buttons[0].activate()
+        elif key == pygame.K_ESCAPE:
+            self.buttons[1].activate()
+        else:
+            return False
+        return True
+
+    def draw(self, surface: pygame.Surface) -> None:
+        theme = self._theme
+        self._draw_panel(surface, self._panel)
+        pad = theme.px(_CARD_PADDING)
+        x, y, available = self._panel.x + pad, self._panel.y + pad, self._panel.width - 2 * pad
+        surface.blit(theme.text_fit(self.title, tokens.ROLE_DISPLAY, theme.px(23), tokens.IVORY, available), (x, y))
+        y += theme.px(_CARD_TITLE_HEIGHT)
+        for line in self.lines:
+            surface.blit(theme.text_fit(line, tokens.ROLE_LABEL, theme.px(16), tokens.TEXT_MUTED, available), (x, y))
+            y += theme.px(_CARD_LINE_HEIGHT)
+        for button in self.buttons:
+            button.draw(surface, theme)
 
 
 class _ChoiceButton(Button):
@@ -246,9 +317,10 @@ class PromotionDialog(Overlay):
 class HelpOverlay(Overlay):
     """Lista de controles com teclas desenhadas. Fecha com a mesma tecla que abriu, Esc ou Enter."""
 
-    def __init__(self, theme: Theme, on_close: Callable[[], None]):
+    def __init__(self, theme: Theme, on_close: Callable[[], None], hidden_keys: Sequence[str] = ()):
         super().__init__(theme)
         self._on_close = on_close
+        self._hints = tuple(hint for hint in CONTROL_HINTS if hint.keys not in hidden_keys)
         self._close_button = Button("Fechar", on_close, hint="Esc")
         self._panel = pygame.Rect(0, 0, 1, 1)
 
@@ -257,7 +329,7 @@ class HelpOverlay(Overlay):
         theme = self._theme
         pad = theme.px(_PANEL_PADDING)
         width = theme.px(520)
-        height = 2 * pad + theme.px(46) + len(CONTROL_HINTS) * theme.px(_HELP_LIST_ROW_HEIGHT) + theme.px(50)
+        height = 2 * pad + theme.px(46) + len(self._hints) * theme.px(_HELP_LIST_ROW_HEIGHT) + theme.px(50)
         self._panel = pygame.Rect(0, 0, width, height)
         self._panel.center = (self._size[0] // 2, self._size[1] // 2)
         button_height = theme.px(40)
@@ -279,7 +351,7 @@ class HelpOverlay(Overlay):
         title = theme.text("Controles", tokens.ROLE_DISPLAY, theme.px(30), tokens.IVORY)
         surface.blit(title, (self._panel.x + pad, self._panel.y + pad - theme.px(4)))
         y = self._panel.y + pad + theme.px(44)
-        for hint in CONTROL_HINTS:
+        for hint in self._hints:
             draw_control_hint(surface, theme, hint, self._panel.x + pad + theme.px(80), y)
             y += theme.px(_HELP_LIST_ROW_HEIGHT)
         self._close_button.draw(surface, theme)

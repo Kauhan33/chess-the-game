@@ -11,12 +11,12 @@ from ui_helpers import FRAME_SECONDS, SCHOLARS_MATE, LoopbackNetwork, cell, clic
 
 from xadrez.core import Color, EndReason, GameState, TimeControl
 from xadrez.data import HistoryStore
-from xadrez.net import GameStart, MoveReceived, NetworkError, PeerLeft, PeerResigned
+from xadrez.net import GameDecided, GameStart, MoveReceived, NetworkError, PeerLeft, PeerResigned
 from xadrez.ui import App, GameOverScene, GameScene, LobbyScene, MenuScene
 from xadrez.ui.autoplay import Autoplayer, post_text
 from xadrez.ui.game_scene import PEER_TURN_NOTICE
 from xadrez.ui.match import OPPONENT_NET
-from xadrez.ui.net_link import ILLEGAL_MOVE_MESSAGE, REMOTE_FLAG_GRACE_SECONDS, SILENT_PEER_MESSAGE, LanNetwork, NetLink
+from xadrez.ui.net_link import ILLEGAL_MOVE_MESSAGE, LanNetwork, NetLink
 
 NET_INDEX = 2
 CREATE_THEN_MOVE = "e2e4 e7e5"
@@ -425,54 +425,51 @@ def test_sem_reiniciar_em_rede(table):
     assert table.host.modals == []
 
 
+def wait_decision(raw):
+    deadline = time.monotonic() + 30.0
+    events = []
+    while not any(isinstance(event, GameDecided) for event in events):
+        assert time.monotonic() < deadline
+        events += raw.poll()
+    return next(event for event in events if isinstance(event, GameDecided))
+
+
 @pytest.mark.ct("CT-95")
-def test_quem_esgota_o_proprio_tempo_declara_a_derrota(host_app, network):
+def test_sala_que_esgota_o_proprio_tempo_perde_e_avisa_quem_entrou(host_app, network):
     scene, player, raw = connect_raw(host_app, network, TimeControl(0.005))
     player.seconds(0.5)
     assert scene.engine.result.reason is EndReason.TIMEOUT
     assert scene.engine.result.winner is Color.BLACK
-    deadline = time.monotonic() + 30.0
-    events = []
-    while not any(isinstance(event, PeerResigned) for event in events):
-        assert time.monotonic() < deadline
-        events += raw.poll()
+    decision = wait_decision(raw)
+    assert decision.result == scene.engine.result
+    assert decision.plies == 0
     raw.close()
 
 
 @pytest.mark.ct("CT-95")
-def test_relogio_do_outro_zera_sem_decidir_e_a_declaracao_vira_tempo_esgotado(host_app, network):
+def test_sala_mede_o_relogio_de_quem_entrou_e_decide(host_app, network):
     scene, player, raw = connect_raw(host_app, network, TimeControl(0.005))
     player.play("e2e4")
-    player.seconds(1.0)
+    player.seconds(4.0)
     assert scene.engine.clock.remaining(Color.BLACK) == 0.0
-    assert scene.engine.result is None, "uma jogada pode estar a caminho"
-    raw.send_resign()
-    wait_arrival(host_app, scene, lambda: scene.engine.result is not None)
     assert scene.engine.result.reason is EndReason.TIMEOUT
     assert scene.engine.result.winner is Color.WHITE
+    decision = wait_decision(raw)
+    assert decision.result == scene.engine.result
+    assert decision.plies == 1
     raw.close()
 
 
 @pytest.mark.ct("CT-95")
-def test_jogada_que_chega_depois_do_zero_ainda_vale(host_app, network):
+def test_jogada_que_chega_depois_do_fim_e_ignorada_pela_sala(host_app, network):
     scene, player, raw = connect_raw(host_app, network, TimeControl(0.005))
     player.play("e2e4")
-    player.seconds(1.0)
+    player.seconds(4.0)
+    assert scene.engine.result is not None
+    fen = scene.engine.final_fen
     raw.send_move("e7e5", 0)
-    wait_arrival(host_app, scene, lambda: len(scene.engine.history) == 2)
-    assert scene.engine.result is None
-    player.settle()
-    raw.close()
-
-
-@pytest.mark.ct("CT-95")
-def test_outro_lado_mudo_depois_do_zero_perde_por_abandono(host_app, network):
-    scene, player, raw = connect_raw(host_app, network, TimeControl(0.005))
-    player.play("e2e4")
-    player.seconds(REMOTE_FLAG_GRACE_SECONDS + 1.0)
-    assert scene.engine.result.reason is EndReason.ABANDONMENT
-    assert scene.engine.result.winner is Color.WHITE
-    assert scene.notices.text == SILENT_PEER_MESSAGE
+    player.seconds(0.2)
+    assert scene.engine.final_fen == fen
     raw.close()
 
 
@@ -565,7 +562,8 @@ def test_desistir_vale_nos_dois_lados(table):
     assert "Jogador 1" in guest.modals[-1].lines[0] or guest.engine.players[Color.BLACK].name in guest.modals[-1].lines[0]
     table.guest_player.click_widget(guest.modals[-1].buttons[0])
     host = table.host
-    drive(table.apps, lambda: host.engine.result is not None)
+    assert guest.engine.result is None, "quem entrou pede: quem decide é a sala"
+    drive(table.apps, lambda: host.engine.result is not None and guest.engine.result is not None)
     assert host.engine.result == guest.engine.result
     assert host.engine.result.reason is EndReason.RESIGNATION
     assert host.engine.result.winner is Color.WHITE

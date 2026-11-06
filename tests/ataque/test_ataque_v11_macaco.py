@@ -15,7 +15,7 @@ import pygame
 import pytest
 from test_ataque_v11_apoio import *  # noqa: F403
 
-from xadrez.core import Board, Color, Difficulty, GameEngine, GameState, TimeControl, legal_moves, move_to_san
+from xadrez.core import Board, Color, Difficulty, EndReason, GameEngine, GameResult, GameState, TimeControl, legal_moves, move_to_san
 from xadrez.data import HistoryStore, MatchRecord
 from xadrez.data import accounts as accounts_module
 from xadrez.net import ClientSession, DrawOffered, GameStart, HostSession, MoveReceived, NetTimings, NetworkError, PeerLeft, RematchRequested, parse_uci
@@ -54,6 +54,7 @@ class Robot:
         self.engine = None
         self.color = None
         self.is_gone = False
+        self.has_published = False
 
     def tick(self):
         if self.is_gone:
@@ -62,11 +63,15 @@ class Robot:
             self._receive(event)
         if self.engine is None or self.is_gone:
             return
+        self._publish_result()
         roll = self.rng.random()
         if roll < 0.0004:
             self._leave()
         elif roll < 0.0008:
             self.session.send_move("a1a1", 0)
+        elif roll < 0.0012 and self.session.is_authority:
+            # A sala tem a palavra final, e pode decidir mesmo com um lance da tela a caminho.
+            self.session.send_result(GameResult(self.color, EndReason.RESIGNATION), len(self.engine.history))
         elif roll < 0.0012:
             self.session.send_resign()
         elif roll < 0.003:
@@ -78,10 +83,18 @@ class Robot:
             if self.engine.play(move.origin, move.target, move.promotion).ok:
                 self.session.send_move(move.uci, self.rng.randint(0, 900000))
 
+    def _publish_result(self):
+        """A sala avisa quando o próprio tabuleiro encerrou a partida, como o jogo de verdade."""
+        is_new_end = self.engine.result is not None and not self.has_published
+        if self.session.is_authority and is_new_end:
+            self.has_published = True
+            self.session.send_result(self.engine.result, len(self.engine.history))
+
     def _receive(self, event):
         if isinstance(event, GameStart):
             self.engine = GameEngine(event.white, event.black, TimeControl(event.minutes, event.increment))
             self.color = event.your_color
+            self.has_published = False
         elif isinstance(event, MoveReceived) and self.engine is not None:
             self.engine.play(*parse_uci(event.uci))
         elif isinstance(event, DrawOffered):
@@ -255,7 +268,10 @@ class Monkey:
 
 
 class HistoryReplay:
-    """Refaz cada SAN em um tabuleiro próprio. Partida nova tem lista nova: reiniciar e jogar no mesmo quadro não engana a conta."""
+    """Refaz cada SAN em um tabuleiro próprio. Partida nova tem lista nova: reiniciar e jogar no mesmo quadro não engana a conta.
+
+    A lista também encurta quando a sala não aceita o lance de quem entrou, e aí a conta recomeça.
+    """
 
     def __init__(self, engine):
         self.engine = engine
@@ -265,7 +281,7 @@ class HistoryReplay:
 
     def check(self):
         history = self.engine.history
-        if history is not self.history:
+        if history is not self.history or len(history) < self.count:
             self.history = history
             self.board = Board.from_fen(self.engine.start_fen)
             self.count = 0

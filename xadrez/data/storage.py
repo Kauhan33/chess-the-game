@@ -30,7 +30,7 @@ def read_json(path: Path) -> object | None:
     except FileNotFoundError:
         return None
     except OSError as error:
-        raise DataError(f"Não foi possível ler {path.name}. Verifique a permissão da pasta {path.parent}.") from error
+        raise DataError(f"Não foi possível ler {path.name}. Verifique a permissão da pasta de dados do jogo.") from error
     try:
         payload = json.loads(raw.decode("utf-8"))
     except (ValueError, RecursionError):
@@ -73,7 +73,7 @@ def write_json_atomic(path: Path, payload: object) -> None:
             raise
     except OSError as error:
         raise DataError(
-            f"Não foi possível gravar em {path.parent}. Verifique o espaço livre e a permissão da pasta."
+            "Não foi possível gravar na pasta de dados do jogo. Verifique o espaço livre e a permissão da pasta."
         ) from error
 
 
