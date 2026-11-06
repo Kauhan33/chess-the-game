@@ -24,14 +24,14 @@ Cada teste ligado a um caso formal leva `@pytest.mark.ct("CT-xx")`. Um caso pode
 ## 7.2 Ambiente e execução
 
 <!-- GERADO:execucao -->
-- **Data e hora da execução:** 2026-11-06 06:35:48
-- **Commit testado:** `0021280`. As medições de FPS são de `eaf8f25`.
+- **Data e hora da execução:** 2026-11-06 11:33:20
+- **Commit testado:** `846bba7`. As medições de FPS são de `eaf8f25`.
 - **Ambiente:** Python 3.12.10, Windows 11, pytest 9.2.0, pygame 2.6.1, numpy 2.5.3
 - **Modo:** completo, com os testes `slow`
-- **Total:** 3660 testes: 3655 passaram, 0 falharam, 1 foram pulados e 4 ficaram em `xfail`. Destes, 2989 estão vinculados a 117 casos de teste.
+- **Total:** 3673 testes: 3668 passaram, 0 falharam, 1 foram pulados e 4 ficaram em `xfail`. Destes, 3002 estão vinculados a 117 casos de teste.
 <!-- FIM:execucao -->
 
-As verificações de rede fora da suíte e o resultado do CI estão na seção 7.9.
+As verificações de rede fora da suíte e o resultado do CI estão na seção 7.9. Depois dessa execução, só mudou um teste, descrito lá, e o código do jogo é o mesmo.
 
 Para repetir:
 
@@ -133,7 +133,7 @@ O enunciado pede no mínimo 6 casos detalhados, validando colisão, alternância
 | **CT-63** Fim de jogo, revanche, menu e HUD (RF11, RF13, RF14, UC04, UC09) | R no voo do mate, T na queda do rei, relógio com mais de 1 hora, nomes longos nas confirmações, ciclo menu, partida, fim, menu. | Dirigir cada roteiro por eventos e olhar o estado da cena. | A tela de vitória não é pulada, o aviso não é trocado, o relógio não invade a etiqueta, o título não corta a ação, nomes e opções sobrevivem ao ciclo. | Conforme o esperado (PASSOU: 11 de 11 testes) |
 | **CT-64** Vazamento de memória (RNF01, RNF07, UC09) | 200 revanches seguidas e 5 minutos simulados de partida. | Medir com tracemalloc e conferir os caches e as partículas. | Memória estável, caches e partículas sempre dentro do limite. | Conforme o esperado (PASSOU: 3 de 3 testes) |
 | **CT-65** Rede só em net, escrita só em data, sem execução dinâmica (RNF05, RNF07, UC02) | Todos os módulos do jogo e das ferramentas. | Analisar o código-fonte pela árvore sintática. | Só `xadrez/net` importa socket e selectors, e só `xadrez/data` grava em disco. Threads só em `net` e na `ui`. Nada usa eval, exec, pickle nem subprocess, e só as ferramentas de documentação chamam programas externos. | Conforme o esperado (PASSOU: 204 de 204 testes) |
-| **CT-66** PNG, autoria, e-mails e caminhos pessoais (RNF05, UC01) | Imagens de docs/, arquivos versionados e autoria dos commits. | Ler os pedaços dos PNG, procurar e-mails e caminhos pessoais e conferir a autoria. | Os PNG não têm metadados de texto, e não há e-mail nem caminho pessoal no que o git publica. | Conforme o esperado (PASSOU: 64 de 64 testes) |
+| **CT-66** PNG, autoria, e-mails e caminhos pessoais (RNF05, UC01) | Imagens de docs/, arquivos versionados e autoria dos commits. | Ler os pedaços dos PNG, procurar e-mails e caminhos pessoais e conferir a autoria. | Os PNG não têm metadados de texto, e não há e-mail nem caminho pessoal no que o git publica. | Conforme o esperado (PASSOU: 65 de 65 testes) |
 | **CT-67** Python 3.10 e portabilidade (RNF02, UC01) | Todos os módulos do projeto. | Analisar com ast.parse(feature_version=(3, 10)) e procurar biblioteca padrão nova e caminho fixo de sistema. | Todos os módulos são sintaxe válida de Python 3.10, sem API nova nem caminho fixo. A execução real em 3.10, Linux e macOS fica com o CI. | Conforme o esperado (PASSOU: 370 de 370 testes) |
 
 ### Versão 1.1: CPU, PGN e tempos
@@ -163,9 +163,9 @@ O enunciado pede no mínimo 6 casos detalhados, validando colisão, alternância
 | Caso | Entrada | Procedimento | Resultado Esperado | Resultado Obtido |
 |---|---|---|---|---|
 | **CT-85** Código de sala: ida e volta, e recusa de código inválido (RF19, UC11, UC12) | IPv4 variados, código em minúsculas e com espaços, dígito trocado, vizinhos trocados, códigos e tipos inválidos e endereços fora da rede local. | Chamar `encode_room_code`, `decode_room_code`, `local_ipv4` e `is_lan_address`. | A ida e volta dá o mesmo IP, em 7 caracteres e sem 0, O, 1, I e L. A conferência pega a maioria dos erros de digitação. Erro vem em português. `local_ipv4` não envia pacote. | Conforme o esperado (PASSOU: 61 de 61 testes) |
-| **CT-86** Partida inteira entre duas sessões por socket (RF19, UC11, UC12) | `HostSession` e `ClientSession` reais em 127.0.0.1, com partida até o fim, empate, desistência e revanche. | Trocar mensagens por `send_move`, `send_result` e os demais `send`, e ler os eventos em `poll`. | Os dois lados terminam com o mesmo FEN. A jogada ilegal é recusada pelo motor de quem recebe. A revanche troca as cores e só começa com os dois pedidos. `result` só vale vindo da sala. | Conforme o esperado (PASSOU: 26 de 26 testes) |
+| **CT-86** Partida inteira entre duas sessões por socket (RF19, UC11, UC12) | `HostSession` e `ClientSession` reais em 127.0.0.1, com partida até o fim, empate, desistência e revanche. | Trocar mensagens por `send_move`, `send_result` e os demais `send`, e ler os eventos em `poll`. | Os dois lados terminam com o mesmo FEN. A jogada ilegal é recusada pelo motor de quem recebe. A revanche troca as cores, mantém o modo e só começa com os dois pedidos. `result` só vale vindo da sala. | Conforme o esperado (PASSOU: 28 de 28 testes) |
 | **CT-87** Queda de conexão vira evento, sem travar (RF19, UC11, UC12) | Queda brusca dos dois lados, sinal de vida parado, porta ocupada, segundo jogador, versão diferente, sala muda e fechamento em cada fase. | Provocar cada situação e ler `poll`, com tempos curtos em `NetTimings`. | Toda falha vira `PeerLeft` ou `NetworkError`, uma vez só e com mensagem clara. `poll` não bloqueia, `close` não espera o prazo, e a porta fica livre depois. | Conforme o esperado (PASSOU: 57 de 57 testes) |
-| **CT-88** Mensagens inválidas e maliciosas são recusadas (RF19, RNF08, UC11, UC12) | Socket cru em 127.0.0.1: bytes aleatórios, linha sem fim, linha de 4097 bytes, tipos errados, enxurrada, conexões mudas e conexão de fora da rede local. | Enviar cada ataque antes e depois de entrar na sala e chamar `encode_message` e `decode_message`. | Antes de entrar, só cai a conexão do atacante. Na partida, a sala encerra com erro. Nada acumula memória além do limite, e o nome do atacante não chega à tela. | Conforme o esperado (PASSOU: 300 de 300 testes) |
+| **CT-88** Mensagens inválidas e maliciosas são recusadas (RF19, RNF08, UC11, UC12) | Socket cru em 127.0.0.1: bytes aleatórios, linha sem fim, linha de 4097 bytes, tipos errados, enxurrada, conexões mudas e conexão de fora da rede local. | Enviar cada ataque antes e depois de entrar na sala e chamar `encode_message` e `decode_message`. | Antes de entrar, só cai a conexão do atacante. Na partida, a sala encerra com erro. Nada acumula memória além do limite, e o nome do atacante não chega à tela. | Conforme o esperado (PASSOU: 306 de 306 testes) |
 
 ### Versão 1.1: interface
 
@@ -176,7 +176,7 @@ O enunciado pede no mínimo 6 casos detalhados, validando colisão, alternância
 | **CT-92** CPU pensando não bloqueia a entrada nem o desenho (RF18, RNF09, UC10) | Partida contra o Hardcore, mouse sobre o tabuleiro, câmera em movimento, pausa, reinício, desistência, menu, fechamento e busca com falha. | Dar quadros com a busca correndo e conferir o cursor, a thread, `sys.getswitchinterval` e a cópia do tabuleiro. | O cursor responde no mesmo quadro e o tabuleiro real não muda. O intervalo de troca vale durante a busca e sempre volta. Com a câmera em movimento, a busca dorme. Toda saída cancela sem deixar thread. | Conforme o esperado (PASSOU: 29 de 29 testes) |
 | **CT-93** Login, criação de conta e convidado (RF20, UC13) | Eventos reais de teclado e mouse em `App(require_login=True)`, com dados em pasta temporária. | Criar conta, entrar com outra grafia, errar a senha, jogar como convidado e sair da conta. | `main` abre no login e `App()` abre no menu. Senha errada e conta inexistente têm a mesma mensagem. A senha é mascarada e não passa pelo cache de texto. O convidado entra sem conta. | Conforme o esperado (PASSOU: 19 de 19 testes) |
 | **CT-94** Partida encerrada entra no histórico da conta (RF21, UC14) | Partidas de conta logada e de convidado, mate, empate, CPU, reinício, abandono e arquivo corrompido. | Terminar a partida por eventos e abrir a aba "Meu histórico": lista, folha, roda, teclado e cópia. | A partida entra uma vez, com a cor, o resultado e o nível certos, mesmo com a peça no ar. Reinício e convidado não gravam. Falha ao gravar vira aviso. Arquivo ruim não derruba a aba. | Conforme o esperado (PASSOU: 27 de 27 testes) |
-| **CT-95** Duas instâncias do jogo em rede, por eventos (RF19, UC11, UC12) | Duas instâncias de `App` no mesmo processo, em 127.0.0.1, do menu até a revanche. | Jogar pelos dois lados por eventos, com relógio, empate, desistência, queda e jogada ilegal vinda de fora. | Os dois lados chegam ao mesmo FEN e ao mesmo resultado. A sala mede os relógios e decide. `clock_ms` não decide nada. Jogada ilegal encerra a sala, e não há pausa nem reinício em rede. | Conforme o esperado (PASSOU: 37 de 37 testes) |
+| **CT-95** Duas instâncias do jogo em rede, por eventos (RF19, UC11, UC12) | Duas instâncias de `App` no mesmo processo, em 127.0.0.1, do menu até a revanche. | Jogar pelos dois lados por eventos, com relógio, empate, desistência, queda e jogada ilegal vinda de fora. | Os dois lados chegam ao mesmo FEN e ao mesmo resultado. A sala mede os relógios e decide. `clock_ms` não decide nada. Os dois jogam no modo da sala, mesmo com outro modo no menu de quem entra. Jogada ilegal encerra a sala, e não há pausa nem reinício em rede. | Conforme o esperado (PASSOU: 41 de 41 testes) |
 | **CT-96** Arrastar a peça para jogar (RF23, UC02) | Arrastos por eventos até destino válido, destino ilegal, fora do tabuleiro, painel, promoção e na vez da CPU. | Apertar, mover e soltar, lendo a matriz de modelo, a seleção e a jogada. | Passando de 6 pixels, a peça sobe e segue o mouse. Soltar em destino válido joga. Na própria casa mantém a seleção, e fora do tabuleiro só devolve. Clique e teclado seguem valendo. | Conforme o esperado (PASSOU: 23 de 23 testes) |
 | **CT-97** Virar o tabuleiro mantém o clique correto (RF23, UC02, UC06) | Tecla F e botão "Virar", com a câmera parada, durante o giro e na volta à vista padrão. | Virar, clicar em várias casas e usar as setas. | A câmera termina no lado exato oposto, o clique continua na casa certa e as setas seguem o lado de quem olha. A vista padrão desfaz a virada. | Conforme o esperado (PASSOU: 14 de 14 testes) |
 | **CT-98** Copiar PGN (RF22, UC15) | Botão e tecla C na partida e na tela de fim, com `pygame.scrap` substituído por uma imitação e sem janela. | Copiar e ler o texto entregue à área de transferência. | O texto é o PGN da partida. No Windows vai em `mbcs` com quebra de linha do sistema, e nos outros em UTF-8. Falha vira aviso, nunca exceção. | Conforme o esperado (PASSOU: 12 de 12 testes) |
@@ -232,10 +232,10 @@ Medida com `pytest-cov`, com ramos, na mesma execução dos casos acima. A meta 
 |---|---|---|---|
 | `xadrez/core` | 1824 de 1824 | 554 de 554 | 100,00% |
 | `xadrez/data` | 295 de 295 | 58 de 58 | 100,00% |
-| `xadrez/net` | 739 de 747 | 146 de 150 | 98,66% |
+| `xadrez/net` | 745 de 753 | 146 de 150 | 98,67% |
 | `xadrez/graphics` | 1627 de 1631 | 240 de 246 | 99,47% |
-| `xadrez/ui` | 4594 de 4609 | 937 de 960 | 99,32% |
-| **Total** | 9083 de 9110 | 1936 de 1970 | **99,45%** |
+| `xadrez/ui` | 4603 de 4618 | 939 de 962 | 99,32% |
+| **Total** | 9098 de 9125 | 1938 de 1972 | **99,45%** |
 <!-- FIM:cobertura -->
 
 ## 7.6 Validação dos requisitos não funcionais
@@ -250,7 +250,7 @@ Medida com `pytest-cov`, com ramos, na mesma execução dos casos acima. A meta 
 | **RNF05** Arquitetura em camadas, com motor testável sem interface | `core` não importa pygame, numpy nem `graphics`; `graphics` não importa `core`. | Testes `test_camada_nao_importa_o_que_nao_deve`: 4 de 4 passaram. | Atendido |
 | **RNF06** Qualidade: cobertura de pelo menos 90% em `core` | Cobertura de pelo menos 90% em `xadrez/core`, com ramos. | Cobertura medida de 100,00% em `xadrez/core` (1824 linhas e 554 ramos). | Atendido |
 | **RNF07** Robustez: entrada inválida e redimensionamento nunca derrubam o jogo | Entrada inválida vira erro tratado. Nenhum tamanho de janela derruba o jogo. | Testes `test_invalid_origin_never_raises_and_changes_nothing`, `test_invalid_target_never_raises_and_changes_nothing`, `test_tamanho_extremo_na_partida_nao_derruba`, `test_redimensionar_mantem_o_clique_correto`: 43 de 43 passaram. | Atendido |
-| **RNF08** Segurança: senha nunca gravada em claro; entrada da rede tratada como não confiável | A senha nunca é gravada: o arquivo só tem nome, sal, iterações e hash. Tudo o que chega da rede é conferido, e a mensagem inválida encerra a conexão. | Testes `test_data_senha_nao_aparece_em_nenhum_byte`, `test_senha_nao_fica_em_widget_nem_em_cache`, `test_net_mensagem_invalida_e_recusada_nos_dois_sentidos`, `test_net_ataque_de_dentro_da_partida_encerra_a_sala_com_erro`, `test_jogada_ilegal_encerra_a_sala`: 111 de 111 passaram. | Atendido |
+| **RNF08** Segurança: senha nunca gravada em claro; entrada da rede tratada como não confiável | A senha nunca é gravada: o arquivo só tem nome, sal, iterações e hash. Tudo o que chega da rede é conferido, e a mensagem inválida encerra a conexão. | Testes `test_data_senha_nao_aparece_em_nenhum_byte`, `test_senha_nao_fica_em_widget_nem_em_cache`, `test_net_mensagem_invalida_e_recusada_nos_dois_sentidos`, `test_net_ataque_de_dentro_da_partida_encerra_a_sala_com_erro`, `test_jogada_ilegal_encerra_a_sala`: 116 de 116 passaram. | Atendido |
 | **RNF09** A CPU pensando não pode derrubar os 60 FPS | Com a CPU pensando, a média fica perto de 60 FPS em 1280x720, em janela real, e a entrada responde no mesmo quadro. | `tools/demo_automatica.py`, commit `eaf8f25`, janela real em 1280x720: 60,0 FPS em 2 jogadores, 59,7 FPS em partida contra a CPU Hardcore, 59,5 FPS em CPU pensando, câmera parada, 59,7 FPS em CPU pensando, com animação. O cenário de 2 jogadores roda sem argumento, e os da CPU rodam com `--cpu hardcore`. Testes `test_cpu_pensando_nao_bloqueia_quadro_nem_entrada`, `test_intervalo_de_troca_vale_durante_a_busca_e_volta_depois`, `test_com_a_camera_em_movimento_a_busca_dorme_a_cada_consulta`: 3 de 3 passaram. | Atendido nesta máquina |
 <!-- FIM:rnf -->
 
@@ -332,6 +332,10 @@ Toda pasta de dados de teste é temporária, por `CHESS_THE_GAME_DATA`, e toda r
 - rede em janela real.
 
 A sala pelo IP real prova que `0.0.0.0` e o código funcionam nesta máquina. Ela não prova que outra máquina chega até aqui, e por isso o roteiro da apresentação tem um plano B para a rede.
+
+### Uma corrida em um teste de rede
+
+Depois da tag `v1.1.0`, um commit só de documentação falhou em 1 combinação, o macOS com Python 3.10 ([execução](https://github.com/Kauhan33/chess-the-game/actions/runs/42218245088)), em `test_proposta_aceita_termina_igual` (CT-113). O teste esperava só a sala ter o resultado e já conferia os dois lados, mas a mensagem `result` leva alguns milissegundos para chegar a quem entrou. Em máquina lenta, ele conferia cedo demais. Não é defeito do jogo, e o teste agora espera os dois lados.
 
 ### Um modo só por sala
 

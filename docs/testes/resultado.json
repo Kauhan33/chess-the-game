@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-06T06:35:48",
+  "generated_at": "2026-11-06T11:33:20",
   "info": {
     "is_quick": false,
     "python": "3.12.10",
@@ -7,18 +7,18 @@
     "pytest": "9.2.0",
     "pygame": "2.6.1",
     "numpy": "2.5.3",
-    "commit": "0021280",
+    "commit": "846bba7",
     "has_local_changes": false
   },
   "totals": {
-    "passed": 3655,
+    "passed": 3668,
     "failed": 0,
     "skipped": 5
   },
   "coverage_percent": {
     "core": 100.0,
     "data": 100.0,
-    "net": 98.66,
+    "net": 98.67,
     "graphics": 99.47,
     "ui": 99.32,
     "total": 99.45
@@ -296,8 +296,8 @@
     },
     "CT-66": {
       "status": "PASSOU",
-      "tests": 64,
-      "passed": 64
+      "tests": 65,
+      "passed": 65
     },
     "CT-67": {
       "status": "PASSOU",
@@ -371,8 +371,8 @@
     },
     "CT-86": {
       "status": "PASSOU",
-      "tests": 26,
-      "passed": 26
+      "tests": 28,
+      "passed": 28
     },
     "CT-87": {
       "status": "PASSOU",
@@ -381,8 +381,8 @@
     },
     "CT-88": {
       "status": "PASSOU",
-      "tests": 300,
-      "passed": 300
+      "tests": 306,
+      "passed": 306
     },
     "CT-90": {
       "status": "PASSOU",
@@ -411,8 +411,8 @@
     },
     "CT-95": {
       "status": "PASSOU",
-      "tests": 37,
-      "passed": 37
+      "tests": 41,
+      "passed": 41
     },
     "CT-96": {
       "status": "PASSOU",

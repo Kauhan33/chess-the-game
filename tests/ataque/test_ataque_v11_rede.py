@@ -369,7 +369,7 @@ def test_proposta_aceita_termina_igual(host_app, guest_app):
     host.net.send_draw_offer()
     drive(table.apps, lambda: guest.modals)
     guest.modals[-1].buttons[0].activate()
-    drive(table.apps, lambda: host.engine.result is not None)
+    drive(table.apps, lambda: host.engine.result is not None and guest.engine.result is not None)
     assert_same_end(table)
     assert host.engine.result.reason is EndReason.AGREEMENT
 

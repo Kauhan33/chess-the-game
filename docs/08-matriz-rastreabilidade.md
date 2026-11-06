@@ -2,7 +2,7 @@
 
 Arquivo gerado por `tools/relatorio_testes.py`. Não edite à mão: os vínculos ficam em `docs/testes/casos.json`, e a situação vem da execução real.
 
-Execução de 2026-11-06 06:35:48, commit `0021280`.
+Execução de 2026-11-06 11:33:20, commit `846bba7`.
 
 ## 8.1 Requisito, caso de uso e caso de teste
 
