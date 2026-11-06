@@ -23,7 +23,7 @@ Situação em 2026-11-06, depois deste relatório. As seções abaixo são o tex
 | QA11-15 | Baixa | Corrigido: quem abandona lê "Abandonou a partida" | `eaf8f25` |
 | QA11-16 | Baixa | Corrigido: o texto é cortado no limite do campo ao carregar | `eaf8f25` |
 | QA11-17 | Baixa | **Aceito:** em 640x360 os formulários não cabem, e o jogo não cai. A partir de 640x480 está tudo certo. Os 4 testes seguem em `xfail`, com o motivo escrito | sem correção |
-| QA11-18 | Média | **Resolvido por este trabalho:** requisitos, plano de testes, matriz e README cobrem a versão 1.1, e os testes de CT-135 passam sem `xfail` | ver o histórico do git depois de `eaf8f25` |
+| QA11-18 | Média | **Resolvido por este trabalho:** requisitos, plano de testes, matriz e README cobrem a versão 1.1, e os testes de CT-135 passam sem `xfail` | `0021280` |
 | QA11-19 | Baixa | Corrigido: o motivo da sala encerrada segue até a tela de fim | `eaf8f25` |
 | QA11-20 | Baixa | Corrigido: uma proposta por lance, e a proposta repetida é ignorada | `eaf8f25` |
 
