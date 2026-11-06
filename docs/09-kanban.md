@@ -80,6 +80,7 @@ Tabela gerada do `git log`, com as datas e as mensagens originais dos commits.
 | 2026-11-06 05:07 | `0021280` | docs: leva toda a documentacao ate a versao 1.1 |
 | 2026-11-06 06:38 | `45b0e5e` | docs: resultados da execucao completa da versao 1.1 |
 | 2026-11-06 07:24 | `3cd07ad` | test: torna dois testes independentes do sistema e da maquina |
+| 2026-11-06 08:09 | `bd26419` | docs: registra a aprovacao da versao 1.1 no CI |
 <!-- FIM:evolucao -->
 
 ## 9.4 Prints do quadro

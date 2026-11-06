@@ -342,6 +342,8 @@ O primeiro envio falhou nas 6 combinações ([execução](https://github.com/Kau
 
 Corrigidos os dois, as 6 combinações passaram no commit `3cd07ad`, com 3619 testes aprovados em cada uma, sem os `slow` ([execução](https://github.com/Kauhan33/chess-the-game/actions/runs/42202345318)). A execução completa da seção 7.2 é do commit `0021280`. Entre os dois, só esses testes mudaram, e o código do jogo é o mesmo.
 
+A rodada seguinte, só com documentação, falhou em 1 combinação, o macOS com Python 3.12 ([execução](https://github.com/Kauhan33/chess-the-game/actions/runs/42208107479)), em um teste do sinal de vida (CT-87). O teste somava 8 s ao relógio real e conferia o prazo exato. Perto de uma potência de 2, a soma em `float` arredonda, e `(t + 8.0) - t` fica abaixo de 8,0: isso só acontece nos 8 s antes de cada potência de 2, e por isso as outras rodadas passaram. Na partida real, o aviso sai na verificação seguinte, sem efeito perceptível. O teste agora usa um instante fixo.
+
 ### Força da CPU
 
 <!-- GERADO:forca_cpu -->

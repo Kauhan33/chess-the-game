@@ -518,8 +518,9 @@ def test_net_prazo_do_sinal_de_vida_conta_a_partir_da_ultima_mensagem():
     client = ClientSession("Pretas", LOCALHOST)
     client._peer = LineConnection(near)
     client._handle_peer_line(b'{"type":"ping"}')
-    heard = client._last_heard
-    assert heard > 0
+    assert client._last_heard > 0
+    # Instante fixo: com o relógio real perto de uma potência de 2, `(t + 8.0) - t` arredonda para menos de 8,0.
+    heard = client._last_heard = 1000.0
     client._next_ping = heard + 2.0
     client._check_timers(heard + 1.9)
     assert not client._peer._outgoing
