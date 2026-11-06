@@ -4,6 +4,7 @@ import pickle
 import random
 import threading
 import time
+from dataclasses import replace
 
 import pytest
 from core_helpers import play_all, sq
@@ -475,9 +476,13 @@ def test_report_has_the_numbers_of_the_search():
     assert report.seconds > 0
 
 
-def test_hardcore_goes_deeper_than_hard():
+def test_hardcore_goes_deeper_than_hard(monkeypatch):
+    """Com o mesmo limite de nós, e não de tempo: em máquina lenta ou com cobertura, 1 s só chegava à profundidade 3."""
+    node_limit = ai_module._LEVELS[Difficulty.HARD].node_limit
+    level = replace(ai_module._LEVELS[Difficulty.HARDCORE], seconds=None, node_limit=node_limit)
+    monkeypatch.setitem(ai_module._LEVELS, Difficulty.HARDCORE, level)
     hard = analyze(Board.from_fen(MIDGAME), Difficulty.HARD, random.Random(1))
-    hardcore = analyze(Board.from_fen(MIDGAME), Difficulty.HARDCORE, random.Random(1), max_seconds=1.0)
+    hardcore = analyze(Board.from_fen(MIDGAME), Difficulty.HARDCORE, random.Random(1))
     assert hardcore.depth > hard.depth
 
 

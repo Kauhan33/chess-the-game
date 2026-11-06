@@ -12,7 +12,9 @@ from __future__ import annotations
 import json
 import os
 import stat
+import sys
 import time
+from contextlib import contextmanager
 from pathlib import Path
 
 import pygame
@@ -764,12 +766,32 @@ def test_esc_esc_enter_no_historico_nao_sai_da_conta():
     assert isinstance(application.scene, (MenuScene, GameScene))
 
 
+@contextmanager
+def writes_blocked(path):
+    """Impede de verdade a gravação de `path`, pelo que cada sistema confere na troca do temporário pelo arquivo.
+
+    No Windows, um arquivo somente leitura barra a troca. Nos outros, ela só depende da permissão da pasta:
+    com o arquivo somente leitura, a gravação daria certo.
+    """
+    if sys.platform == "win32":
+        target, blocked = path, stat.S_IREAD
+    else:
+        if os.geteuid() == 0:
+            pytest.skip("o root ignora a permissão da pasta")
+        target, blocked = path.parent, stat.S_IREAD | stat.S_IEXEC
+    original = stat.S_IMODE(os.stat(target).st_mode)
+    os.chmod(target, blocked)
+    try:
+        yield
+    finally:
+        os.chmod(target, original)
+
+
 @pytest.mark.ct("CT-120")
 def test_arquivo_somente_leitura_vira_aviso_e_nao_deixa_temporario():
     AccountStore().create("Ana", PASSWORD)
     path = accounts_path()
-    os.chmod(path, stat.S_IREAD)
-    try:
+    with writes_blocked(path):
         application, player = login_app()
         create_by_mouse(player, "Bia", PASSWORD)
         assert isinstance(application.scene, LoginScene)
@@ -777,16 +799,12 @@ def test_arquivo_somente_leitura_vira_aviso_e_nao_deixa_temporario():
         assert AccountStore().authenticate("Ana", PASSWORD), "a conta que já existia continua valendo"
         leftovers = [item.name for item in path.parent.iterdir() if item.name.endswith(".tmp")]
         assert leftovers == []
-    finally:
-        os.chmod(path, stat.S_IREAD | stat.S_IWRITE)
 
 
 @pytest.mark.ct("CT-121")
 def test_historico_somente_leitura_vira_aviso_na_tela_de_fim():
     write_history("Ana", [valid_entry()])
-    path = history_path("Ana")
-    os.chmod(path, stat.S_IREAD)
-    try:
+    with writes_blocked(history_path("Ana")):
         application = account_app()
         scene, player = open_game(application, mode=GameMode.TRAINING, names=("Ana", "Bia"))
         player.play_all(FOOLS_MATE)
@@ -794,8 +812,6 @@ def test_historico_somente_leitura_vira_aviso_na_tela_de_fim():
         assert isinstance(application.scene, GameOverScene)
         assert "histórico" in application.scene.notices.text
         assert len(HistoryStore("Ana").records()) == 1, "a partida antiga continua lá"
-    finally:
-        os.chmod(path, stat.S_IREAD | stat.S_IWRITE)
 
 
 # Histórico lido do disco é entrada não confiável ------------------------------------------------------------
