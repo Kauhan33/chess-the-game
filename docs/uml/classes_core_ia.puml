@@ -1,0 +1,112 @@
+@startuml classes_core_ia
+!pragma layout smetana
+!include _estilo.iuml
+title Camada core: a CPU
+hide empty members
+
+class ai <<module>> {
+  +choose_move(board, difficulty, rng, should_stop, max_seconds): Move
+  +analyze(board, difficulty, rng, should_stop, max_seconds): SearchReport
+  -_pick_root_move(candidates, noise, margin, rng)
+  -_load_game_history(board, search_board)
+  -_is_regular_position(board): bool
+  -_time_budget(level, max_seconds): float
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+  HARDCORE
+  +label: str
+  +description: str
+}
+
+class _Level <<frozen>> {
+  +max_depth: int
+  +noise: int
+  +tie_margin: int
+  +opening_margin: int
+  +seconds: float | None
+  +node_limit: int | None
+  +uses_quiescence: bool
+  +is_selective: bool
+}
+
+class SearchReport <<frozen>> {
+  +move: Move
+  +score: int
+  +depth: int
+  +nodes: int
+  +seconds: float
+}
+
+class _Search {
+  +board: SearchBoard
+  +level: _Level
+  +spread: int
+  +deadline: float
+  +nodes: int
+  +completed_depth: int
+  +candidates: list
+  +table: dict
+  +killers: list
+  +history: list
+  --
+  +run(root_moves)
+  -_search_root(moves, depth, scored)
+  -_score_root_move(depth, best, is_first): int
+  -_negamax(depth, alpha, beta, ply): int
+  -_search_moves(moves, depth, alpha, beta, ply, in_check): int
+  -_score_child(depth, alpha, beta, ply, move_number, can_reduce): int
+  -_late_move_reduction(depth, move_number): int
+  -_remember_cutoff(move, depth, ply)
+  -_leaf(alpha, beta, ply, in_check): int
+  -_quiesce(alpha, beta, ply, in_check): int
+  -_capture_is_hopeless(move, stand_pat, alpha): bool
+  -_ordered(moves, hash_move, ply): list
+  -_ordered_tactics(): list
+  -_raise_if_stopped()
+}
+
+class SearchBoard {
+  +squares: list[int]
+  +key: int
+  --
+  {static} +from_board(board): SearchBoard
+  +seed_history(keys)
+  +in_check(): bool
+  +attacked(square, by_side): bool
+  +defended_by_pawn(square): bool
+  +generate_moves(): list[int]
+  +generate_tactical_moves(): list[int]
+  +has_legal_move(): bool
+  +try_make(move, in_check): bool
+  +make(move)
+  +unmake()
+  +is_rule_draw(): bool
+}
+
+class evaluation <<module>> {
+  +evaluate(board): int
+}
+
+class rules <<module>>
+
+ai ..> _Search : cria uma por lance
+ai ..> SearchReport : devolve
+ai ..> Difficulty : lê
+ai ..> rules : confere o lance legal
+_Search o-- "1$p" SearchBoard
+_Search -- "1$p" _Level
+_Search ..> evaluation : nota da posição
+
+note right of _Level
+  Tabela _LEVELS em ai.py:
+  Easy: 1 meio-lance, ruído 300
+  Medium: 2, ruído 40, 30 mil nós
+  Hard: 3, margem 10, 90 mil nós
+  Hardcore: sem limite de profundidade,
+  4 s, técnicas seletivas
+end note
+@enduml

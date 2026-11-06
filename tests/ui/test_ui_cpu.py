@@ -307,6 +307,12 @@ def test_intervalo_de_troca_vale_durante_a_busca_e_volta_depois(app, stuck_searc
 
 
 @pytest.mark.ct("CT-92")
+def test_intervalo_da_busca_fica_bem_abaixo_do_padrao_de_5_ms():
+    """O padrão do Python derruba a tela com a CPU pensando. O efeito só se mede rodando; aqui fica o limite do valor."""
+    assert SEARCH_SWITCH_INTERVAL <= 0.0005
+
+
+@pytest.mark.ct("CT-92")
 def test_intervalo_volta_ao_original_quando_a_busca_falha(monkeypatch):
     def broken(*_):
         raise RuntimeError("defeito de propósito")

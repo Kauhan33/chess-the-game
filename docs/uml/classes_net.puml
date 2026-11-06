@@ -1,0 +1,122 @@
+@startuml classes_net
+!pragma layout smetana
+!include _estilo.iuml
+title Camada net: sala em rede local
+hide empty members
+
+abstract class _Session {
+  {static} +is_authority: bool
+  +name: str
+  -_events: deque
+  -_outbox: deque
+  -_peer: LineConnection | None
+  -_game_handlers: dict
+  --
+  +start()
+  +poll(): list
+  +close()
+  +send_move(uci, clock_ms)
+  +send_resign()
+  +send_draw_offer()
+  +send_draw_answer(accept)
+  +send_rematch()
+  +send_bye()
+  -_run()
+  -_tick()
+  -_handle_peer_line(line)
+  -_check_timers(now)
+  -_terminate(event)
+}
+
+class HostSession {
+  {static} +is_authority: bool
+  +port: int
+  +code: str
+  +offline_warning: str | None
+  --
+  +send_result(result, plies)
+  -_accept(listener)
+  -_handle_hello(connection, line)
+  -_welcome(connection, name)
+  -_refuse(connection, code)
+  -_begin_game()
+  -_start_rematch()
+}
+
+class ClientSession {
+  -_finish_connect(connecting)
+  -_handle_join_reply(connection, line)
+  -_on_rematch_start(message)
+  -_advance_join(now)
+}
+
+class NetTimings <<frozen>> {
+  +heartbeat_interval: float
+  +heartbeat_timeout: float
+  +handshake_timeout: float
+  +tick: float
+}
+
+class LineConnection {
+  +read_lines(): list[bytes]
+  +queue(line)
+  +flush()
+  +shutdown_write()
+  +close_gracefully(wait_for_peer)
+  +close()
+  -_count_messages(count)
+}
+
+class LineSplitter {
+  +feed(chunk): list[bytes]
+}
+
+class protocol <<module>> {
+  +encode_message(message): bytes
+  +decode_message(line): dict
+  +is_valid_name(value): bool
+  +is_valid_uci(value): bool
+  +sanitize_name(name): str
+  +clock_to_wire(clock_ms): int
+  +result_fields(result, plies): dict
+  +parse_result(message): GameResult
+  +parse_uci(uci): tuple
+}
+
+class room_code <<module>> {
+  +encode_room_code(ipv4): str
+  +decode_room_code(code): str
+  +local_ipv4(): str
+  +is_lan_address(ipv4): bool
+}
+
+class ProtocolError
+class PeerGone
+
+_Session <|-- HostSession
+_Session <|-- ClientSession
+_Session -- "1$p" NetTimings
+_Session o-- "0..1$p" LineConnection : adversário
+HostSession o-- "0..8$p" LineConnection : à espera
+LineConnection *-- "1$p" LineSplitter
+LineConnection ..> PeerGone : levanta
+LineSplitter ..> ProtocolError : levanta
+_Session ..> protocol : confere tudo
+HostSession ..> room_code : gera o código
+ClientSession ..> room_code : lê o código
+protocol ..> ProtocolError : levanta
+
+
+note top of _Session
+  Eventos que poll() entrega, de events.py:
+  PeerJoined(name)
+  GameStart(white, black, your_color, minutes, increment)
+  MoveReceived(uci, clock_ms)
+  PeerResigned()
+  DrawOffered()
+  DrawAnswered(accept)
+  RematchRequested()
+  GameDecided(result, plies), só em quem entrou na sala
+  PeerLeft(reason) e NetworkError(message), que encerram a sessão
+end note
+@enduml

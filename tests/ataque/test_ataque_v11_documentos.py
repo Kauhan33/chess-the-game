@@ -40,7 +40,6 @@ def test_contrato_da_versao_lista_os_requisitos_novos():
 
 
 @pytest.mark.ct("CT-135")
-@pytest.mark.xfail(strict=True, reason="QA11-18: requisitos e matriz de rastreabilidade param no RF16: a versão 1.1 só está no documento de design")
 @pytest.mark.parametrize("document", ["01-visao-e-requisitos.md", "07-plano-de-testes.md", "08-matriz-rastreabilidade.md"])
 def test_documentos_da_entrega_cobrem_a_versao_1_1(document):
     text = (ROOT / "docs" / document).read_text(encoding="utf-8")
@@ -48,7 +47,6 @@ def test_documentos_da_entrega_cobrem_a_versao_1_1(document):
 
 
 @pytest.mark.ct("CT-135")
-@pytest.mark.xfail(strict=True, reason="QA11-18: README não cita CPU, rede, contas nem histórico")
 def test_readme_cita_o_que_a_versao_1_1_trouxe():
     text = (ROOT / "README.md").read_text(encoding="utf-8").lower()
     assert all(word in text for word in ("cpu", "rede", "conta", "histórico"))

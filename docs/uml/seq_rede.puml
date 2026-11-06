@@ -1,0 +1,46 @@
+@startuml seq_rede
+!include _estilo.iuml
+title Lance em rede: quem entrou joga sem esperar, e a sala confere
+hide footbox
+
+actor "Quem entrou" as J
+participant "GameScene e\nNetMatch\n(quem entrou)" as GC
+participant "ClientSession" as CS
+participant "HostSession" as HS
+participant "NetMatch e\nGameEngine\n(sala)" as GH
+
+== Lance de quem entrou ==
+J -> GC: _submit_move(origin, target)
+GC -> GC: play(origin, target), no motor local
+GC -> CS: send_move(uci, clock_ms)
+CS -> HS: mensagem move, em uma linha de JSON
+HS -> HS: decode_message(line), confere tipos e campos
+HS -> GH: poll(), evento MoveReceived
+GH -> GH: _on_move(event)
+alt lance legal na vez certa
+  GH -> GH: play(origin, target, promotion)
+  GH -> GH: show_opponent_move(outcome)
+else lance ilegal ou fora da vez
+  GH -> GH: _close_room(ILLEGAL_MOVE_MESSAGE)
+  GH -> GH: abandon(remote_color)
+  GH -> HS: send_result(result, plies)
+  HS -> CS: mensagem result, e a sala fecha
+else lance chegou depois do fim
+  GH -> GH: ignora: o fim já está decidido
+end
+
+== Lance da sala ==
+GH -> GH: _submit_move(origin, target)
+GH -> HS: send_move(uci, clock_ms)
+HS -> CS: mensagem move
+CS -> GC: poll(), evento MoveReceived
+GC -> GC: _on_move(event), confere no motor local
+alt lance recusado pelo motor local
+  GC -> GC: _close_room(ILLEGAL_MOVE_MESSAGE)
+end
+
+note over GC, GH
+  clock_ms só informa: não entra em nenhuma decisão, porque pode ser falso.
+  A sala mede os dois relógios. Em quem entrou, os relógios só andam para mostrar.
+end note
+@enduml

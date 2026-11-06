@@ -1,20 +1,25 @@
 @startuml classes_visao_geral
 !pragma layout smetana
 !include _estilo.iuml
-title Visão geral: as três camadas e as classes centrais
+title Visão geral: as cinco camadas e as classes centrais
 hide empty members
 
 package "xadrez.ui" as ui {
   class App {
     +scene: Scene
+    +account: str | None
     +step(dt)
   }
   abstract class Scene {
     {abstract} +update(dt)
     {abstract} +draw(surface)
   }
+  class ArenaScene
+  class LoginScene
   class MenuScene
+  class LobbyScene
   class GameScene {
+    +hides_hints: bool
     +handle_event(event)
   }
   class GameOverScene
@@ -23,6 +28,14 @@ package "xadrez.ui" as ui {
     +pick(position)
   }
   class Hud
+  class CpuPlayer {
+    +start(board, remaining, increment)
+    +poll(dt)
+  }
+  class NetMatch {
+    +receive_events()
+    +publish_result()
+  }
 }
 
 package "xadrez.core" as core {
@@ -35,6 +48,7 @@ package "xadrez.core" as core {
     +turn: Color
     +apply(move)
     +undo()
+    +copy()
   }
   abstract class Piece {
     +color: Color
@@ -43,6 +57,9 @@ package "xadrez.core" as core {
   class Player {
     +name: str
     +match_points: float
+  }
+  class ai <<module>> {
+    +choose_move(board, difficulty, ...)
   }
 }
 
@@ -72,18 +89,42 @@ package "xadrez.graphics" as graphics {
   }
 }
 
+package "xadrez.data" as data {
+  class AccountStore {
+    +create(username, password)
+    +authenticate(username, password)
+  }
+  class HistoryStore {
+    +add(record)
+    +records()
+  }
+}
+
+package "xadrez.net" as net {
+  class HostSession {
+    +send_result(result, plies)
+  }
+  class ClientSession
+}
+
 App *-- "1$p" Scene
-Scene <|-- MenuScene
+Scene <|-- ArenaScene
+ArenaScene <|-- LoginScene
+ArenaScene <|-- MenuScene
+ArenaScene <|-- LobbyScene
 Scene <|-- GameScene
 Scene <|-- GameOverScene
 GameScene *-- "1$p" Hud
 GameScene o-- "1$p" BoardView
 GameOverScene o-- "1$p" BoardView
+GameScene *-- "0..1$p" CpuPlayer
+GameScene *-- "0..1$p" NetMatch
 
 GameScene -- "1$p" GameEngine
 GameEngine *-- "1$p" Board
 GameEngine *-- "2$p" Player
 Board *-- "0..64$p" Piece
+CpuPlayer ..> ai
 
 BoardView *-- "1$p" Camera
 BoardView *-- "1$p" Renderer3D
@@ -92,9 +133,15 @@ BoardView *-- "1$p" ParticleSystem
 BoardView *-- "0..2$p" PieceAnimation
 PieceAnimation *-- "3$p" Vector2D
 
+LoginScene ..> AccountStore
+GameScene ..> HistoryStore
+NetMatch ..> HostSession
+NetMatch ..> ClientSession
+
 note bottom of core
-  ui usa core e graphics.
-  core e graphics nunca se importam
+  ui usa todas as camadas.
+  core e graphics não conhecem ninguém.
+  net usa só core. data e net não se importam
   (tests/test_arquitetura.py).
 end note
 @enduml

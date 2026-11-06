@@ -1,0 +1,25 @@
+@startuml estados_sessao
+!pragma layout smetana
+!include _estilo.iuml
+title Estados da sessão de rede e mensagens do protocolo
+hide empty description
+
+state "Sala aberta\nHostSession escutando na porta 50507" as Aberta
+state "Conectando\nClientSession, até 5 s" as Conectando
+state "Aguardando start\nhello enviado" as Aguardando
+state "Em partida\nmove, resign, draw_offer, draw_answer,\nrematch, ping e bye nos dois sentidos.\nresult só sai da sala" as Partida
+state "Encerrada\num único evento final:\nPeerLeft ou NetworkError" as Encerrada
+
+[*] --> Aberta : start() de quem cria
+[*] --> Conectando : start() de quem entra
+Aberta --> Aberta : conexão sem hello em 5 s, mensagem inválida:\ncai só aquela conexão\nhello de outra versão: refused version
+Aberta --> Partida : hello válido:\nPeerJoined, start
+Conectando --> Aguardando : conectou: hello
+Conectando --> Encerrada : código inválido, fora da rede local,\nrecusa ou prazo
+Aguardando --> Partida : start:\nPeerJoined, GameStart
+Aguardando --> Encerrada : refused, mensagem inválida\nou prazo
+Partida --> Partida : segundo a tentar entrar: refused room_full\nrevanche dos dois lados: start, com as cores trocadas
+Partida --> Encerrada : bye, conexão fechada ou 8 s sem linha válida: PeerLeft\nmensagem inválida ou mais de 2000 por segundo: NetworkError
+Aberta --> Encerrada : porta ocupada: NetworkError\nclose()
+Encerrada --> [*] : thread e sockets fechados
+@enduml

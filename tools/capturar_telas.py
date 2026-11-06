@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import os
 import sys
+import time
 from dataclasses import replace
 from pathlib import Path
 
@@ -26,7 +27,7 @@ import pygame
 from xadrez.core import Color, Difficulty, Square, TimeControl
 from xadrez.data import HistoryStats
 from xadrez.net import ClientSession, HostSession
-from xadrez.ui import App, GameMode, MatchOptions
+from xadrez.ui import App, GameMode, GameScene, MatchOptions
 from xadrez.ui.autoplay import Autoplayer, post_click, post_key, post_mouse_move, post_text
 from xadrez.ui.lobby_scene import ROLE_GUEST, ROLE_HOST
 from xadrez.ui.match import OPPONENT_CPU
@@ -42,6 +43,7 @@ SCHOLARS_MATE = "e2e4 e7e5 f1c4 b8c6 d1h5 g8f6 h5f7"
 FOOLS_MATE = "f2f3 e7e5 g2g4 d8h4"
 PROMOTION_FEN = "r3k2r/1P3ppp/8/8/8/8/5PPP/4K2R w K - 0 1"
 _LOOPBACK = "127.0.0.1"
+_NETWORK_WAIT_SECONDS = 5.0
 
 
 class LoopbackNetwork:
@@ -177,6 +179,48 @@ def capture_join_room(app: App) -> None:
     player.frames(1)
     post_text("ABC")
     player.seconds(0.4)
+
+
+def _wait_for(player: Autoplayer, condition) -> None:
+    """Dá quadros até a mensagem chegar pelo socket, que leva milissegundos de verdade."""
+    deadline = time.monotonic() + _NETWORK_WAIT_SECONDS
+    while not condition():
+        if time.monotonic() >= deadline:
+            raise TimeoutError("A rede não respondeu no prazo.")
+        player.frames(1)
+        time.sleep(0.002)
+
+
+def _network_match(app: App) -> tuple[Autoplayer, ClientSession]:
+    """Sala real em 127.0.0.1, com a tela de quem criou e uma sessão de verdade do outro lado, já com um lance de cada."""
+    app.scene.next_scene = app.lobby_scene(OPTIONS, ROLE_HOST)
+    player = Autoplayer(app)
+    player.frames(1)
+    opponent = ClientSession("Jogador 2", _LOOPBACK, port=app.scene.link.session.port)
+    opponent.start()
+    _wait_for(player, lambda: isinstance(app.scene, GameScene))
+    player.settle()
+    scene = app.scene
+    player.play("e2e4")
+    opponent.send_move("e7e5", 600_000)
+    _wait_for(player, lambda: len(scene.engine.history) == 2)
+    player.settle()
+    rest_mouse(player)
+    return player, opponent
+
+
+def capture_network_match(app: App) -> None:
+    player, opponent = _network_match(app)
+    player.seconds(0.4)
+    opponent.close()
+
+
+def capture_peer_draw_offer(app: App) -> None:
+    player, opponent = _network_match(app)
+    opponent.send_draw_offer()
+    _wait_for(player, lambda: bool(app.scene.modals))
+    player.seconds(0.2)
+    opponent.close()
 
 
 def capture_game(app: App) -> None:
@@ -323,6 +367,8 @@ SCREENS = {
     "tela_menu_rede": capture_menu_network,
     "tela_sala": capture_room,
     "tela_entrar_sala": capture_join_room,
+    "tela_rede_partida": capture_network_match,
+    "tela_proposta_empate": capture_peer_draw_offer,
     "tela_partida": capture_game,
     "tela_caminhos": capture_paths,
     "tela_modo_partida": capture_match_mode,
@@ -341,7 +387,7 @@ SCREENS = {
     "tela_historico_convidado": capture_history_guest,
 }
 _LOGIN_SCREENS = {"tela_login", "tela_login_erro", "tela_criar_conta"}
-_NETWORK_SCREENS = {"tela_sala", "tela_entrar_sala"}
+_NETWORK_SCREENS = {"tela_sala", "tela_entrar_sala", "tela_rede_partida", "tela_proposta_empate"}
 
 
 def parse_size(text: str) -> tuple[int, int]:

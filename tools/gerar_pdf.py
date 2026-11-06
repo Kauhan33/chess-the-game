@@ -329,8 +329,8 @@ figure { margin: 1mm 0 4mm; break-inside: avoid; text-align: center; }
 figure img { display: inline-block; max-width: 100%; max-height: 222mm; width: auto; height: auto; }
 figcaption { font-size: 8.8pt; color: #543a1e; margin-top: 1mm; }
 p:has(+ figure) { break-after: avoid; break-inside: avoid; }
-h2 + p + figure img, h3 + p + figure img { max-height: 214mm; }
-h2 + h3 + p + figure img { max-height: 204mm; }
+h2 + p + figure img, h3 + p + figure img { max-height: 200mm; }
+h2 + h3 + p + figure img { max-height: 192mm; }
 section.deitada { page: deitada; }
 section.deitada > :first-child { margin-top: 0; }
 section.deitada figure { margin: 0; }

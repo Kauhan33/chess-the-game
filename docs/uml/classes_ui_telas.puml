@@ -1,0 +1,160 @@
+@startuml classes_ui_telas
+!pragma layout smetana
+!include _estilo.iuml
+title Camada ui: telas fora da partida (versão 1.1)
+hide empty members
+
+abstract class Scene
+
+class Tableau {
+  +camera: Camera
+  +renderer: Renderer3D
+  --
+  +fit(width, height)
+  +update(dt)
+  +draw(surface)
+}
+
+class ArenaScene {
+  +camera: Camera
+  +renderer: Renderer3D
+  --
+  +update(dt)
+  +draw_arena(surface)
+  +resize(size)
+  -_flow(top, spacing): FormFlow
+  -_fit_spacing(layout_at)
+  -_draw_error(surface, message, y)
+  -_layout_form()
+}
+
+class FormFlow {
+  +left: int
+  +y: int
+  +width: int
+  +notes: list
+  --
+  +gap(amount)
+  +field(widget, height)
+  +place(widget, height)
+  +pair(first, second, height)
+  +note(text, color, reserve_lines, size)
+}
+
+class LoginScene {
+  +username_input: TextInput
+  +password_input: TextInput
+  +repeat_input: TextInput
+  +mode_selector: SegmentedControl
+  +submit_button: Button
+  +guest_button: Button
+  +focus: FocusGroup
+  +error: str
+  +is_creating: bool
+  --
+  +submit()
+  +play_as_guest()
+  +quit_game()
+  +shutdown()
+  -_sign_in(username, password)
+  -_create_account(username, password, repeated)
+  -_enter(store, username)
+}
+
+class MenuScene {
+  +white_input: TextInput
+  +black_input: TextInput
+  +opponent_selector: SegmentedControl
+  +mode_selector: SegmentedControl
+  +difficulty_selector: SegmentedControl
+  +color_selector: SegmentedControl
+  +time_selector: Selector
+  +camera_selector: Selector
+  +tab_bar: TabBar
+  +history: HistoryPanel
+  +focus: FocusGroup
+  +modal: Overlay | None
+  +opponent_kind: str
+  --
+  +options(): MatchOptions
+  +start_match()
+  +create_room()
+  +join_room()
+  +sign_in()
+  +sign_out()
+  +create_account()
+  +open_help()
+  -_rebuild_form()
+  -_visible_widgets(): list
+}
+
+class LobbyScene {
+  +options: MatchOptions
+  +role: str
+  +link: NetLink | None
+  +code: str
+  +code_input: TextInput
+  +peer_name: str | None
+  +error: str
+  +warning: str | None
+  +is_host: bool
+  +is_connecting: bool
+  --
+  +open_room()
+  +copy_invite()
+  +connect()
+  +cancel()
+  +shutdown()
+  -_handle(event)
+  -_start_game(event)
+  -_fail(message)
+}
+
+class HistoryPanel {
+  +stats: HistoryStats | None
+  +opened: MatchRecord | None
+  +list: HistoryList
+  +copy_button: Button
+  +close_button: Button
+  +has_account: bool
+  --
+  +reload()
+  +widgets(): list
+  +open_record(index)
+  +close_record()
+  +copy_pgn()
+  +handle_wheel(steps, position)
+  +draw_column(surface)
+  +draw_sheet(surface)
+}
+
+class HistoryList {
+  +records: list[MatchRecord]
+  +index: int
+  +scroll: int
+  --
+  +set_records(records)
+  +row_rect(index): Rect
+  +handle_mouse(event): bool
+  +handle_key(event): bool
+  +scroll_by_wheel(steps)
+}
+
+class App
+class AccountStore
+class HistoryStore
+class NetLink
+
+Scene <|-- ArenaScene
+ArenaScene <|-- LoginScene
+ArenaScene <|-- MenuScene
+ArenaScene <|-- LobbyScene
+App *-- "1$p" Tableau : uma só no jogo inteiro
+ArenaScene -- "1$p" Tableau
+ArenaScene ..> FormFlow : monta o formulário
+MenuScene *-- "1$p" HistoryPanel
+HistoryPanel *-- "1$p" HistoryList
+HistoryPanel -- "0..1$p" HistoryStore : convidado não tem
+LoginScene ..> AccountStore : cria e confere
+LobbyScene o-- "0..1$p" NetLink : passa para a GameScene
+@enduml

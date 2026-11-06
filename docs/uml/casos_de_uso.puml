@@ -8,6 +8,8 @@ actor "Jogador" as Jogador
 actor "Jogador 1" as J1
 actor "Jogador 2" as J2
 actor "\n\nSistema /\nMotor de Regras" as Motor
+actor "CPU" as CPU
+actor "Outro computador\n(rede local)" as Rede
 
 J1 -up-|> Jogador
 J2 -up-|> Jogador
@@ -22,8 +24,16 @@ rectangle "Chess - The Game" {
   usecase "UC07\nVerificar Xeque\ne Fim de Jogo" as UC07
   usecase "UC08\nEncerrar Partida\n(desistência ou empate)" as UC08
   usecase "UC09\nPedir Revanche ou\nVoltar ao Menu" as UC09
+  usecase "UC10\nJogar contra a CPU" as UC10
+  usecase "UC11\nCriar Sala em Rede" as UC11
+  usecase "UC12\nEntrar em Sala" as UC12
+  usecase "UC13\nEntrar na Conta" as UC13
+  usecase "UC14\nConsultar Histórico" as UC14
+  usecase "UC15\nCopiar PGN" as UC15
 }
 
+Jogador -- UC13
+Jogador -- UC14
 Jogador -- UC01
 Jogador -- UC02
 Jogador -- UC03
@@ -36,8 +46,19 @@ UC02 ..> UC06 : <<include>>
 UC02 ..> UC07 : <<include>>
 UC05 .up.> UC02 : <<extend>>
 UC08 .up.> UC03 : <<extend>>
+UC01 <.. UC10 : <<extend>>
+UC02 <.. UC10 : <<include>>
+UC01 <.. UC11 : <<extend>>
+UC02 <.. UC11 : <<include>>
+UC01 <.. UC12 : <<extend>>
+UC02 <.. UC12 : <<include>>
+UC14 <.. UC15 : <<extend>>
+UC02 <.. UC15 : <<extend>>
 
 UC06 -- Motor
 UC07 -- Motor
 UC08 -- Motor
+UC10 -- CPU
+UC11 -- Rede
+UC12 -- Rede
 @enduml

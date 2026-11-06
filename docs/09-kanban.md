@@ -8,6 +8,7 @@ O enunciado pede evidência de uso de metodologia ágil, com prints mostrando a 
 - O quadro foi criado em 2026-11-04 no GitHub Projects, com o script `tools/preparar_github.py`: https://github.com/users/Kauhan33/projects/1. As tarefas que já estavam prontas nasceram na coluna "Concluído", e a issue de cada uma avisa que a data dela não é a data do trabalho.
 - Portanto, o quadro só registra evolução real a partir dessa data. O projeto não tem prints anteriores a ela.
 - Os próximos prints precisam ser capturados pelo grupo ao longo do uso, com `tools/capturar_kanban.py`. Eles não podem ser gerados depois, nem reconstruídos com datas passadas.
+- As tarefas T22 em diante, da versão 1.1, estão só em `docs/kanban/tarefas.json`. Até a data deste documento, elas não foram levadas ao quadro do GitHub, porque a versão 1.1 ainda não foi publicada. O estado de cada uma é o verdadeiro em 2026-11-06, e a evidência é o commit ou a medição indicada.
 
 ## 9.2 Colunas e tarefas
 
@@ -21,8 +22,14 @@ As colunas são as pedidas no enunciado. A fonte das tarefas é `docs/kanban/tar
 | Backlog / A Fazer | T18 | Entregar o PDF de classes e sequência | E3 | ainda não feita |
 | Backlog / A Fazer | T19 | Entregar a documentação unificada e o código | E4 | ainda não feita |
 | Backlog / A Fazer | T21 | Ensaiar a demonstração e a defesa técnica | E5 | ainda não feita |
+| Backlog / A Fazer | T30 | Versão 1.1: rodar a suíte completa e gerar os documentos e os PDFs finais | E4 | ainda não feita |
+| Backlog / A Fazer | T31 | Versão 1.1: testar a rede entre dois computadores, em janela real e com o firewall | E5 | ainda não feita |
+| Backlog / A Fazer | T32 | Versão 1.1: confirmar pelo CI em Python 3.10, Linux e macOS (RNF02) | E4 | ainda não feita |
+| Backlog / A Fazer | T33 | Versão 1.1: publicar no GitHub e gerar o novo executável, com autorização do grupo | E4 | ainda não feita |
+| Backlog / A Fazer | T34 | Decidir se o modo de cada jogador deve aparecer para o outro em rede (sugestão 1 do QA) | E4 | ainda não feita |
 | Em Andamento (WIP) | T15 | Criar o quadro no GitHub Projects e capturar os prints | E4 | quadro criado em 2026-11-04; prints a capturar pelo grupo |
 | Em Revisão | T20 | Montar os slides e dividir a fala entre os integrantes | E5 | slides prontos para o grupo revisar |
+| Em Revisão | T29 | Versão 1.1: levar requisitos, telas, UML, arquitetura, testes, roteiro e guia até a nova versão | E4 | documentos escritos em 2026-11-06, aguardando a execução completa da suíte |
 | Concluído | T01 | Definir design, contratos e identificadores | E4 | commit 714b188 |
 | Concluído | T02 | Implementar o motor de regras oficiais | E4 | commit 411f20f |
 | Concluído | T03 | Testar o motor, com perft e casos CT-01 a CT-21 | E4 | commit 411f20f |
@@ -37,6 +44,13 @@ As colunas são as pedidas no enunciado. A fonte das tarefas é `docs/kanban/tar
 | Concluído | T12 | Gerar a documentação final depois das correções | E4 | documentação gerada em 2026-11-04, com os resultados da seção 7.2 |
 | Concluído | T13 | Publicar o repositório no GitHub, com autorização do grupo | E4 | commit 632c766, enviado em 2026-11-04 |
 | Concluído | T14 | Confirmar pelo CI: Python 3.10, Linux e macOS (RNF02) | E4 | CI aprovado nas 6 combinações, commit bf74717 |
+| Concluído | T22 | Versão 1.1: definir os contratos de modos, CPU, rede, contas e histórico | E4 | commit ff1e490 |
+| Concluído | T23 | Versão 1.1: implementar contas, histórico e sala em rede local | E4 | commit a5b902b |
+| Concluído | T24 | Versão 1.1: implementar a CPU em 4 níveis, o PGN e os tempos com incremento | E4 | commit dd124f8 |
+| Concluído | T25 | Versão 1.1: implementar login, modos, CPU na tela, sala, histórico, arrasto e virada | E4 | commit 0671f69 |
+| Concluído | T26 | Versão 1.1: auditar e atacar o jogo (QA), casos CT-100 a CT-135 | E4 | commit 032c696 |
+| Concluído | T27 | Versão 1.1: corrigir os achados do QA, com quem cria a sala como autoridade | E4 | commit eaf8f25; QA11-17 aceito |
+| Concluído | T28 | Versão 1.1: medir o FPS em janela real, com a CPU pensando (RNF09) | E4 | medido no commit eaf8f25, seção 7.9 |
 <!-- FIM:kanban -->
 
 ## 9.3 Evolução real pelo git
@@ -54,6 +68,15 @@ Tabela gerada do `git log`, com as datas e as mensagens originais dos commits.
 | 2026-11-04 14:09 | `86de291` | fix: corrige os defeitos provados pelo QA e acrescenta os testes de ataque |
 | 2026-11-04 14:53 | `632c766` | docs: documentacao completa, UML, plano de testes e novo nome do jogo |
 | 2026-11-04 15:29 | `bf74717` | fix(graphics): corrige as sombras que sumiam no macOS ARM |
+| 2026-11-04 16:23 | `c12a989` | docs: documentacao final com a suite completa e o CI nas 6 combinacoes |
+| 2026-11-04 16:45 | `b920c1e` | chore: versao 1.0.0 |
+| 2026-11-04 16:48 | `e3a0cbc` | docs: aponta o README para o executavel na pagina de releases |
+| 2026-11-04 22:37 | `ff1e490` | docs: contratos da versao 1.1 |
+| 2026-11-05 06:32 | `a5b902b` | feat: contas com senha, historico de partidas e sala em rede local |
+| 2026-11-05 07:15 | `dd124f8` | feat(core): CPU com 4 niveis, PGN e tempos com incremento |
+| 2026-11-05 18:21 | `0671f69` | feat(ui): login, modos Treinamento e Partida, CPU, sala em rede e historico |
+| 2026-11-05 19:56 | `032c696` | test: testes de ataque da versao 1.1, com os defeitos ainda abertos |
+| 2026-11-06 00:45 | `eaf8f25` | fix: corrige os achados do QA da versao 1.1 |
 <!-- FIM:evolucao -->
 
 ## 9.4 Prints do quadro
@@ -68,6 +91,7 @@ O primeiro print é real, do dia em que o quadro foi criado. Os demais são espa
 | Tarefas de correção do QA em andamento | A capturar pelo grupo |
 | Documentação em revisão | A capturar pelo grupo |
 | Slides da apresentação em andamento | A capturar pelo grupo |
+| Tarefas da versão 1.1 no quadro, depois de publicadas | A capturar pelo grupo |
 | Quadro antes da entrega final | A capturar pelo grupo |
 
 Para capturar um print novo, com a data de hoje no nome do arquivo:

@@ -20,6 +20,8 @@ class GameEngine {
   +in_check: bool
   +checked_king_square: Square | None
   +checking_pieces: list[Square]
+  +start_fen: str
+  +final_fen: str
   --
   +play(origin, target, promotion=None): MoveOutcome
   +legal_moves_from(square): list[Move]
@@ -31,6 +33,9 @@ class GameEngine {
   +tick(dt): GameResult | None
   +resign(color=None): GameResult
   +agree_draw(): GameResult
+  +abandon(color): GameResult
+  +finish_with(result): GameResult
+  +take_back_last_move()
   +restart()
   +rematch()
   +material_balance(): int
@@ -69,6 +74,8 @@ class TimeControl <<frozen>> {
   {static} +BLITZ_5: TimeControl
   {static} +RAPID_10: TimeControl
   {static} +CLASSIC_30: TimeControl
+  {static} +BLITZ_3_2: TimeControl
+  {static} +CLASSIC_15_10: TimeControl
   +is_unlimited: bool
 }
 
@@ -107,6 +114,7 @@ enum EndReason {
   TIMEOUT
   RESIGNATION
   AGREEMENT
+  ABANDONMENT
   +label: str
 }
 
@@ -123,6 +131,9 @@ enum MoveError {
 class Board
 class rules <<module>>
 class notation <<module>>
+class pgn <<module>> {
+  +game_to_pgn(engine, event, date): str
+}
 
 GameEngine *-- "1$p" Board
 GameEngine *-- "2$p" Player
@@ -131,6 +142,7 @@ GameEngine ..> MoveOutcome : devolve
 GameEngine -- "1$p" GameState
 GameEngine ..> rules : usa
 GameEngine ..> notation : usa
+pgn ..> GameEngine : lê a partida
 ChessClock -- "1$p" TimeControl
 MoveOutcome -- "0..1$p" MoveError
 MoveOutcome -- "0..1$p" GameResult

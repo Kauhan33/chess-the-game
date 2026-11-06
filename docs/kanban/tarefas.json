@@ -38,6 +38,19 @@
     {"id": "T18", "titulo": "Entregar o PDF de classes e sequência", "coluna": "Backlog / A Fazer", "marco": "E3", "etiquetas": ["documentação"]},
     {"id": "T19", "titulo": "Entregar a documentação unificada e o código", "coluna": "Backlog / A Fazer", "marco": "E4", "etiquetas": ["documentação"]},
     {"id": "T20", "titulo": "Montar os slides e dividir a fala entre os integrantes", "coluna": "Em Revisão", "marco": "E5", "etiquetas": ["apresentação"], "evidencia": "slides prontos para o grupo revisar"},
-    {"id": "T21", "titulo": "Ensaiar a demonstração e a defesa técnica", "coluna": "Backlog / A Fazer", "marco": "E5", "etiquetas": ["apresentação"]}
+    {"id": "T21", "titulo": "Ensaiar a demonstração e a defesa técnica", "coluna": "Backlog / A Fazer", "marco": "E5", "etiquetas": ["apresentação"]},
+    {"id": "T22", "titulo": "Versão 1.1: definir os contratos de modos, CPU, rede, contas e histórico", "coluna": "Concluído", "marco": "E4", "etiquetas": ["gestão"], "evidencia": "commit ff1e490"},
+    {"id": "T23", "titulo": "Versão 1.1: implementar contas, histórico e sala em rede local", "coluna": "Concluído", "marco": "E4", "etiquetas": ["motor", "testes"], "evidencia": "commit a5b902b"},
+    {"id": "T24", "titulo": "Versão 1.1: implementar a CPU em 4 níveis, o PGN e os tempos com incremento", "coluna": "Concluído", "marco": "E4", "etiquetas": ["motor", "testes"], "evidencia": "commit dd124f8"},
+    {"id": "T25", "titulo": "Versão 1.1: implementar login, modos, CPU na tela, sala, histórico, arrasto e virada", "coluna": "Concluído", "marco": "E4", "etiquetas": ["interface", "testes"], "evidencia": "commit 0671f69"},
+    {"id": "T26", "titulo": "Versão 1.1: auditar e atacar o jogo (QA), casos CT-100 a CT-135", "coluna": "Concluído", "marco": "E4", "etiquetas": ["testes"], "evidencia": "commit 032c696"},
+    {"id": "T27", "titulo": "Versão 1.1: corrigir os achados do QA, com quem cria a sala como autoridade", "coluna": "Concluído", "marco": "E4", "etiquetas": ["testes", "interface"], "evidencia": "commit eaf8f25; QA11-17 aceito"},
+    {"id": "T28", "titulo": "Versão 1.1: medir o FPS em janela real, com a CPU pensando (RNF09)", "coluna": "Concluído", "marco": "E4", "etiquetas": ["testes"], "evidencia": "medido no commit eaf8f25, seção 7.9"},
+    {"id": "T29", "titulo": "Versão 1.1: levar requisitos, telas, UML, arquitetura, testes, roteiro e guia até a nova versão", "coluna": "Concluído", "marco": "E4", "etiquetas": ["documentação"], "evidencia": "documentos escritos em 2026-11-06 e conferidos pelo coordenador"},
+    {"id": "T30", "titulo": "Versão 1.1: rodar a suíte completa e gerar os documentos e os PDFs finais", "coluna": "Em Andamento (WIP)", "marco": "E4", "etiquetas": ["testes", "documentação"]},
+    {"id": "T31", "titulo": "Versão 1.1: testar a rede entre dois computadores, em janela real e com o firewall", "coluna": "Backlog / A Fazer", "marco": "E5", "etiquetas": ["testes"]},
+    {"id": "T32", "titulo": "Versão 1.1: confirmar pelo CI em Python 3.10, Linux e macOS (RNF02)", "coluna": "Backlog / A Fazer", "marco": "E4", "etiquetas": ["testes"]},
+    {"id": "T33", "titulo": "Versão 1.1: publicar no GitHub e gerar o novo executável, com autorização do grupo", "coluna": "Backlog / A Fazer", "marco": "E4", "etiquetas": ["gestão"]},
+    {"id": "T34", "titulo": "Decidir se o modo de cada jogador deve aparecer para o outro em rede (sugestão 1 do QA)", "coluna": "Backlog / A Fazer", "marco": "E4", "etiquetas": ["gestão"]}
   ]
 }

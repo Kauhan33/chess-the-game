@@ -254,6 +254,15 @@ def test_noise_never_hides_mate_from_medium():
 
 
 @pytest.mark.ct("CT-71")
+@pytest.mark.parametrize("name", MATE_IN_ONE)
+def test_easy_erra_de_proposito_mas_nao_perde_o_mate_em_um(name):
+    board = Board.from_fen(MATE_IN_ONE[name])
+    for seed in range(30):
+        move = choose_move(board, Difficulty.EASY, random.Random(seed))
+        assert ends_in_mate_in_one(board, move), f"{name}: {move.uci}, semente {seed}"
+
+
+@pytest.mark.ct("CT-71")
 @pytest.mark.parametrize("level", list(Difficulty))
 def test_mate_on_the_fiftieth_move_wins_instead_of_drawing(level):
     """O mate tem prioridade: o lance que completaria os 50 lances, sendo mate, ganha a partida."""

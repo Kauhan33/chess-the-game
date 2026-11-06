@@ -52,7 +52,7 @@ Raio: origem o = near, direção d = normalizar(far - near)
 Plano y = 0:  t = (0 - o.y) / d.y   e   ponto = o + t d
 ```
 
-**Onde está.** `screen_ray`, `pick_plane`, `pick_square` e `pick_piece` em `xadrez/graphics/camera.py`. `BoardView.pick` em `xadrez/ui/board_view.py`. O diagrama da seção 4.7 mostra a sequência.
+**Onde está.** `screen_ray`, `pick_plane`, `pick_square` e `pick_piece` em `xadrez/graphics/camera.py`. `BoardView.pick` em `xadrez/ui/board_view.py`. O diagrama da seção 4.9 mostra a sequência.
 
 **Como mostrar.** Com F4 aberto, orbite a câmera com o botão direito e mova o mouse. Origem, direção e casa mudam ao vivo. Clique na cabeça de uma peça alta: quem é selecionada é ela, e não a casa de trás. Clique no peão e2, que aparece por trás do rei: quem é selecionado é o peão, porque o teste é pela silhueta que se vê.
 
@@ -332,7 +332,7 @@ Cada prazo parte do prazo anterior, não de "agora". Assim, um atraso pequeno é
 
 **Onde está.** `FramePacer` em `xadrez/ui/frame_pacer.py`. `App.run_frame` e `App.step` em `xadrez/ui/app.py`.
 
-**Por que isso foi necessário.** `pygame.time.Clock.tick(60)` trabalha em milissegundos inteiros. Medido em janela real, ele dava 59,1 FPS. Depois do `FramePacer`, a mesma demonstração deu 60,0 FPS médios em 1286 quadros, com intervalo médio de 16,66 ms. Os números completos estão na seção 7.6.
+**Por que isso foi necessário.** `pygame.time.Clock.tick(60)` trabalha em milissegundos inteiros. Medido em janela real, ele dava 59,1 FPS. Depois do `FramePacer`, a mesma demonstração deu 60,0 FPS médios em 1287 quadros, com intervalo médio de 16,66 ms. Os números completos estão na seção 7.6. A versão 1.1, com a CPU pensando ao lado do quadro, está na seção 6.17.
 
 **O que mantém o quadro barato.** Com a câmera em movimento, o renderizador redesenha os polígonos. Com ela parada, o tabuleiro vira uma camada pronta e cada peça vira um sprite, feitos aos poucos: no máximo 8 sprites por quadro. O texto do HUD também fica em cache.
 
@@ -365,13 +365,113 @@ Para não haver dúvida na arguição:
 - **Shaders e GPU:** nada roda em shader. O desenho é feito na CPU, com numpy para as contas e pygame para preencher os polígonos.
 - **Z-buffer:** a ordem de pintura resolve a visibilidade.
 
-## 6.17 Roteiro de demonstração
+## 6.17 O que a versão 1.1 acrescentou
 
-Uma sequência curta que passa por todos os conceitos. O enunciado exige executar o jogo na banca, com uma partida curta que mostre a interação entre os dois jogadores e as telas de vitória ou derrota. O mate do passo 8 termina em 7 meios-lances. Também há `python tools/demo_automatica.py`, que joga sozinho até a vitória e serve de plano B.
+A versão 1.1 não mudou o pipeline: `xadrez/graphics` continua sem conhecer o motor, e nada novo foi desenhado por outro caminho. Ela usou de outro jeito o que já existia. A CPU, a rede e as contas não têm computação gráfica, e estão no capítulo 5.
+
+### Indicadores por modo
+
+**Em uma frase.** O modo Partida é a mesma matriz de cores e os mesmos marcadores, com menos coisa pintada.
+
+| O que `_paint_highlights` faz | Treinamento | Partida |
+|---|---|---|
+| `LAST_MOVE`, `SELECTED` e `CURSOR` na matriz, com cantos | Sim | Sim |
+| `PATH` com ponto e `CAPTURE` com anel | Sim | Não: `_paint_selection` para antes |
+| `THREAT` e `CHECK`, com tint e marcadores | Sim | Não: `_compute_alerts` devolve `_TurnAlerts` vazio |
+
+**Onde está.** `hides_hints`, `_paint_selection` e `_compute_alerts` em `xadrez/ui/game_scene.py`. Nos gráficos não mudou nada: quem decide é a cena.
+
+**Por que isso importa.** O painel F4 lê a mesma `ColorMatrix`, então também não revela nada. O teste CT-100 compara a tela pixel a pixel entre duas posições em que só o xeque muda, e o controle em Treinamento prova que o teste enxerga a diferença.
+
+**Como mostrar.** Selecione a mesma peça, na mesma posição, nos dois modos: compare `tela_caminhos` e `tela_modo_partida`, no capítulo 2. Com F4 aberto, a matriz de números mostra só o 1, o 6 e o 7 no modo Partida.
+
+### Arrastar a peça: raio contra um plano acima do tabuleiro
+
+**Em uma frase.** A peça arrastada segue o ponto em que o raio do mouse cruza um plano um pouco acima do tabuleiro, e só a matriz de modelo dela muda.
+
+**Fórmula.**
+
+```
+Plano y = h, com h = 0,32:   t = (h - o.y) / d.y   e   ponto = o + t d
+Sem interseção à frente do olho: a peça fica onde estava
+Deslocamento = (limitar(ponto.x, -4,6, 4,6) - centro.x, limitar(ponto.z, -4,6, 4,6) - centro.z)
+Matriz do arrasto = T(deslocamento.x, h, deslocamento.z)
+Matriz final = matriz do arrasto @ matriz da peça parada
+```
+
+O limite de 4,6 unidades segura a peça perto do tabuleiro, mesmo com o mouse longe dele.
+
+**Onde está.** `begin_drag`, `drag_to`, `end_drag` e `_drag_matrix` em `xadrez/ui/board_view.py`. `Camera.pick_plane` em `xadrez/graphics/camera.py`, a mesma função da seção 6.3, agora com `plane_y` acima de zero. `_press_square`, `_continue_press`, `_release_press` e `_drop_piece` em `xadrez/ui/game_scene.py`.
+
+**Detalhe que quase não se vê.** Enquanto a peça está no ar, ela fica de fora de `BoardView.pick`: senão, o raio acertaria a própria peça, em vez da casa embaixo dela. A sombra vem de graça, porque a matriz da sombra planar é aplicada sobre a matriz de modelo já deslocada.
+
+**Como mostrar.** Arraste uma peça devagar, com a câmera em ângulo. Ela acompanha o mouse em perspectiva, e a sombra a segue. Solte em uma casa válida e o lance é jogado, com o voo normal da casa de origem até o destino.
+
+### Virar o tabuleiro
+
+**Em uma frase.** Virar é somar pi ao yaw da câmera. Todo o resto do pipeline, inclusive o clique, continua certo porque usa as mesmas matrizes.
+
+**Fórmula.**
+
+```
+Destino = (destino do giro em curso, ou yaw atual) + pi
+Interpolação: mesmo Tween de Camera.orbit_to, com a curva cúbica
+```
+
+Apertar F no meio de um giro conta a partir de onde o giro ia parar, não do ângulo atual. Assim, duas viradas seguidas terminam em um lado exato.
+
+**Onde está.** `BoardView.flip` e `_orbit_toward` em `xadrez/ui/board_view.py`. `Camera.orbit_to` em `xadrez/graphics/camera.py`.
+
+**Como mostrar.** Aperte F e clique em uma peça: a seleção é a certa. Aperte as setas: "para cima" agora anda para a fileira menor. Com F4 aberto, olhe a matriz de visão mudar durante a meia volta.
+
+### FramePacer com a CPU pensando
+
+**Em uma frase.** Com a busca em outra thread, o quadro disputa o interpretador do Python com ela, e o `FramePacer` só consegue cumprir o prazo se a thread principal for atendida a tempo.
+
+O interpretador só deixa uma thread rodar Python por vez. A espera ativa do `FramePacer`, e o quadro inteiro, disputam com a busca. Duas medidas resolvem:
+
+```
+Durante a busca: intervalo de troca entre threads de 5 ms para 0,2 ms
+A cada 64 nós, com câmera ou peça em movimento: a busca dorme 1 ms
+Sem isso: 9,5 FPS. Com o intervalo curto: 58,7 FPS, contra 58,9 sem CPU (cena de tools/benchmark.py)
+```
+
+Medido em janela real, com `tools/demo_automatica.py`, no commit `eaf8f25`:
+
+| Cenário | FPS médio |
+|---|---|
+| 2 jogadores | 60,0 |
+| Partida contra a CPU Hardcore | 59,7 |
+| CPU pensando, câmera parada | 59,5 |
+| CPU pensando, com animação | 59,7 |
+
+**Onde está.** `_FastThreadSwitching` e `_SearchJob._should_stop` em `xadrez/ui/cpu_player.py`. `FramePacer` em `xadrez/ui/frame_pacer.py`. `BoardView.is_animating` diz à busca se a tela está ocupada.
+
+**Como mostrar.** Jogue contra o Hardcore com F3 aberto. Durante os 4 s em que a etiqueta diz "Pensando", o FPS do painel fica perto de 60. Orbite a câmera com a CPU pensando: a tela continua respondendo. O número do painel oscila, e a medida de verdade é a da tabela acima.
+
+### Arena: a mesa ao fundo
+
+**Em uma frase.** Login, menu e sala desenham a mesma cena 3D à esquerda, com o pipeline de sempre, e o formulário fica à direita.
+
+**Fórmula.** É a órbita da seção 6.5, com a câmera mais baixa e mais perto, girando devagar:
+
+```
+yaw(t + dt) = yaw(t) + 14 graus/s x dt
+pitch = 24 graus    distância = 8,4    fov_y = 30 graus    alvo = (-0,5, 0,72, 0,5)
+Viewport = só a parte da janela à esquerda do painel
+```
+
+**Onde está.** `Tableau` e `ArenaScene` em `xadrez/ui/arena_scene.py`. `App` guarda um `Tableau` só, e `ArenaScene.resize` ajusta o viewport com `Tableau.fit`. Como a mesa é uma só, trocar de tela não a faz pular nem refaz o fundo.
+
+**Como mostrar.** Abra o jogo no login e alterne entre "Jogar" e "Meu histórico": a mesa continua girando sem pular. Redimensione a janela: o viewport acompanha, como na seção 6.2.
+
+## 6.18 Roteiro de demonstração
+
+Uma sequência curta que passa por todos os conceitos. O enunciado exige executar o jogo na banca, com uma partida curta que mostre a interação entre os dois jogadores e as telas de vitória ou derrota. O mate do passo 8 termina em 7 meios-lances. Também há `python tools/demo_automatica.py`, que joga sozinho até a vitória e serve de plano B. A demonstração completa, com modos, CPU e rede, está no capítulo 10.
 
 | Passo | Ação no jogo | Conceito |
 |---|---|---|
-| 1 | No menu, digitar os nomes, escolher o tempo e iniciar | RF01 e fluxo de telas |
+| 1 | No menu, em "2 jogadores" e "Treinamento", digitar os nomes, escolher o tempo e iniciar | RF01 e fluxo de telas |
 | 2 | F3 | Framerate e contagem de polígonos |
 | 3 | Clicar na torre a1 e depois no cavalo b1 | Colisão de caminho e salto |
 | 4 | F4, mover o mouse e orbitar | Mundo e tela, raio, matriz de visão |

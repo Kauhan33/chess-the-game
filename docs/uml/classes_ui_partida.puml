@@ -16,18 +16,24 @@ class BoardView {
   +tints: dict
   +lifted_square: Cell | None
   +shake_square: Cell | None
+  +dragged_square: Cell | None
   +scene_polygons: int
   +is_flying: bool
   +is_camera_moving: bool
+  +is_animating: bool
   --
   +reset()
   +sync(board)
   +set_viewport(rect)
   +face(color)
   +restore_default_view(color)
+  +flip()
   +drag_orbit(dx, dy)
   +zoom(wheel_steps)
   +pick(position): Cell | None
+  +begin_drag(square)
+  +drag_to(position)
+  +end_drag()
   +start_move(outcome)
   +start_king_fall(square, side, away_from)
   +launch_fireworks(colors)
@@ -52,6 +58,9 @@ class Hud {
   +viewport: Rect
   +active_color: Color | None
   +checked_color: Color | None
+  +thinking_color: Color | None
+  +mode_label: str
+  +hides_check_marks: bool
   --
   +layout(size): Rect
   +handle_event(event): bool
@@ -66,6 +75,7 @@ class PlayerCard {
   +layout(rect)
   +refresh(info)
   +draw(surface, lamp)
+  +draw_thinking_dots(surface, time)
 }
 
 class ScoreSheet {

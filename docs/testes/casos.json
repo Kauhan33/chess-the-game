@@ -8,7 +8,13 @@
     "UC06": "Consultar Caminhos e Ameaças",
     "UC07": "Verificar Xeque e Fim de Jogo",
     "UC08": "Encerrar Partida",
-    "UC09": "Pedir Revanche ou Voltar ao Menu"
+    "UC09": "Pedir Revanche ou Voltar ao Menu",
+    "UC10": "Jogar contra a CPU",
+    "UC11": "Criar Sala em Rede",
+    "UC12": "Entrar em Sala",
+    "UC13": "Entrar na Conta",
+    "UC14": "Consultar Histórico",
+    "UC15": "Copiar PGN"
   },
   "rf_para_uc": {
     "RF01": ["UC01"],
@@ -26,7 +32,50 @@
     "RF13": ["UC04", "UC09"],
     "RF14": ["UC07", "UC09"],
     "RF15": ["UC02"],
-    "RF16": ["UC02", "UC06"]
+    "RF16": ["UC02", "UC06"],
+    "RF17": ["UC01", "UC06"],
+    "RF18": ["UC10"],
+    "RF19": ["UC11", "UC12"],
+    "RF20": ["UC13"],
+    "RF21": ["UC14"],
+    "RF22": ["UC15"],
+    "RF23": ["UC02", "UC06"],
+    "RF24": ["UC01"]
+  },
+  "diagramas": {
+    "RF01": ["casos_de_uso", "classes_ui_telas", "estados_cenas"],
+    "RF02": ["classes_core_tabuleiro"],
+    "RF03": ["classes_core_motor", "seq_movimento"],
+    "RF04": ["classes_core_pecas", "seq_movimento"],
+    "RF05": ["classes_core_pecas", "classes_ui_controles", "seq_movimento"],
+    "RF06": ["classes_core_tabuleiro", "seq_movimento"],
+    "RF07": ["classes_core_motor", "seq_fim_verificacao", "estados_partida"],
+    "RF08": ["classes_ui_controles", "seq_clique", "seq_movimento"],
+    "RF09": ["classes_graphics_pipeline", "classes_ui_partida"],
+    "RF10": ["classes_graphics_pipeline", "classes_ui_partida"],
+    "RF11": ["classes_ui_partida"],
+    "RF12": ["classes_ui_controles", "estados_partida"],
+    "RF13": ["classes_ui_cenas", "estados_cenas"],
+    "RF14": ["seq_fim_vitoria", "estados_cenas"],
+    "RF15": ["classes_graphics_movimento", "classes_graphics_pipeline"],
+    "RF16": ["classes_graphics_pipeline", "seq_clique"],
+    "RF17": ["casos_de_uso", "classes_ui_cenas", "classes_ui_telas"],
+    "RF18": ["casos_de_uso", "classes_core_ia", "classes_ui_cpu_rede", "seq_cpu"],
+    "RF19": ["casos_de_uso", "classes_net", "classes_ui_cpu_rede", "seq_rede", "seq_rede_fim", "estados_sessao"],
+    "RF20": ["casos_de_uso", "classes_data", "classes_ui_telas"],
+    "RF21": ["casos_de_uso", "classes_data", "classes_ui_telas"],
+    "RF22": ["casos_de_uso", "classes_core_motor", "classes_ui_cenas"],
+    "RF23": ["classes_ui_partida", "classes_ui_cenas"],
+    "RF24": ["classes_core_motor"],
+    "RNF01": ["classes_ui_cenas"],
+    "RNF02": ["classes_visao_geral"],
+    "RNF03": ["seq_clique"],
+    "RNF04": ["classes_ui_partida"],
+    "RNF05": ["classes_visao_geral"],
+    "RNF06": ["classes_core_motor"],
+    "RNF07": ["seq_movimento", "classes_ui_controles"],
+    "RNF08": ["classes_data", "classes_net", "seq_rede_fim"],
+    "RNF09": ["classes_ui_cpu_rede", "seq_cpu"]
   },
   "rnf": {
     "RNF01": {
@@ -59,6 +108,15 @@
     "RNF07": {
       "criterio": "Entrada inválida vira erro tratado. Nenhum tamanho de janela derruba o jogo.",
       "testes": ["test_invalid_origin_never_raises_and_changes_nothing", "test_invalid_target_never_raises_and_changes_nothing", "test_tamanho_extremo_na_partida_nao_derruba", "test_redimensionar_mantem_o_clique_correto"]
+    },
+    "RNF08": {
+      "criterio": "A senha nunca é gravada: o arquivo só tem nome, sal, iterações e hash. Tudo o que chega da rede é conferido, e a mensagem inválida encerra a conexão.",
+      "testes": ["test_data_senha_nao_aparece_em_nenhum_byte", "test_senha_nao_fica_em_widget_nem_em_cache", "test_net_mensagem_invalida_e_recusada_nos_dois_sentidos", "test_net_ataque_de_dentro_da_partida_encerra_a_sala_com_erro", "test_jogada_ilegal_encerra_a_sala"]
+    },
+    "RNF09": {
+      "criterio": "Com a CPU pensando, a média fica perto de 60 FPS em 1280x720, em janela real, e a entrada responde no mesmo quadro.",
+      "testes": ["test_cpu_pensando_nao_bloqueia_quadro_nem_entrada", "test_intervalo_de_troca_vale_durante_a_busca_e_volta_depois", "test_com_a_camera_em_movimento_a_busca_dorme_a_cada_consulta"],
+      "medicao": "fps_cpu"
     }
   },
   "focos_do_enunciado": {
@@ -440,11 +498,11 @@
       "esperado": "Memória estável, caches e partículas sempre dentro do limite."
     },
     "CT-65": {
-      "titulo": "Sem rede, sem execução dinâmica, sem escrita",
+      "titulo": "Rede só em net, escrita só em data, sem execução dinâmica",
       "rf": ["RNF05", "RNF07"], "uc": ["UC02"],
       "entrada": "Todos os módulos do jogo e das ferramentas.",
       "procedimento": "Analisar o código-fonte pela árvore sintática.",
-      "esperado": "O jogo não importa rede nem subprocess, não usa eval nem exec e não escreve em disco. Só as ferramentas de documentação chamam programas externos."
+      "esperado": "Só `xadrez/net` importa socket e selectors, e só `xadrez/data` grava em disco. Threads só em `net` e na `ui`. Nada usa eval, exec, pickle nem subprocess, e só as ferramentas de documentação chamam programas externos."
     },
     "CT-66": {
       "titulo": "PNG, autoria, e-mails e caminhos pessoais",
@@ -459,6 +517,435 @@
       "entrada": "Todos os módulos do projeto.",
       "procedimento": "Analisar com ast.parse(feature_version=(3, 10)) e procurar biblioteca padrão nova e caminho fixo de sistema.",
       "esperado": "Todos os módulos são sintaxe válida de Python 3.10, sem API nova nem caminho fixo. A execução real em 3.10, Linux e macOS fica com o CI."
+    },
+    "CT-70": {
+      "titulo": "CPU sempre devolve jogada legal, sem alterar o tabuleiro",
+      "rf": ["RF18"], "uc": ["UC10"],
+      "entrada": "17 posições especiais (promoções, roques, en passant, xeques, cravada), 40 posições de partidas aleatórias e os 4 níveis, com o Hardcore limitado a 0,05 s. Perft do `SearchBoard` nas posições de referência.",
+      "procedimento": "Chamar `choose_move` e comparar a jogada com `legal_moves` e o FEN antes e depois. Contar posições no tabuleiro compacto e conferir, lance a lance, contra `rules.py`.",
+      "esperado": "A jogada é sempre legal e o FEN não muda. Promoção já vem com a peça. Sem jogada legal, `ValueError` claro. Os perft do tabuleiro compacto batem com os valores publicados."
+    },
+    "CT-71": {
+      "titulo": "CPU acha mate em 1 em todos os níveis",
+      "rf": ["RF18"], "uc": ["UC10"],
+      "entrada": "Posições de mate em 1, como o de corredor e o abafado, e mate no lance que completaria os 50 lances.",
+      "procedimento": "Pedir a jogada a cada nível e aplicá-la no tabuleiro.",
+      "esperado": "A jogada dá xeque-mate. O ruído do Easy e do Medium não esconde o mate. O mate no 50º lance vale mais que o empate."
+    },
+    "CT-72": {
+      "titulo": "CPU acha mate em 2 nos níveis Hard e Hardcore",
+      "rf": ["RF18"], "uc": ["UC10"],
+      "entrada": "Posições de mate em 2, como a escada de torres, e posições com mate rápido e mate lento.",
+      "procedimento": "Pedir a jogada e provar por força bruta que toda resposta permite mate imediato. Ler a nota de `analyze`.",
+      "esperado": "A jogada força o mate. O mate mais rápido é preferido, e a nota mede a distância. Quem está levando mate adia o quanto puder."
+    },
+    "CT-73": {
+      "titulo": "CPU não entrega a dama de graça a partir do Medium",
+      "rf": ["RF18"], "uc": ["UC10"],
+      "entrada": "Posições com a dama em jogo e partidas inteiras contra o Easy (estas com a marca `slow`).",
+      "procedimento": "Aplicar a jogada e conferir se o adversário pode capturar a dama com peça mais barata ou sem recaptura.",
+      "esperado": "Medium e Hard não deixam a dama de graça quando havia como evitar."
+    },
+    "CT-74": {
+      "titulo": "A força cresce com o nível, em partidas entre os níveis",
+      "rf": ["RF18"], "uc": ["UC10"],
+      "entrada": "12 partidas por par, com as cores alternadas e sementes fixas: Medium contra Easy, Hard contra Medium e Hardcore contra Hard, com o Hardcore limitado a 0,25 s por lance.",
+      "procedimento": "Jogar as partidas pelo motor até o fim, ou até 300 meios-lances, e somar os pontos.",
+      "esperado": "O nível mais forte faz pelo menos 75% dos pontos em cada par. Todo lance é aceito pelo motor.",
+      "so_lento": true
+    },
+    "CT-75": {
+      "titulo": "Cancelamento e limite de tempo da busca são respeitados",
+      "rf": ["RF18", "RNF09"], "uc": ["UC10"],
+      "entrada": "Meio-jogo e posição tática de referência, `should_stop` em vários momentos e `max_seconds` curto ou negativo.",
+      "procedimento": "Cancelar a busca do início, no meio e de outra thread. Medir o tempo com limite de tempo.",
+      "esperado": "A resposta é sempre uma jogada legal, a melhor achada até ali. O limite de tempo nunca passa de `max_seconds` com folga de 0,1 s. `should_stop` é consultado com frequência."
+    },
+    "CT-76": {
+      "titulo": "PGN válido, com resultado e cabeçalhos",
+      "rf": ["RF21", "RF22"], "uc": ["UC14", "UC15"],
+      "entrada": "Partidas com mate, empate e em andamento, FEN próprio, pretas jogando primeiro, nomes com aspas e barras e partidas longas.",
+      "procedimento": "Chamar `game_to_pgn` e refazer os lances do texto no motor.",
+      "esperado": "Cabeçalhos obrigatórios e resultado certos. FEN próprio gera `SetUp` e `FEN`. O texto fica em até 80 colunas, e a ida e volta dá a mesma partida. Nome nenhum quebra o cabeçalho."
+    },
+    "CT-77": {
+      "titulo": "Tempos com incremento",
+      "rf": ["RF24"], "uc": ["UC01"],
+      "entrada": "`TimeControl.BLITZ_3_2` e `TimeControl.CLASSIC_15_10`, além dos presets antigos.",
+      "procedimento": "Conferir os valores e jogar lances com o relógio correndo.",
+      "esperado": "O incremento entra só para quem jogou, e pode manter vivo quem passaria do tempo inicial. Os presets antigos não mudam."
+    },
+    "CT-80": {
+      "titulo": "Conta: criar, entrar, recusar senha errada e nome repetido",
+      "rf": ["RF20"], "uc": ["UC13"],
+      "entrada": "Contas em pasta temporária, grafias diferentes do mesmo nome, nomes e senhas inválidos e tipos errados.",
+      "procedimento": "Chamar `AccountStore.create` e `AccountStore.authenticate`.",
+      "esperado": "Entra só com a senha certa, com a mesma mensagem para senha errada e conta inexistente, e o mesmo custo de hash nos dois casos. Maiúsculas e formas Unicode são a mesma conta. Tipo errado responde não, sem exceção."
+    },
+    "CT-81": {
+      "titulo": "Senha nunca aparece no arquivo",
+      "rf": ["RNF08"], "uc": ["UC13"],
+      "entrada": "Senhas com acento e emoji, gravadas em pasta temporária.",
+      "procedimento": "Procurar a senha em todos os bytes do arquivo e ler os campos gravados.",
+      "esperado": "A senha não aparece em nenhuma codificação. O arquivo só guarda nome, sal, iterações e hash, e o sal muda mesmo com a mesma senha."
+    },
+    "CT-82": {
+      "titulo": "Histórico: mantém 50, ordem e estatísticas",
+      "rf": ["RF21"], "uc": ["UC14"],
+      "entrada": "Registros de `MatchRecord`, 51 partidas, duas contas e nomes maliciosos como `../../x`.",
+      "procedimento": "Chamar `HistoryStore.add`, `HistoryStore.records` e `HistoryStore.stats`.",
+      "esperado": "A mais recente vem primeiro, a 51ª empurra a mais antiga e as estatísticas contam só as guardadas. Cada conta tem o seu arquivo, e nome nenhum sai da pasta de dados."
+    },
+    "CT-83": {
+      "titulo": "Arquivo corrompido não derruba o jogo",
+      "rf": ["RF20", "RF21"], "uc": ["UC13", "UC14"],
+      "entrada": "Arquivos truncados e fora do formato, pasta impossível, falta de permissão simulada e troca atômica bloqueada. Local por sistema e `CHESS_THE_GAME_DATA`.",
+      "procedimento": "Abrir os dados em cada situação e conferir o que ficou em disco.",
+      "esperado": "O arquivo ruim é guardado com outro nome, e a lista começa vazia. Falha de gravação vira erro claro, sem deixar temporário e sem apagar o que existe. Abrir o jogo não grava nada."
+    },
+    "CT-85": {
+      "titulo": "Código de sala: ida e volta, e recusa de código inválido",
+      "rf": ["RF19"], "uc": ["UC11", "UC12"],
+      "entrada": "IPv4 variados, código em minúsculas e com espaços, dígito trocado, vizinhos trocados, códigos e tipos inválidos e endereços fora da rede local.",
+      "procedimento": "Chamar `encode_room_code`, `decode_room_code`, `local_ipv4` e `is_lan_address`.",
+      "esperado": "A ida e volta dá o mesmo IP, em 7 caracteres e sem 0, O, 1, I e L. A conferência pega a maioria dos erros de digitação. Erro vem em português. `local_ipv4` não envia pacote."
+    },
+    "CT-86": {
+      "titulo": "Partida inteira entre duas sessões por socket",
+      "rf": ["RF19"], "uc": ["UC11", "UC12"],
+      "entrada": "`HostSession` e `ClientSession` reais em 127.0.0.1, com partida até o fim, empate, desistência e revanche.",
+      "procedimento": "Trocar mensagens por `send_move`, `send_result` e os demais `send`, e ler os eventos em `poll`.",
+      "esperado": "Os dois lados terminam com o mesmo FEN. A jogada ilegal é recusada pelo motor de quem recebe. A revanche troca as cores e só começa com os dois pedidos. `result` só vale vindo da sala."
+    },
+    "CT-87": {
+      "titulo": "Queda de conexão vira evento, sem travar",
+      "rf": ["RF19"], "uc": ["UC11", "UC12"],
+      "entrada": "Queda brusca dos dois lados, sinal de vida parado, porta ocupada, segundo jogador, versão diferente, sala muda e fechamento em cada fase.",
+      "procedimento": "Provocar cada situação e ler `poll`, com tempos curtos em `NetTimings`.",
+      "esperado": "Toda falha vira `PeerLeft` ou `NetworkError`, uma vez só e com mensagem clara. `poll` não bloqueia, `close` não espera o prazo, e a porta fica livre depois."
+    },
+    "CT-88": {
+      "titulo": "Mensagens inválidas e maliciosas são recusadas",
+      "rf": ["RF19", "RNF08"], "uc": ["UC11", "UC12"],
+      "entrada": "Socket cru em 127.0.0.1: bytes aleatórios, linha sem fim, linha de 4097 bytes, tipos errados, enxurrada, conexões mudas e conexão de fora da rede local.",
+      "procedimento": "Enviar cada ataque antes e depois de entrar na sala e chamar `encode_message` e `decode_message`.",
+      "esperado": "Antes de entrar, só cai a conexão do atacante. Na partida, a sala encerra com erro. Nada acumula memória além do limite, e o nome do atacante não chega à tela."
+    },
+    "CT-90": {
+      "titulo": "Modo Partida esconde caminhos, ameaças e xeque; Treinamento mostra",
+      "rf": ["RF17"], "uc": ["UC01", "UC06"],
+      "entrada": "As mesmas posições nos dois modos, com peça selecionada, ameaça, xeque, lance ilegal e peça sem jogada.",
+      "procedimento": "Jogar por eventos e ler a matriz de cores, os marcadores, a planilha e a faixa de avisos.",
+      "esperado": "No modo Partida ficam só seleção, cursor e último lance, e a recusa é \"Lance inválido.\". A planilha omite `+` e `#` até o fim. As regras são as mesmas nos dois modos. Treinamento mostra tudo."
+    },
+    "CT-91": {
+      "titulo": "Partida contra a CPU até o fim, por eventos",
+      "rf": ["RF18"], "uc": ["UC10"],
+      "entrada": "Do menu à tela de fim em cada nível, com a CPU de brancas e de pretas e sorteio de cor.",
+      "procedimento": "Jogar por eventos reais até o fim, com mate dos dois lados, captura, roque e promoção da CPU e revanche.",
+      "esperado": "A tela de fim abre com o resultado certo. A CPU promove sem abrir o diálogo, e suas jogadas animam. A câmera fica do lado do jogador, e a revanche troca as cores."
+    },
+    "CT-92": {
+      "titulo": "CPU pensando não bloqueia a entrada nem o desenho",
+      "rf": ["RF18", "RNF09"], "uc": ["UC10"],
+      "entrada": "Partida contra o Hardcore, mouse sobre o tabuleiro, câmera em movimento, pausa, reinício, desistência, menu, fechamento e busca com falha.",
+      "procedimento": "Dar quadros com a busca correndo e conferir o cursor, a thread, `sys.getswitchinterval` e a cópia do tabuleiro.",
+      "esperado": "O cursor responde no mesmo quadro e o tabuleiro real não muda. O intervalo de troca vale durante a busca e sempre volta. Com a câmera em movimento, a busca dorme. Toda saída cancela sem deixar thread."
+    },
+    "CT-93": {
+      "titulo": "Login, criação de conta e convidado",
+      "rf": ["RF20"], "uc": ["UC13"],
+      "entrada": "Eventos reais de teclado e mouse em `App(require_login=True)`, com dados em pasta temporária.",
+      "procedimento": "Criar conta, entrar com outra grafia, errar a senha, jogar como convidado e sair da conta.",
+      "esperado": "`main` abre no login e `App()` abre no menu. Senha errada e conta inexistente têm a mesma mensagem. A senha é mascarada e não passa pelo cache de texto. O convidado entra sem conta."
+    },
+    "CT-94": {
+      "titulo": "Partida encerrada entra no histórico da conta",
+      "rf": ["RF21"], "uc": ["UC14"],
+      "entrada": "Partidas de conta logada e de convidado, mate, empate, CPU, reinício, abandono e arquivo corrompido.",
+      "procedimento": "Terminar a partida por eventos e abrir a aba \"Meu histórico\": lista, folha, roda, teclado e cópia.",
+      "esperado": "A partida entra uma vez, com a cor, o resultado e o nível certos, mesmo com a peça no ar. Reinício e convidado não gravam. Falha ao gravar vira aviso. Arquivo ruim não derruba a aba."
+    },
+    "CT-95": {
+      "titulo": "Duas instâncias do jogo em rede, por eventos",
+      "rf": ["RF19"], "uc": ["UC11", "UC12"],
+      "entrada": "Duas instâncias de `App` no mesmo processo, em 127.0.0.1, do menu até a revanche.",
+      "procedimento": "Jogar pelos dois lados por eventos, com relógio, empate, desistência, queda e jogada ilegal vinda de fora.",
+      "esperado": "Os dois lados chegam ao mesmo FEN e ao mesmo resultado. A sala mede os relógios e decide. `clock_ms` não decide nada. Jogada ilegal encerra a sala, e não há pausa nem reinício em rede."
+    },
+    "CT-96": {
+      "titulo": "Arrastar a peça para jogar",
+      "rf": ["RF23"], "uc": ["UC02"],
+      "entrada": "Arrastos por eventos até destino válido, destino ilegal, fora do tabuleiro, painel, promoção e na vez da CPU.",
+      "procedimento": "Apertar, mover e soltar, lendo a matriz de modelo, a seleção e a jogada.",
+      "esperado": "Passando de 6 pixels, a peça sobe e segue o mouse. Soltar em destino válido joga. Na própria casa mantém a seleção, e fora do tabuleiro só devolve. Clique e teclado seguem valendo."
+    },
+    "CT-97": {
+      "titulo": "Virar o tabuleiro mantém o clique correto",
+      "rf": ["RF23"], "uc": ["UC02", "UC06"],
+      "entrada": "Tecla F e botão \"Virar\", com a câmera parada, durante o giro e na volta à vista padrão.",
+      "procedimento": "Virar, clicar em várias casas e usar as setas.",
+      "esperado": "A câmera termina no lado exato oposto, o clique continua na casa certa e as setas seguem o lado de quem olha. A vista padrão desfaz a virada."
+    },
+    "CT-98": {
+      "titulo": "Copiar PGN",
+      "rf": ["RF22"], "uc": ["UC15"],
+      "entrada": "Botão e tecla C na partida e na tela de fim, com `pygame.scrap` substituído por uma imitação e sem janela.",
+      "procedimento": "Copiar e ler o texto entregue à área de transferência.",
+      "esperado": "O texto é o PGN da partida. No Windows vai em `mbcs` com quebra de linha do sistema, e nos outros em UTF-8. Falha vira aviso, nunca exceção."
+    },
+    "CT-100": {
+      "titulo": "Modo Partida: tela igual com e sem xeque",
+      "rf": ["RF17"], "uc": ["UC06"],
+      "entrada": "Posições em que só o xeque muda, porque o peão bloqueia ou não a coluna, e cavalo cravado e livre.",
+      "procedimento": "Comparar a tela pixel a pixel nos dois casos. Repetir em Treinamento, como controle.",
+      "esperado": "Painel e faixa idênticos, e tabuleiro idêntico fora das casas do peão. O controle em Treinamento mostra a diferença, o que prova que o teste enxerga."
+    },
+    "CT-101": {
+      "titulo": "Modo Partida: recusa igual em todo motivo",
+      "rf": ["RF17"], "uc": ["UC02"],
+      "entrada": "Lance ilegal por motivos diferentes, peça do adversário, casa vazia, arrasto recusado e peão cravado na sétima.",
+      "procedimento": "Tentar cada lance por eventos e ler a faixa, o tremor e os marcadores.",
+      "esperado": "A mensagem é sempre \"Lance inválido.\", sem tremor nem anel. Peça sem jogada não avisa nada. O peão cravado não abre a promoção."
+    },
+    "CT-102": {
+      "titulo": "Modo Partida: só indicadores neutros em cada quadro",
+      "rf": ["RF17"], "uc": ["UC06", "UC10", "UC11"],
+      "entrada": "Partida com xeques em 2 jogadores, contra a CPU e em rede, com o painel F4 aberto.",
+      "procedimento": "Ler em cada quadro os estados da matriz, os tints, as placas e o painel F4.",
+      "esperado": "Só aparecem seleção, cursor e último lance, em todos os quadros. A revanche continua em Partida."
+    },
+    "CT-103": {
+      "titulo": "Modo Partida: planilha e cópia sem as marcas de xeque",
+      "rf": ["RF17", "RF22"], "uc": ["UC06", "UC15"],
+      "entrada": "Partidas com xeque e mate, e jogador com `+` ou `#` no nome.",
+      "procedimento": "Ler a planilha e copiar o PGN no meio da partida e depois do fim.",
+      "esperado": "Com a partida correndo, planilha e cópia omitem `+` e `#` dos lances, e o cabeçalho fica como está. Depois do fim, a notação sai completa."
+    },
+    "CT-104": {
+      "titulo": "Treinamento continua igual à versão 1.0",
+      "rf": ["RF17", "RF09", "RF10"], "uc": ["UC06"],
+      "entrada": "Posições com caminho, captura, ameaça, xeque e peça sem jogada, e dois jogadores com o mesmo nome.",
+      "procedimento": "Jogar por eventos em Treinamento, ler a tela e copiar o PGN.",
+      "esperado": "Caminhos, capturas, ameaças, xeque, tremor e motivo da recusa aparecem. A cópia traz `+` e `#`. Nomes iguais ficam diferentes na tela."
+    },
+    "CT-105": {
+      "titulo": "Cada saída com a CPU pensando cancela a busca",
+      "rf": ["RF18", "RNF09"], "uc": ["UC10"],
+      "entrada": "Pausar, reiniciar, desistir, menu, fechar, redimensionar e virar com a CPU pensando, inclusive mil trocas de partida.",
+      "procedimento": "Executar cada saída e conferir thread, lance e `sys.getswitchinterval`.",
+      "esperado": "Nada chega depois da saída, nenhuma thread sobra e o intervalo de troca volta ao original, mesmo com exceção. Redimensionar e virar não cancelam."
+    },
+    "CT-106": {
+      "titulo": "Jogada atrasada da CPU não entra em outra partida",
+      "rf": ["RF18"], "uc": ["UC10"],
+      "entrada": "Busca cancelada que ainda termina, tempo acabando no quadro em que a busca termina, rei sozinho e posição sem lance.",
+      "procedimento": "Forçar cada corrida com busca substituída ou relógio ajustado.",
+      "esperado": "A jogada de uma busca cancelada nunca chega à partida seguinte. O tempo acabado vale antes do lance. Sem lance, nenhuma thread abre."
+    },
+    "CT-107": {
+      "titulo": "A CPU faz lances especiais, dá mate e abre de brancas",
+      "rf": ["RF18"], "uc": ["UC10"],
+      "entrada": "Posições de roque, en passant, promoção e mate para a CPU, e revanche que a põe de brancas.",
+      "procedimento": "Jogar por eventos até o lance dela e até a tela de fim.",
+      "esperado": "Os lances valem e animam. O mate grava a derrota de quem está logado. O relógio dela anda enquanto pensa, e o do humano não."
+    },
+    "CT-108": {
+      "titulo": "Orçamento da CPU cabe no relógio",
+      "rf": ["RF18"], "uc": ["UC10"],
+      "entrada": "`search_budget` em vários valores de relógio e incremento, e Hardcore com 1 s e 2 s de incremento.",
+      "procedimento": "Calcular o orçamento e jogar lances reais em tempo real.",
+      "esperado": "O orçamento nunca passa do que resta no relógio, e a CPU joga antes de o tempo acabar, mesmo com pouco tempo."
+    },
+    "CT-109": {
+      "titulo": "Entrada na vez da CPU e falhas da busca",
+      "rf": ["RF18", "RNF07"], "uc": ["UC10"],
+      "entrada": "Clique, arrasto e teclado na vez dela, jogada recusada pelo motor, thread que não abre e dois Enter no menu.",
+      "procedimento": "Enviar os eventos e simular cada falha.",
+      "esperado": "Nada muda na posição. A falha vira lance simples com aviso, e a partida segue. Dois Enter abrem uma partida só."
+    },
+    "CT-110": {
+      "titulo": "Rede: o que chega pelo socket",
+      "rf": ["RF19", "RNF08"], "uc": ["UC11", "UC12"],
+      "entrada": "Socket cru contra a tela real: jogada ilegal e fora da vez, formato errado, `clock_ms` falso, 500 propostas de empate, `hello` e `start` fora de hora, `result` que não confere.",
+      "procedimento": "Enviar cada mensagem com o jogo aberto e ler o motor, os relógios e as sobreposições.",
+      "esperado": "A sala encerra com vitória de quem ficou, nada é aplicado ao tabuleiro e nenhum relógio muda. O `result` que não confere com o tabuleiro encerra a partida. Sala muda não prende quem entrou."
+    },
+    "CT-111": {
+      "titulo": "Rede: nome hostil passa pela tela sem derrubar",
+      "rf": ["RF19", "RNF08"], "uc": ["UC11", "UC12"],
+      "entrada": "Nomes de 16 W, só acentos combinantes, emoji, árabe, coreano e controle.",
+      "procedimento": "Fazer o nome chegar pela rede e passar pelo HUD, pela faixa, pelas sobreposições e pela tela de fim.",
+      "esperado": "Nada cai nem vaza da área. Inversão de direção e controle são recusados pelo protocolo."
+    },
+    "CT-112": {
+      "titulo": "Rede: queda em cada estado",
+      "rf": ["RF19", "RNF07"], "uc": ["UC11", "UC12"],
+      "entrada": "Queda na sala, no diálogo de promoção, em sobreposição aberta, com a peça no ar e na tela de fim.",
+      "procedimento": "Fechar o outro lado em cada estado e dar quadros.",
+      "esperado": "A partida termina sem cair e a revanche desliga. O motivo chega à tela de fim. Quem perdeu não lê que venceu."
+    },
+    "CT-113": {
+      "titulo": "Rede: mesmo FEN e mesmo resultado em cada fim",
+      "rf": ["RF19"], "uc": ["UC11", "UC12"],
+      "entrada": "Duas telas reais: mate, empate, desistência, abandono, desistências cruzadas, lance cruzado com o fim e mate cruzado com o tempo.",
+      "procedimento": "Jogar pelos dois lados e comparar FEN, histórico, resultado e placar.",
+      "esperado": "Os dois lados terminam iguais, e o lance que cruzou com o fim é desfeito. Único caso sem como igualar: quem saiu com um lance da sala a caminho fica com um lance a menos, com o mesmo vencedor."
+    },
+    "CT-114": {
+      "titulo": "Rede: quem criou a sala decide o tempo",
+      "rf": ["RF19"], "uc": ["UC11", "UC12"],
+      "entrada": "Relógios esgotados dos dois lados, relógios defasados, cópia que ignora o próprio relógio e revanche com a sala de pretas.",
+      "procedimento": "Dar quadros com `dt` diferente em cada lado e ler o resultado.",
+      "esperado": "A sala mede os dois relógios e decide, inclusive jogando de pretas. Nunca há dois vencedores nem motivos diferentes. Jogada depois do fim é ignorada, e quem fica só com o rei empata."
+    },
+    "CT-115": {
+      "titulo": "Rede: revanche e proposta de empate",
+      "rf": ["RF19"], "uc": ["UC11", "UC12"],
+      "entrada": "Pedidos cruzados, proposta sem resposta, proposta repetida, recusa, lance que recusa e resposta sem proposta.",
+      "procedimento": "Enviar por eventos e pelo socket, com as duas telas abertas.",
+      "esperado": "A revanche cruzada começa uma partida só, com as cores trocadas. Vale uma proposta por lance. O cartão fica sobre a planilha, sem parar o relógio, e jogar um lance recusa."
+    },
+    "CT-116": {
+      "titulo": "Rede: entrada na sala",
+      "rf": ["RF19"], "uc": ["UC11", "UC12"],
+      "entrada": "Código errado, em minúsculas e com espaços, Enter repetido e reabertura logo depois de sair, na mesma porta em 127.0.0.1.",
+      "procedimento": "Digitar por eventos e abrir a sala de novo.",
+      "esperado": "Erro vira mensagem, e o campo continua funcionando. Enter repetido abre uma sessão só. A porta reabre na hora, mesmo com a conexão em TIME_WAIT."
+    },
+    "CT-117": {
+      "titulo": "Rede: thread e socket não sobram",
+      "rf": ["RF19", "RNF07"], "uc": ["UC11", "UC12"],
+      "entrada": "8 caminhos de saída: cancelar, fechar a sala, fechar entrando, sair para o menu, fechar na partida, sair e fechar na tela de fim e jogada de trapaça.",
+      "procedimento": "Percorrer cada caminho e listar as threads e a porta.",
+      "esperado": "Nenhuma thread `chess-net` nem porta aberta sobra."
+    },
+    "CT-118": {
+      "titulo": "Login e conta por teclado e mouse",
+      "rf": ["RF20"], "uc": ["UC13"],
+      "entrada": "Nome com acento, maiúsculas, espaços e emoji, e senha vazia, longa, com espaços e acentos.",
+      "procedimento": "Preencher por eventos, inclusive só com Tab e Enter.",
+      "esperado": "A conta entra por qualquer grafia. Emoji não entra no campo. Enter em \"Senha\" avança para \"Repita a senha\" ao criar conta. Erro limpa as senhas, com a mesma mensagem para senha errada e conta inexistente."
+    },
+    "CT-119": {
+      "titulo": "A senha não fica em widget nem em cache",
+      "rf": ["RNF08"], "uc": ["UC13"],
+      "entrada": "Seis caminhos depois de digitar a senha, senhas diferentes e arquivo de contas.",
+      "procedimento": "Procurar a senha nos campos, no cache de texto do tema e no arquivo. Comparar o desenho da máscara.",
+      "esperado": "A senha não fica em lugar nenhum depois de usada. A máscara desenha só pontos, igual para senhas diferentes do mesmo tamanho."
+    },
+    "CT-120": {
+      "titulo": "Arquivo de contas ruim vira aviso",
+      "rf": ["RF20", "RNF07"], "uc": ["UC13"],
+      "entrada": "`accounts.json` corrompido de vários jeitos, pasta inválida, arquivo que é uma pasta e arquivo somente leitura.",
+      "procedimento": "Abrir o login e criar uma conta em cada caso.",
+      "esperado": "A tela mostra aviso e nunca cai. A conta nova funciona quando dá para gravar. O arquivo ruim fica guardado, e nenhum temporário sobra."
+    },
+    "CT-121": {
+      "titulo": "Histórico editado à mão não derruba a aba",
+      "rf": ["RF21", "RNF07"], "uc": ["UC14"],
+      "entrada": "Campos adulterados, tipos errados, controle, nome e PGN gigantes e duração de 401 dígitos.",
+      "procedimento": "Abrir a aba \"Meu histórico\" e a folha, e gravar uma partida nova por cima.",
+      "esperado": "A aba abre e desenha, e os textos e números param no limite de cada campo. A partida nova entra, e arquivo sem gravação vira aviso na tela de fim."
+    },
+    "CT-122": {
+      "titulo": "Registro correto em cada fim de partida",
+      "rf": ["RF21"], "uc": ["UC14"],
+      "entrada": "Mate, empate, desistência, tempo, revanche, CPU e rede, com abandono e janela fechada.",
+      "procedimento": "Terminar por eventos e ler o registro.",
+      "esperado": "Resultado, adversário, cor, duração, modo e motivo certos, uma vez só. Em rede, cada lado grava a sua visão. Fechar a janela grava a derrota de quem saiu."
+    },
+    "CT-123": {
+      "titulo": "Contas separadas, convidado e 51ª partida",
+      "rf": ["RF20", "RF21"], "uc": ["UC13", "UC14"],
+      "entrada": "Duas contas com nomes parecidos, convidado, \"Sair da conta\", 51 partidas e lista vazia.",
+      "procedimento": "Jogar e navegar por eventos, inclusive Esc, Esc e Enter na aba.",
+      "esperado": "Os históricos não se misturam, e o convidado não toca a pasta de dados. A 51ª empurra a mais antiga, e a lista rola até o fim. Esc e Enter não saem da conta."
+    },
+    "CT-124": {
+      "titulo": "Arrastar: soltar fora e interromper",
+      "rf": ["RF23", "RNF07"], "uc": ["UC02"],
+      "entrada": "Soltar no painel, em botão, fora da janela, sem ter apertado. Tecla, botão direito, janela, F3, F4 e F11 com a peça no ar.",
+      "procedimento": "Enviar os eventos no meio do arrasto.",
+      "esperado": "A peça volta, nenhum botão é acionado e nada cai. O botão direito gira a câmera, e o arrasto continua."
+    },
+    "CT-125": {
+      "titulo": "Arrastar: na vez errada, em voo e no fim",
+      "rf": ["RF23"], "uc": ["UC02"],
+      "entrada": "Peça do outro, casa vazia, voo, tempo esgotando, e em rede na vez do outro e com ele desistindo.",
+      "procedimento": "Apertar e arrastar em cada situação.",
+      "esperado": "O arrasto não começa quando não pode. Com a partida acabando, a peça volta. Em rede, o arrasto solto envia a jogada."
+    },
+    "CT-126": {
+      "titulo": "Arrastar até a promoção e misturar com clique",
+      "rf": ["RF23", "RF05"], "uc": ["UC02", "UC05"],
+      "entrada": "Peão na sétima, cancelamento, tempo esgotando com o diálogo aberto e sequências de clique e arrasto.",
+      "procedimento": "Arrastar, escolher ou cancelar, e clicar em seguida.",
+      "esperado": "O diálogo abre, e cancelar não joga. Clicar de novo na selecionada só desmarca ao soltar. Enter com a peça no ar age sobre o cursor e termina o arrasto."
+    },
+    "CT-127": {
+      "titulo": "Virar durante o giro e a animação",
+      "rf": ["RF23"], "uc": ["UC02", "UC06"],
+      "entrada": "Tecla F durante o giro por turno, o voo, a volta à vista padrão e a animação de fim.",
+      "procedimento": "Virar e conferir o yaw final, o clique e as setas.",
+      "esperado": "A câmera termina no lado oposto ao destino do giro, com o clique certo. As setas seguem o lado, e a tela de fim abre normalmente."
+    },
+    "CT-128": {
+      "titulo": "Copiar PGN: casos difíceis",
+      "rf": ["RF22"], "uc": ["UC15"],
+      "entrada": "Sem lances, nomes com aspas, barras e colchetes, revanche, área de transferência falhando, durante o voo e na vez da CPU.",
+      "procedimento": "Copiar e refazer o texto lance a lance.",
+      "esperado": "O texto é sempre um PGN válido, com os nomes certos depois da revanche. Falha vira aviso. Copiar não toca na busca da CPU."
+    },
+    "CT-129": {
+      "titulo": "O 2º clique de um clique duplo não aciona a tela nova",
+      "rf": ["RNF07"], "uc": ["UC01", "UC09", "UC11", "UC13"],
+      "entrada": "Clique duplo em cada troca de tela: menu e partida, login e menu, sala, tela de fim e folha do histórico.",
+      "procedimento": "Enviar dois cliques no mesmo ponto, sem tempo real entre eles.",
+      "esperado": "Por 0,25 s, o clique no mesmo lugar (até 3 pixels) é descartado. Nada abre sem querer."
+    },
+    "CT-130": {
+      "titulo": "Macaco da versão 1.1",
+      "rf": ["RNF07"], "uc": ["UC02", "UC10", "UC11", "UC13", "UC14"],
+      "entrada": "Eventos com semente fixa por login, menu, histórico, sala, CPU nos 4 níveis, rede com um robô real em 127.0.0.1 e tela de fim. O longo tem 16 sementes de 6000 quadros, com a marca `slow`.",
+      "procedimento": "Enviar eventos aleatórios e conferir as invariantes a cada quadro.",
+      "esperado": "Nenhuma exceção do jogo, nenhuma invariante quebrada, nenhuma thread sobrando e nenhuma senha em cache."
+    },
+    "CT-131": {
+      "titulo": "Telas: nada fora da janela nem por cima de nada",
+      "rf": ["RNF07"], "uc": ["UC01", "UC11", "UC13", "UC14"],
+      "entrada": "Login, menu em cada opção, histórico cheio e sala, em 7 tamanhos de janela, de 640x360 a 1920x1080, com nomes longos.",
+      "procedimento": "Montar cada tela e conferir os retângulos dos controles.",
+      "esperado": "Todos os controles dentro da janela e sem se sobrepor a partir de 640x480. Abaixo disso, o jogo não cai.",
+      "ressalva": "Os 4 em xfail são o QA11-17, aceito: em 640x360 os formulários não cabem, e o jogo não cai."
+    },
+    "CT-132": {
+      "titulo": "HUD, sobreposições e tela de fim em cada janela",
+      "rf": ["RF11", "RNF07"], "uc": ["UC02", "UC09"],
+      "entrada": "HUD com 3 e 4 fileiras de botões, em rede com 6 botões, sobreposições e tela de fim, nos mesmos tamanhos.",
+      "procedimento": "Montar cada tela e conferir os retângulos.",
+      "esperado": "Tudo cabe na janela, sem sobreposição."
+    },
+    "CT-133": {
+      "titulo": "Nome longo não corta o que explica a ação",
+      "rf": ["RF11", "RF14"], "uc": ["UC02", "UC09"],
+      "entrada": "Nomes de 16 caracteres largos na faixa, no botão de aceitar revanche e na tela de fim.",
+      "procedimento": "Medir o texto na área de cada um.",
+      "esperado": "O texto cabe, e a ação continua à vista. O painel lateral não passa da metade da janela."
+    },
+    "CT-134": {
+      "titulo": "O motivo gravado respeita quem lê",
+      "rf": ["RF21"], "uc": ["UC14"],
+      "entrada": "Abandono em rede, gravado nos dois lados.",
+      "procedimento": "Ler o registro de quem saiu e de quem ficou.",
+      "esperado": "Quem saiu lê \"Abandonou a partida\", e quem ficou lê \"Adversário desconectou\"."
+    },
+    "CT-135": {
+      "titulo": "Os documentos falam da versão que roda",
+      "rf": ["RF17", "RF18", "RF19", "RF20", "RF21", "RF22", "RF23", "RF24"], "uc": ["UC01", "UC02", "UC10", "UC11", "UC12", "UC13", "UC14", "UC15"],
+      "entrada": "O jogo, o design, os capítulos 1, 7 e 8 e o README.",
+      "procedimento": "Conferir que cada RF novo existe no código e aparece nos documentos, e que o README cita CPU, rede, conta e histórico.",
+      "esperado": "Cada RF existe no jogo e é citado nos três capítulos e no contrato."
     }
   }
 }

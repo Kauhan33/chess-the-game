@@ -10,14 +10,21 @@ class App {
   +pacer: FramePacer
   +theme: Theme
   +meshes: dict
+  +tableau: Tableau
+  +require_login: bool
+  +network
+  +account: str | None
   +running: bool
   +fps: float
   +frame_ms: float
   +scene: Scene
   --
+  +history_store(): HistoryStore | None
+  +login_scene(start_creating=False)
   +menu_scene(defaults=None)
-  +game_scene(engine, options, view=None)
-  +game_over_scene(engine, options, view)
+  +lobby_scene(options, role)
+  +game_scene(engine, options, view, local_player, link)
+  +game_over_scene(engine, options, view, local_player, link)
   +step(dt)
   +run_frame()
   +preload()
@@ -41,30 +48,29 @@ abstract class Scene {
   {abstract} +update(dt)
   {abstract} +draw(surface)
   {abstract} +resize(size)
+  +shutdown()
 }
 
+class ArenaScene
+
 class MenuScene {
-  +white_input: TextInput
-  +black_input: TextInput
-  +time_selector: Selector
-  +camera_selector: Selector
-  +start_button: Button
-  +help_button: Button
-  +focus: FocusGroup
-  +modal: Overlay | None
-  +camera: Camera
-  +renderer: Renderer3D
-  --
   +options(): MatchOptions
   +start_match()
-  +open_help()
 }
+
+class LoginScene
+
+class LobbyScene
 
 class GameScene {
   +engine: GameEngine
   +options: MatchOptions
   +view: BoardView
+  +local_player: Player
+  +hides_hints: bool
   +auto_rotate: bool
+  +cpu: CpuPlayer | None
+  +net: NetMatch | None
   +selection: Square | None
   +targets: dict[Square, Move]
   +cursor: Cell | None
@@ -78,6 +84,12 @@ class GameScene {
   +open_help()
   +confirm_restart()
   +restart()
+  +copy_pgn()
+  +flip_board()
+  +shutdown()
+  -_press_square(position)
+  -_drop_piece(origin, cell)
+  -_compute_alerts()
   -_activate_square(cell)
   -_submit_move(origin, target, promotion)
   -_refuse(error, square)
@@ -95,10 +107,20 @@ class GameOverScene {
   +result: GameResult
   +rematch_button: Button
   +menu_button: Button
+  +copy_button: Button
+  +link: NetLink | None
   +focus: FocusGroup
   --
   +rematch()
   +go_to_menu()
+  +copy_pgn()
+}
+
+enum GameMode {
+  TRAINING
+  MATCH
+  +label: str
+  +description: str
 }
 
 class MatchOptions <<frozen>> {
@@ -106,8 +128,14 @@ class MatchOptions <<frozen>> {
   +black_name: str
   +time_control: TimeControl
   +auto_rotate: bool
+  +mode: GameMode
+  +opponent_kind: str
+  +difficulty: Difficulty
+  +human_color: Color | None
+  +is_local: bool
+  +cpu_name: str
   --
-  +create_engine(fen=None): GameEngine
+  +create_engine(fen, human_color): GameEngine
 }
 
 class GameEngine
@@ -115,7 +143,10 @@ class BoardView
 
 App *-right- "1$p" Scene : cena atual
 App *-- "1$p" FramePacer
-Scene <|-- MenuScene
+Scene <|-- ArenaScene
+ArenaScene <|-- MenuScene
+ArenaScene <|-- LoginScene
+ArenaScene <|-- LobbyScene
 Scene <|-- GameScene
 Scene <|-- GameOverScene
 GameScene o-- "1$p" BoardView
@@ -124,4 +155,6 @@ GameScene -- "1$p" GameEngine
 GameOverScene -- "1$p" GameEngine
 MenuScene ..> MatchOptions : cria
 MatchOptions ..> GameEngine : cria
+MatchOptions -- "1$p" GameMode
+GameScene ..> MatchOptions : lê
 @enduml

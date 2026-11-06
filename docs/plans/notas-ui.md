@@ -297,6 +297,10 @@ com `sys.setswitchinterval(0.0002)`, e dorme 1 ms a cada consulta enquanto há a
 Quando a câmera para de girar, a camada do tabuleiro e os sprites são refeitos em alguns quadros: é daí que vem o p99
 maior na segunda linha.
 
+A tabela acima é de antes das correções do QA, e fica como registro. A medição que vale para a entrega é a do commit
+`eaf8f25`, com a mesma ferramenta: 60,0 FPS em 2 jogadores, 59,7 na partida contra a CPU Hardcore, 59,5 com a CPU pensando
+e a câmera parada, e 59,7 com a CPU pensando e animação (`docs/testes/medicoes.json`).
+
 `tools/benchmark_ui.py --seconds 8`, sem janela e sem `display.flip`, depois do HUD com os botões novos, em 1280x720:
 
 | Cenário | Média | p95 | p99 | Máximo |

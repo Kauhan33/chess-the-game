@@ -1,0 +1,103 @@
+@startuml classes_data
+!pragma layout smetana
+!include _estilo.iuml
+title Camada data: contas e histórico em disco
+hide empty members
+
+class AccountStore {
+  -_path: Path
+  --
+  +create(username, password)
+  +authenticate(username, password): bool
+  +usernames(): list[str]
+  -_find(username): _Account | None
+  -_load(): dict[str, _Account]
+}
+
+class _Account <<frozen>> {
+  +username: str
+  +salt: bytes
+  +iterations: int
+  +password_hash: bytes
+}
+
+class accounts <<module>> {
+  +username_key(username): str
+  -_hash_password(password, salt, iterations): bytes
+  -_new_account(username, password): _Account
+  -_clean_username(username): str
+  -_require_valid_password(password)
+  -_parse_accounts(payload): dict
+}
+
+class HistoryStore {
+  -_path: Path
+  --
+  +add(record)
+  +records(): list[MatchRecord]
+  +stats(): HistoryStats
+  -_load(): list[MatchRecord]
+}
+
+class MatchRecord <<frozen>> {
+  +played_at: str
+  +opponent: str
+  +opponent_kind: str
+  +difficulty: str | None
+  +color: str
+  +outcome: str
+  +reason: str
+  +moves: int
+  +seconds: float
+  +time_control: str
+  +mode: str
+  +pgn: str
+  +final_fen: str
+}
+
+class HistoryStats <<frozen>> {
+  +played: int
+  +wins: int
+  +losses: int
+  +draws: int
+}
+
+class storage <<module>> {
+  +read_json(path): object | None
+  +write_json_atomic(path, payload)
+  +quarantine(path)
+  -_replace_with_retry(source, target)
+}
+
+class paths <<module>> {
+  +data_dir(): Path
+  -_platform_dir(platform): Path
+}
+
+class DataError
+class AccountError
+
+DataError <|-- AccountError
+AccountStore *-- "0..*$p" _Account
+AccountStore ..> accounts : usa
+AccountStore ..> storage : usa
+AccountStore ..> paths : usa
+AccountStore ..> AccountError : levanta
+HistoryStore *-- "0..50$p" MatchRecord
+HistoryStore ..> HistoryStats : devolve
+HistoryStore ..> accounts : nome do arquivo
+HistoryStore ..> storage : usa
+HistoryStore ..> paths : usa
+storage ..> DataError : levanta
+
+note bottom of accounts
+  PBKDF2-HMAC-SHA256, 600 mil iterações,
+  sal de 16 bytes por conta.
+  A senha nunca é gravada.
+end note
+note bottom of storage
+  Grava em um temporário e troca de uma vez.
+  Arquivo ruim é guardado com outro nome,
+  e o jogo segue com a lista vazia.
+end note
+@enduml

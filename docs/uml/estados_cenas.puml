@@ -4,14 +4,22 @@
 title Fluxo entre as telas (App.scene)
 hide empty description
 
-state "MenuScene\nMenu inicial" as Menu
+state "LoginScene\nEntrar ou criar conta" as Login
+state "MenuScene\nAbas Jogar e Meu histórico" as Menu
+state "LobbyScene\nSala: criar ou entrar" as Sala
 state "GameScene\nPartida" as Jogo
 state "GameOverScene\nFim de jogo" as Fim
 
-[*] --> Menu : App()
-Menu --> Jogo : Iniciar partida
+[*] --> Login : App(require_login=True), o jogo do jogador
+[*] --> Menu : App(), testes e ferramentas
+Login --> Menu : Entrar, Criar conta\nou Jogar como convidado
+Menu --> Login : Sair da conta, Entrar ou Criar conta
+Menu --> Jogo : Iniciar partida\n(2 jogadores ou contra a CPU)
+Menu --> Sala : Criar sala\nou Entrar com código
+Sala --> Menu : Cancelar e voltar
+Sala --> Jogo : GameStart\n(os dois lados)
 Jogo --> Fim : resultado definido\ne fim da animação
 Fim --> Jogo : Revanche com cores trocadas\n(mesmo motor, placar mantido)
 Fim --> Menu : Voltar ao menu
-Jogo --> Menu : Pausa, Voltar ao menu, confirmar
+Jogo --> Menu : Voltar ao menu, ou\nSair da sala (abandono)
 @enduml

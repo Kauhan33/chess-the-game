@@ -6,8 +6,9 @@ Uso: python tools/relatorio_testes.py [--rapido] [--reusar]
 
 Junta o resultado do pytest (`--ct-report`, JUnit e cobertura) com as especificações de
 docs/testes/casos.json e escreve as seções geradas de docs/07-plano-de-testes.md e todo o
-docs/08-matriz-rastreabilidade.md. Falha com mensagem clara se um RF ficar sem UC ou CT, se um CT
+docs/08-matriz-rastreabilidade.md. Falha com mensagem clara se um RF ficar sem UC, CT ou diagrama, se um CT
 não existir na execução ou se faltar especificação. Teste que falhou aparece como falha no documento.
+Teste em `xfail` ou pulado aparece como tal, nunca como aprovado.
 """
 from __future__ import annotations
 
@@ -24,6 +25,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 DESIGN_FILE = ROOT / "docs" / "plans" / "2026-11-03-xadrez-design.md"
+UML_DIR = ROOT / "docs" / "uml"
 CASES_FILE = ROOT / "docs" / "testes" / "casos.json"
 MEASURES_FILE = ROOT / "docs" / "testes" / "medicoes.json"
 RESULT_FILE = ROOT / "docs" / "testes" / "resultado.json"
@@ -36,14 +38,22 @@ COVERAGE_FILE = BUILD_DIR / "cobertura.json"
 RUN_INFO_FILE = BUILD_DIR / "relatorio_execucao.json"
 
 COVERAGE_GOAL = 90.0
-LAYERS = ("core", "graphics", "ui")
+LAYERS = ("core", "data", "net", "graphics", "ui")
 CT_GROUPS = (
     ("Motor de regras", 1, 29),
     ("Computação gráfica", 30, 39),
     ("Interface", 40, 49),
-    ("Ataques do QA", 50, 999),
+    ("Ataques do QA, versão 1.0", 50, 69),
+    ("Versão 1.1: CPU, PGN e tempos", 70, 79),
+    ("Versão 1.1: contas e histórico", 80, 84),
+    ("Versão 1.1: rede local", 85, 89),
+    ("Versão 1.1: interface", 90, 99),
+    ("Ataques do QA, versão 1.1", 100, 999),
 )
 _SPEC_FIELDS = ("titulo", "entrada", "procedimento", "esperado", "rf", "uc")
+_NOT_RUN = "NÃO EXECUTADO"
+_XFAILED = "xfailed"
+_XFAIL_TYPE = "pytest.xfail"
 
 
 @dataclass
@@ -96,11 +106,17 @@ def _read_junit() -> dict[str, list[str]]:
     """Resultado de cada teste pelo nome, sem o parâmetro: teste parametrizado vira uma lista."""
     outcomes: dict[str, list[str]] = {}
     for case in ElementTree.parse(JUNIT_FILE).getroot().iter("testcase"):
-        failed = case.find("failure") is not None or case.find("error") is not None
-        skipped = case.find("skipped") is not None
-        outcome = "failed" if failed else "skipped" if skipped else "passed"
-        outcomes.setdefault(case.get("name").split("[")[0], []).append(outcome)
+        outcomes.setdefault(case.get("name").split("[")[0], []).append(_junit_outcome(case))
     return outcomes
+
+
+def _junit_outcome(case: ElementTree.Element) -> str:
+    if case.find("failure") is not None or case.find("error") is not None:
+        return "failed"
+    skipped = case.find("skipped")
+    if skipped is None:
+        return "passed"
+    return _XFAILED if skipped.get("type") == _XFAIL_TYPE else "skipped"
 
 
 def load_execution() -> Execution:
@@ -139,8 +155,29 @@ def _spec_skeleton(case_id: str, execution: Execution) -> str:
     return json.dumps(skeleton, ensure_ascii=False) + f"  (testes: {', '.join(tests) or 'nenhum'})"
 
 
-def _traceability_problems(spec: dict, design: dict) -> list[str]:
+def add_slow_only_cases(spec: dict, execution: Execution) -> None:
+    """No modo rápido, um caso que só tem testes `slow` não roda: fica como não executado, nunca como aprovado."""
+    if not execution.info["is_quick"]:
+        return
+    for case_id, case in spec["casos"].items():
+        if case.get("so_lento") and case_id not in execution.cases:
+            execution.cases[case_id] = {"status": _NOT_RUN, "tests": []}
+
+
+def _diagram_problems(spec: dict, design: dict) -> list[str]:
     problems = []
+    for item in [*design["rf"], *design["rnf"]]:
+        diagrams = spec["diagramas"].get(item)
+        if not diagrams:
+            problems.append(f"{item} está sem diagrama em diagramas.")
+            continue
+        problems += [f"{item}: o diagrama {name} não existe em docs/uml." for name in diagrams
+                     if not (UML_DIR / f"{name}.puml").exists()]
+    return problems
+
+
+def _traceability_problems(spec: dict, design: dict) -> list[str]:
+    problems = _diagram_problems(spec, design)
     cases, links = spec["casos"], spec["rf_para_uc"]
     covered_rfs = {rf for case in cases.values() for rf in case["rf"]}
     for rf in design["rf"]:
@@ -195,14 +232,24 @@ def _count_label(count: int) -> str:
     return f"{count} teste" if count == 1 else f"{count} testes"
 
 
-def obtained_result(case: dict) -> str:
-    """O texto de "Resultado Obtido": sai só do que o pytest relatou."""
+def _test_names(tests: list[dict], outcome: str) -> str:
+    return ", ".join(test["test"].split("::")[-1] for test in tests if test["outcome"] == outcome)
+
+
+def obtained_result(case: dict, caveat: str = "") -> str:
+    """O texto de "Resultado Obtido": sai só do que o pytest relatou. A ressalva vem de casos.json e nunca esconde falha."""
     tests = case["tests"]
+    if not tests:
+        return "Não executado nesta rodada: o caso só tem testes `slow`"
+    total = len(tests)
     passed = sum(test["outcome"] == "passed" for test in tests)
-    if passed == len(tests):
-        return f"Conforme o esperado (PASSOU: {passed} de {_count_label(len(tests))})"
-    failed = ", ".join(test["test"].split("::")[-1] for test in tests if test["outcome"] != "passed")
-    return f"Diferente do esperado (FALHOU: {passed} de {_count_label(len(tests))} passaram; não passaram: {failed})"
+    if any(test["outcome"] == "failed" for test in tests):
+        return (f"Diferente do esperado (FALHOU: {passed} de {_count_label(total)} passaram; "
+                f"não passaram: {_test_names(tests, 'failed')})")
+    if passed == total:
+        return f"Conforme o esperado (PASSOU: {passed} de {_count_label(total)})"
+    note = f" {caveat}" if caveat else ""
+    return f"Conforme o esperado (PASSOU: {passed} de {_count_label(total)}; em xfail ou pulados: {_test_names(tests, 'skipped')}).{note}"
 
 
 def _case_number(case_id: str) -> int:
@@ -221,15 +268,18 @@ def render_run_summary(execution: Execution, measures: dict) -> str:
     linked = sum(len(case["tests"]) for case in execution.cases.values())
     mode = "rápido, sem os testes marcados como `slow`" if info["is_quick"] else "completo, com os testes `slow`"
     changes = " (com alterações locais em `xadrez/` ou `tests/`)" if info["has_local_changes"] else ""
-    fps_commit = measures["janela_real"]["commit"]
+    fps_commits = sorted({measures["janela_real"]["commit"], measures["janela_real_v11"]["commit"]})
+    fps_label = " e ".join(f"`{commit}`" for commit in fps_commits)
+    xfailed = sum(outcomes.count(_XFAILED) for outcomes in execution.junit.values())
     return "\n".join((
         f"- **Data e hora da execução:** {execution.generated_at.replace('T', ' ')}",
-        f"- **Commit testado:** `{info['commit']}`{changes}. As medições de FPS são do commit `{fps_commit}`.",
+        f"- **Commit testado:** `{info['commit']}`{changes}. As medições de FPS são de {fps_label}.",
         f"- **Ambiente:** Python {info['python']}, {info['system']}, pytest {info['pytest']}, "
         f"pygame {info['pygame']}, numpy {info['numpy']}",
         f"- **Modo:** {mode}",
         f"- **Total:** {total} testes: {totals['passed']} passaram, {totals['failed']} falharam, "
-        f"{totals['skipped']} foram pulados. Destes, {linked} estão vinculados a {len(execution.cases)} casos de teste.",
+        f"{totals['skipped'] - xfailed} foram pulados e {xfailed} ficaram em `xfail`. "
+        f"Destes, {linked} estão vinculados a {len(execution.cases)} casos de teste.",
     ))
 
 
@@ -257,7 +307,8 @@ def render_cases(spec: dict, execution: Execution) -> str:
 def _case_row(case_id: str, case: dict, execution: Execution) -> tuple:
     links = ", ".join(case["rf"] + case["uc"])
     identity = f"**{case_id}** {case['titulo']} ({links})"
-    return identity, case["entrada"], case["procedimento"], case["esperado"], obtained_result(execution.cases[case_id])
+    obtained = obtained_result(execution.cases[case_id], case.get("ressalva", ""))
+    return identity, case["entrada"], case["procedimento"], case["esperado"], obtained
 
 
 def coverage_by_layer(execution: Execution) -> dict[str, dict]:
@@ -272,7 +323,7 @@ def coverage_by_layer(execution: Execution) -> dict[str, dict]:
         layer["branches"] += summary["num_branches"]
         layer["covered_branches"] += summary["covered_branches"]
     for layer in layers.values():
-        layer["percent"] = 100.0 * (layer["covered"] + layer["covered_branches"]) / (layer["statements"] + layer["branches"])
+        layer["percent"] = 100.0 * (layer["covered"] + layer["covered_branches"]) / max(layer["statements"] + layer["branches"], 1)
     return layers
 
 
@@ -305,18 +356,27 @@ def _fps_evidence(measures: dict) -> str:
             f"{fps['quadros_acima_de_25_ms']} quadros passaram de 25 ms ({_decimal(fps['percentual_acima_de_25_ms'])}%).")
 
 
+def _fps_evidence_v11(measures: dict) -> str:
+    fps = measures["janela_real_v11"]
+    scenarios = ", ".join(f"{_decimal(item['fps'], 1)} FPS em {item['nome']}" for item in fps["cenarios"])
+    return f"`{fps['ferramenta']}`, commit `{fps['commit']}`, janela real em {fps['resolucao']}: {scenarios}. {fps['observacao']}"
+
+
 def _rnf_row(rnf: str, description: str, entry: dict, execution: Execution, measures: dict) -> tuple:
     evidence, tests_passed = _tests_evidence(entry["testes"], execution)
     kind = entry.get("medicao")
     status = "Atendido" if tests_passed else "Não atendido: há teste falhando"
     if kind == "fps":
-        evidence = f"{_fps_evidence(measures)} {evidence}"
+        evidence = f"{_fps_evidence(measures)} Por cenário: {_fps_evidence_v11(measures)} {evidence}"
+        status = "Atendido nesta máquina" if tests_passed else status
+    elif kind == "fps_cpu":
+        evidence = f"{_fps_evidence_v11(measures)} {evidence}"
         status = "Atendido nesta máquina" if tests_passed else status
     elif kind == "portabilidade":
         info = execution.info
         evidence = (f"Executado: Python {info['python']} em {info['system']}. "
                     f"{measures['pendencias_portabilidade']} {evidence}")
-        status = "Atendido nos testes. Janela real só no Windows"
+        status = "Versão 1.0: atendido nos testes, com janela real só no Windows. Versão 1.1: não verificado fora do Windows"
     elif kind == "cobertura_core":
         core = coverage_by_layer(execution)["core"]
         evidence = (f"Cobertura medida de {_decimal(core['percent'])}% em `xadrez/core` "
@@ -334,8 +394,8 @@ def render_machine(measures: dict) -> str:
     machine, fps = measures["maquina"], measures["janela_real"]
     return (f"O FPS em janela real depende da máquina. Máquina usada: {machine['cpu']}, {machine['gpu']}, "
             f"{machine['memoria_gb']} GB de memória, {machine['sistema']}. {machine['observacao']} "
-            f"Na mesma medição, o trabalho médio por quadro foi de {_decimal(fps['trabalho_medio_ms'])} ms, "
-            f"e a troca do menu para a partida levou {fps['troca_menu_partida_ms']} ms.")
+            f"Na mesma medição, o trabalho médio por quadro foi de {_decimal(fps['trabalho_medio_ms'])} ms. "
+            f"Sem janela, a troca do menu para a partida levou {fps['troca_menu_partida_ms']} ms.")
 
 
 def render_benchmark(measures: dict) -> str:
@@ -347,9 +407,28 @@ def render_benchmark(measures: dict) -> str:
     return f"`{bench['ferramenta']}`, commit `{bench['commit']}`, {bench['resolucao']}. {bench['observacao']}\n\n{table}"
 
 
+def render_fps_v11(measures: dict) -> str:
+    fps = measures["janela_real_v11"]
+    rows = [(item["nome"][0].upper() + item["nome"][1:], f"{_decimal(item['fps'], 1)} FPS") for item in fps["cenarios"]]
+    return (f"`{fps['ferramenta']}`, commit `{fps['commit']}`, janela real em {fps['resolucao']}, com `display.flip`. "
+            f"{fps['observacao']}\n\n{markdown_table(('Cenário', 'Média'), rows)}")
+
+
+def render_cpu_strength(measures: dict) -> str:
+    strength = measures["forca_cpu"]
+    rows = [(item["par"], item["placar"], item["detalhe"]) for item in strength["resultados"]]
+    table = markdown_table(("Par de níveis", "Placar", "Observação"), rows)
+    return (f"`{strength['ferramenta']}`. {strength['observacao']}\n\n{table}\n\n"
+            f"O Easy foi feito para errar: ele deixa a dama pendurada em {strength['easy_dama_pendurada']}.")
+
+
 def _case_status(case_ids: list[str], execution: Execution) -> str:
-    failed = [case_id for case_id in case_ids if execution.cases[case_id]["status"] != "PASSOU"]
-    return f"FALHOU: {', '.join(failed)}" if failed else "PASSOU"
+    statuses = {case_id: execution.cases[case_id]["status"] for case_id in case_ids}
+    failed = [case_id for case_id, status in statuses.items() if status not in ("PASSOU", _NOT_RUN)]
+    if failed:
+        return f"FALHOU: {', '.join(failed)}"
+    not_run = [case_id for case_id, status in statuses.items() if status == _NOT_RUN]
+    return f"PASSOU, sem executar {', '.join(not_run)}" if not_run else "PASSOU"
 
 
 def render_matrix(spec: dict, design: dict, execution: Execution) -> str:
@@ -364,6 +443,13 @@ def render_matrix(spec: dict, design: dict, execution: Execution) -> str:
         uc_rows.append((f"**{uc}** {name}", ", ".join(rfs), ", ".join(linked), _case_status(linked, execution)))
     ct_rows = [(f"**{case_id}** {spec['casos'][case_id]['titulo']}", ", ".join(spec["casos"][case_id]["rf"]),
                 ", ".join(spec["casos"][case_id]["uc"]), execution.cases[case_id]["status"]) for case_id in cases]
+    by_rnf = {rnf: [case_id for case_id in cases if rnf in spec["casos"][case_id]["rf"]] for rnf in design["rnf"]}
+    rnf_rows = [(f"**{rnf}**", text, ", ".join(by_rnf[rnf]) or "Nenhum caso próprio", _rnf_check(spec["rnf"][rnf]),
+                 _case_status(by_rnf[rnf], execution) if by_rnf[rnf] else "Ver a seção 7.6")
+                for rnf, text in design["rnf"].items()]
+    requirement_texts = design["rf"] | design["rnf"]
+    diagram_rows = [(f"**{item}** {text}", ", ".join(spec["diagramas"][item]))
+                    for item, text in requirement_texts.items()]
     return "\n".join((
         "# 8. Matriz de rastreabilidade", "",
         "Arquivo gerado por `tools/relatorio_testes.py`. Não edite à mão: os vínculos ficam em "
@@ -375,7 +461,21 @@ def render_matrix(spec: dict, design: dict, execution: Execution) -> str:
         markdown_table(("Caso de uso", "Requisitos", "Casos de teste", "Situação"), uc_rows), "",
         "## 8.3 Caso de teste, requisito e caso de uso", "",
         markdown_table(("Caso de teste", "Requisitos", "Casos de uso", "Situação"), ct_rows), "",
+        "## 8.4 Requisito não funcional e como é verificado", "",
+        markdown_table(("RNF", "Requisito", "Casos de teste", "Verificação", "Situação"), rnf_rows), "",
+        "## 8.5 Requisito e diagrama", "",
+        "Os nomes são as fontes em `docs/uml/`. As figuras estão nos capítulos 3 e 4.", "",
+        markdown_table(("Item", "Diagramas"), diagram_rows), "",
     ))
+
+
+def _rnf_check(entry: dict) -> str:
+    """Como o RNF é conferido, além dos casos de teste. As medições são da seção 7.6."""
+    parts = {"fps": "FPS em janela real", "fps_cpu": "FPS em janela real", "portabilidade": "CI",
+             "cobertura_core": "Cobertura medida"}
+    kind = parts.get(entry.get("medicao", ""))
+    tests = "testes nomeados na seção 7.6" if entry["testes"] else ""
+    return " e ".join(part for part in (kind, tests) if part)
 
 
 def replace_section(text: str, name: str, content: str) -> str:
@@ -395,6 +495,8 @@ def write_documents(spec: dict, design: dict, execution: Execution, measures: di
         "rnf": render_rnf(spec, design, execution, measures),
         "maquina": render_machine(measures),
         "benchmark": render_benchmark(measures),
+        "fps_v11": render_fps_v11(measures),
+        "forca_cpu": render_cpu_strength(measures),
     }
     text = TEST_PLAN_FILE.read_text(encoding="utf-8")
     for name, content in sections.items():
@@ -432,6 +534,7 @@ def main() -> int:
     spec = json.loads(CASES_FILE.read_text(encoding="utf-8"))
     design = read_design_ids()
     measures = json.loads(MEASURES_FILE.read_text(encoding="utf-8"))
+    add_slow_only_cases(spec, execution)
     validate(spec, design, execution)
     write_documents(spec, design, execution, measures)
     print(f"Gerados: {TEST_PLAN_FILE.name}, {MATRIX_FILE.name} e {RESULT_FILE.name}")

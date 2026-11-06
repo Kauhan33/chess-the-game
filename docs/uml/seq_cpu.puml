@@ -1,0 +1,76 @@
+@startuml seq_cpu
+!include _estilo.iuml
+title Lance da CPU: a busca em outra thread, sem parar o quadro
+hide footbox
+
+participant "GameScene\n(thread principal)" as S
+participant "CpuPlayer" as C
+participant "_SearchJob\n(thread chess-cpu)" as J
+participant "_Search\n(ai.py)" as A
+participant "GameEngine" as E
+participant "BoardView" as V
+
+== A peça do jogador pousou ==
+S -> S: _begin_turn()
+S -> S: _start_cpu_turn()
+S -> C: start(board, remaining, increment)
+C -> C: copy() e search_budget(remaining, increment)
+note right of C
+  A cópia é feita aqui, na thread principal,
+  porque legal_moves_from faz apply e undo
+  temporários no tabuleiro real.
+end note
+C -> J: begin()
+activate J
+J -> J: _run(), com o intervalo de troca em 0,2 ms
+J -> A: choose_move(board, difficulty, rng, _should_stop, max_seconds)
+activate A
+
+loop a cada quadro, enquanto a busca corre
+  S -> S: update(dt)
+  S -> V: update(dt)
+  S -> C: poll(dt)
+  C --> S: None
+  S -> S: draw(surface), HUD com "Pensando"
+end
+
+loop a cada 64 nós
+  A -> J: _should_stop()
+  alt câmera girando ou peça voando
+    J -> J: dorme 1 ms, para a tela usar o interpretador
+  end
+end
+
+alt busca termina no tempo do nível
+  A --> J: Move
+  deactivate A
+  J -> J: intervalo de troca volta ao original
+  deactivate J
+  S -> C: poll(dt)
+  C --> S: Move, uma vez só
+  S -> S: _advance_cpu(dt)
+  S -> E: play(origin, target, promotion)
+  E --> S: MoveOutcome
+  S -> S: _show_move(outcome)
+  S -> V: start_move(outcome)
+else pausa aberta
+  S -> S: update(dt), sem _advance_world(dt)
+  note right of S
+    A busca segue, mas poll não é chamado.
+    A jogada só entra depois de retomar.
+  end note
+else reinício, desistência, menu, janela fechada ou tempo esgotado
+  S -> S: _stop_cpu()
+  S -> C: cancel()
+  C -> J: cancel()
+  note right of J
+    stop.set() e join: a jogada desta busca
+    nunca chega a ninguém.
+  end note
+else a busca levantou exceção
+  S -> C: poll(dt)
+  C -> J: any_legal_move()
+  C --> S: Move legal qualquer
+  S -> S: aviso CPU_FAILURE_NOTICE na faixa
+end
+@enduml

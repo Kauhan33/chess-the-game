@@ -1,5 +1,57 @@
 # QA da versão 1.1: auditoria de ataque
 
+## Situação
+
+Situação em 2026-11-06, depois deste relatório. As seções abaixo são o texto original da auditoria, com o estado da cópia congelada: o que elas dizem como "obtido" não vale mais para os achados corrigidos.
+
+| Achado | Severidade | Situação | Commit |
+|---|---|---|---|
+| QA11-01 | Média | Corrigido: duração e lances param em um teto ao carregar o histórico | `eaf8f25` |
+| QA11-02 | Média | Corrigido: com a troca de tela já pedida, o resto do quadro não chega à cena | `eaf8f25` |
+| QA11-03 | Média | Corrigido: ao criar conta, Enter em "Senha" vai para "Repita a senha" | `eaf8f25` |
+| QA11-04 | Baixa | Corrigido: o foco fica nas abas, e não em "Sair da conta" | `eaf8f25` |
+| QA11-05 | Baixa | Corrigido: o orçamento da busca nunca passa da metade do que resta | `eaf8f25` |
+| QA11-06 | Baixa | Corrigido: a frase de vitória só sai se a saída do outro decidiu a partida | `eaf8f25` |
+| QA11-07 | Baixa | Corrigido: a sala decide, e vale a primeira desistência que ela viu | `eaf8f25` |
+| QA11-08 | Baixa | Corrigido: `result` diz em que lance a partida parou, e o lance cruzado é desfeito | `eaf8f25` |
+| QA11-09 | Média | Corrigido: protocolo v2, com quem criou a sala como autoridade | `eaf8f25` |
+| QA11-10 | Baixa | Corrigido: fechar a janela em rede grava a derrota antes de a conexão fechar | `eaf8f25` |
+| QA11-11 | Baixa | Corrigido: virar durante o giro conta a partir do destino do giro | `eaf8f25` |
+| QA11-12 | Baixa | Corrigido, com o desvio descrito abaixo | `eaf8f25` |
+| QA11-13 | Baixa | Corrigido: texto da sala com `text_fit`, e o botão diz "Aceitar: o adversário pediu revanche" | `eaf8f25` |
+| QA11-14 | Média | Corrigido: no modo Partida, com a partida correndo, a cópia sai sem `+` e `#` | `eaf8f25` |
+| QA11-15 | Baixa | Corrigido: quem abandona lê "Abandonou a partida" | `eaf8f25` |
+| QA11-16 | Baixa | Corrigido: o texto é cortado no limite do campo ao carregar | `eaf8f25` |
+| QA11-17 | Baixa | **Aceito:** em 640x360 os formulários não cabem, e o jogo não cai. A partir de 640x480 está tudo certo. Os 4 testes seguem em `xfail`, com o motivo escrito | sem correção |
+| QA11-18 | Média | **Resolvido por este trabalho:** requisitos, plano de testes, matriz e README cobrem a versão 1.1, e os testes de CT-135 passam sem `xfail` | ver o histórico do git depois de `eaf8f25` |
+| QA11-19 | Baixa | Corrigido: o motivo da sala encerrada segue até a tela de fim | `eaf8f25` |
+| QA11-20 | Baixa | Corrigido: uma proposta por lance, e a proposta repetida é ignorada | `eaf8f25` |
+
+**Desvio do QA11-12.** A correção sugerida trocava o nome de quem entra só na sala. O que foi feito: quando os dois nomes são iguais, as pretas viram "Jogador 1 (2)", em `distinct_player_names`, com a conta feita nos dois computadores a partir da mesma mensagem. O sufixo fica em `Player.name`, então aparece também no PGN e no histórico, e vale também em 2 jogadores locais.
+
+**Sugestões não aplicadas.**
+
+| Sugestão | Situação |
+|---|---|
+| 1. Modo por jogador em rede | Não aplicada. É decisão do aluno: hoje cada um escolhe o próprio modo, e o outro não sabe. |
+| 2. Sala sem segredo | Não aplicada. O código é o IP escrito de outra forma, e quem chegar primeiro à porta entra. |
+| 3. Fugir da derrota contra a CPU | Não aplicada. "Voltar ao menu" e fechar a janela não gravam nada contra a CPU. |
+| 5. Hard responde mais rápido que Easy | Não aplicada. `_MINIMUM_THINK_SECONDS` segue só em Easy e Medium. |
+| 6. Soltar fora do tabuleiro e fora da janela | Não aplicada. Soltar fora do tabuleiro desmarca, e soltar fora da janela mantém a seleção. |
+
+As sugestões 4, 7 e 8 foram aplicadas no mesmo commit `eaf8f25`: a ajuda só lista o que vale, o erro de pasta não mostra o caminho, e a limpeza foi feita.
+
+**O que mudou no "Não verificado" abaixo.**
+
+- **60 FPS reais (RNF09):** agora medido em janela real, com `tools/demo_automatica.py`, no commit `eaf8f25`: 60,0 FPS em 2 jogadores, 59,7 na partida contra a CPU Hardcore, 59,5 com a CPU pensando e a câmera parada e 59,7 com a CPU pensando e animação.
+- **Dois processos:** teste em 127.0.0.1 com mesmo FEN, histórico, resultado e placar.
+- **Sala pelo IP real:** verificada em um só computador em 2026-11-06, no commit `eaf8f25`, com `0.0.0.0`, a porta 50507 e o código gerado com o IP da rede local, por um script avulso, com sessões e sem janela. Início da partida, um lance de cada lado, `result` e saída funcionaram.
+- **Macaco longo, no estado final:** 16 aprovados, em 12 min 41 s.
+
+**Segue não verificado:** conexão entre dois computadores, passagem pelo firewall, rede em janela real e versão 1.1 em Linux, em macOS e em Python 3.10, porque o CI só roda no envio ao GitHub.
+
+## Relatório original da auditoria
+
 Cópia congelada no commit `0671f69`, com SDL sem janela, dados em pasta temporária e rede só em `127.0.0.1`. O jogo não foi alterado: só entraram os testes `tests/ataque/test_ataque_v11_*.py` e este relatório.
 
 Cada achado foi reproduzido antes de entrar aqui e tem um teste com `xfail(strict=True)`. Quando o defeito for corrigido, o teste passa a dar XPASS, a suíte acusa, e basta tirar a marca.

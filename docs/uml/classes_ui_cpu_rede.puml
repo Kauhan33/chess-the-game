@@ -1,0 +1,141 @@
+@startuml classes_ui_cpu_rede
+!pragma layout smetana
+!include _estilo.iuml
+title Camada ui: CPU em thread, rede na partida e registro
+hide empty members
+
+class GameScene {
+  +cpu: CpuPlayer | None
+  +net: NetMatch | None
+  +local_player: Player
+  +hides_hints: bool
+  --
+  +show_opponent_move(outcome)
+  +retract_last_move()
+  +end_match(result, closing_notice)
+  +show_peer_draw_offer(answer)
+  +shutdown()
+  -_start_cpu_turn()
+  -_advance_cpu(dt)
+  -_stop_cpu()
+  -_save_result()
+}
+
+class CpuPlayer {
+  +difficulty: Difficulty
+  +last_error: Exception | None
+  +is_thinking: bool
+  --
+  +start(board, remaining, increment)
+  +poll(dt): Move | None
+  +cancel()
+}
+
+class _SearchJob {
+  +board: Board
+  +difficulty: Difficulty
+  +max_seconds: float | None
+  +stop: Event
+  +move: Move | None
+  +error: Exception | None
+  +waited: float
+  +minimum_wait: float
+  +thread: Thread
+  --
+  +begin()
+  +cancel()
+  +any_legal_move(): Move | None
+  -_run()
+  -_should_stop(): bool
+}
+
+class _FastThreadSwitching {
+  -_active: int
+  -_original: float
+  --
+  -__enter__()
+  -__exit__()
+}
+
+class cpu_player <<module>> {
+  +search_budget(remaining, increment): float | None
+}
+
+class NetMatch {
+  +link: NetLink
+  +is_authority: bool
+  +draw_answer_pending: bool
+  +is_decided: bool
+  +awaits_decision: bool
+  +may_offer_draw: bool
+  --
+  +receive_events()
+  +tick(dt)
+  +publish_result()
+  +conclude_on_exit()
+  +send_move(uci)
+  +resign()
+  +send_draw_offer()
+  -_on_move(event)
+  -_on_decision(event)
+  -_on_peer_resigned(event)
+  -_on_draw_offered(event)
+  -_on_draw_answered(event)
+  -_on_peer_left(event)
+  -_close_room(message)
+  -_settle(result, notice)
+  -_agrees_with_board(result): bool
+  -_request_end(decide)
+  -_give_up_waiting_after(dt)
+}
+
+class NetLink {
+  +session: _Session
+  +inbox: deque
+  +peer_name: str
+  +peer_is_gone: bool
+  +peer_wants_rematch: bool
+  +rematch_requested: bool
+  --
+  +pump()
+  +leave()
+  +begin_new_game()
+}
+
+class LanNetwork {
+  +host(name, time_control): HostSession
+  +client(name, code): ClientSession
+}
+
+class match_record <<module>> {
+  +build_record(engine, options, local_player): MatchRecord
+  +save_match(store, engine, options, local_player): str | None
+}
+
+class clipboard <<module>> {
+  +copy_text(text): bool
+}
+
+class _Session
+class HistoryStore
+class ai <<module>>
+
+GameScene *-- "0..1$p" CpuPlayer : contra a CPU
+GameScene *-- "0..1$p" NetMatch : em rede
+GameScene ..> match_record : grava o fim
+GameScene ..> clipboard : copiar PGN
+CpuPlayer *-- "0..1$p" _SearchJob : uma por busca
+CpuPlayer ..> cpu_player : orçamento
+_SearchJob ..> _FastThreadSwitching : durante a busca
+_SearchJob ..> ai : choose_move, em outra thread
+NetMatch o-- "1$p" NetLink
+NetLink o-- "1$p" _Session
+LanNetwork ..> _Session : cria
+match_record ..> HistoryStore : grava
+
+note bottom of NetLink
+  NetLink sobrevive à troca de cena:
+  sala, partida e tela de fim
+  usam a mesma sessão.
+end note
+@enduml

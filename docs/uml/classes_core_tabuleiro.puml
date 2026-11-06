@@ -13,10 +13,12 @@ class Board {
   +fullmove_number: int
   -_king_squares: dict[Color, Square | None]
   -_applied: list[AppliedMove]
+  +undoable_moves: int
   --
   {static} +initial(): Board
   {static} +from_fen(fen): Board
   +to_fen(): str
+  +copy(): Board
   +piece_at(square): Piece | None
   +place(square, piece)
   +remove(square): Piece | None

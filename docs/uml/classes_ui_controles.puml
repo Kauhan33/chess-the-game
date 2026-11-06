@@ -8,6 +8,7 @@ class GameScene
 
 abstract class Overlay {
   {static} +freezes_clock: bool
+  {static} +blocks_game: bool
   --
   +layout(size)
   {abstract} +handle_event(event)
@@ -30,12 +31,21 @@ class PromotionDialog {
 
 class HelpOverlay
 
+class PeerOfferCard {
+  {static} +freezes_clock: bool
+  {static} +blocks_game: bool
+  +title: str
+  +lines: list[str]
+  +buttons: list[Button]
+}
+
 class FocusGroup {
   +widgets: list
   +focused
   --
   +move(delta)
   +focus(widget)
+  +set_widgets(widgets, focused)
   +handle_event(event): bool
   +draw(surface, theme)
 }
@@ -60,6 +70,8 @@ class TextInput {
   +label: str
   +placeholder: str
   +max_length: int
+  +is_secret: bool
+  +advances_on_enter: bool
   +text: str
   +value: str
   --
@@ -80,6 +92,13 @@ class Selector {
   +activate()
 }
 
+class SegmentedControl {
+  +segment_rect(index): Rect
+  +handle_mouse(event): bool
+}
+
+class TabBar
+
 class Theme {
   +set_window_size(size)
   +px(value): int
@@ -96,6 +115,9 @@ GameScene *-- "0..*$p" Overlay : pilha de modais
 Overlay <|-- ChoiceOverlay
 Overlay <|-- PromotionDialog
 Overlay <|-- HelpOverlay
+Overlay <|-- PeerOfferCard
+Selector <|-- SegmentedControl
+SegmentedControl <|-- TabBar
 ChoiceOverlay *-- "1$p" FocusGroup
 PromotionDialog *-- "1$p" FocusGroup
 HelpOverlay *-- "1$p" Button

@@ -1,0 +1,57 @@
+@startuml seq_rede_fim
+!include _estilo.iuml
+title Fim da partida em rede: a sala decide, e quem entrou confere
+hide footbox
+
+actor "Quem entrou" as J
+participant "GameScene e\nNetMatch\n(quem entrou)" as GC
+participant "ClientSession" as CS
+participant "HostSession" as HS
+participant "NetMatch e\nGameEngine\n(sala)" as GH
+
+== Fim decidido na sala ==
+note over GH
+  Mate, afogamento e empates pelo motor,
+  tempo pela tick(dt) da sala, ou desistência.
+end note
+GH -> GH: publish_result(), uma vez por partida
+GH -> HS: send_result(result, plies)
+HS -> CS: mensagem result: vencedor, motivo e plies
+CS -> GC: poll(), evento GameDecided
+GC -> GC: _on_decision(event)
+alt há 1 lance a mais aqui, feito por quem entrou
+  GC -> GC: take_back_last_move()
+  GC -> GC: retract_last_move()
+  note right of GC
+    O lance cruzou com o fim: a sala não o viu.
+    Ele volta, com a captura e o ponto na série.
+  end note
+else o número de lances é igual
+  GC -> GC: segue para a conferência
+else qualquer outra diferença
+  GC -> GC: _close_room(INVALID_RESULT_MESSAGE)
+end
+alt result confere com o próprio tabuleiro
+  GC -> GC: finish_with(result)
+  GC -> GC: _settle(result, notice)
+  GC -> GC: end_match(result, closing_notice)
+  GC -> GC: _save_result(), só agora grava no histórico
+else result não confere
+  GC -> GC: _close_room(INVALID_RESULT_MESSAGE)
+end
+
+== Desistência de quem entrou: é um pedido ==
+J -> GC: resign()
+GC -> CS: send_resign()
+CS -> HS: mensagem resign
+HS -> GH: poll(), evento PeerResigned
+GH -> GH: _on_peer_resigned(event)
+GH -> HS: send_result(result, plies)
+HS -> CS: mensagem result
+alt a sala sumiu antes de responder
+  CS -> GC: poll(), evento PeerLeft
+  GC -> GC: _result_without_peer(), vale o próprio pedido
+else a sala está viva e muda há 5 s
+  GC -> GC: _give_up_waiting_after(dt)
+end
+@enduml

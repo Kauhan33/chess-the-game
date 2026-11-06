@@ -358,7 +358,7 @@ ataques do QA a partir de CT-50.
 | CT-62 | Janelas e números extremos | RF16, RNF07 |
 | CT-63 | Fim de jogo, revanche, menu e HUD | RF11, RF13, RF14 |
 | CT-64 | Vazamento de memória | RNF01, RNF07 |
-| CT-65 | Sem rede, sem execução dinâmica, sem escrita | RNF05, RNF07 |
+| CT-65 | Rede só em net, escrita só em data, sem execução dinâmica | RNF05, RNF07 |
 | CT-66 | PNG, autoria, e-mails e caminhos pessoais | RNF05 |
 | CT-67 | Python 3.10 e portabilidade | RNF02 |
 
@@ -397,14 +397,14 @@ No modo Partida ficam só os indicadores neutros, que dizem o que aconteceu e n�
 
 ```
 xadrez/
-├── core/    + ai.py (CPU), pgn.py. Continua Python puro.
-├── data/    contas e histórico em disco. Python puro: sem pygame e sem numpy.
-├── net/     sala em rede local por socket. Python puro: sem pygame e sem numpy.
-├── graphics/
-└── ui/      liga tudo.
+├── core/      + ai.py, search_board.py, evaluation.py (CPU) e pgn.py. Continua Python puro.
+├── data/      paths.py, storage.py, accounts.py, history.py. Contas e histórico em disco. Python puro: sem pygame e sem numpy.
+├── net/       room_code.py, events.py, protocol.py, connection.py, session.py. Sala em rede local. Python puro: sem pygame e sem numpy.
+├── graphics/  sem mudança de camada: o arrasto usa Camera.pick_plane, e a virada usa Camera.orbit_to.
+└── ui/        + arena_scene.py, login_scene.py, lobby_scene.py, history_panel.py, cpu_player.py, net_link.py, match_record.py, clipboard.py. Liga tudo.
 ```
 
-Regra de dependência: `core` e `graphics` seguem como estão, sem conhecer as outras camadas. `data` pode importar `core`. `net` pode importar `core`. `ui` importa todas. `tests/test_arquitetura.py` passa a conferir `data` e `net`.
+Regra de dependência: `core` e `graphics` seguem como estão, sem conhecer as outras camadas. `net` importa `core` (`session.py`, `events.py` e `protocol.py` usam `Color`, `GameResult`, `EndReason`, `PieceType`, `Square` e `TimeControl`). `data` pode importar `core`, mas hoje não precisa: só usa a biblioteca padrão. `data` e `net` nunca se importam. `ui` importa todas. `tests/test_arquitetura.py` confere as quatro camadas proibidas, e `tests/ataque/test_ataque_seguranca.py` confere que só `net` importa `socket` e `selectors`, e que só `data` grava em disco.
 
 ### 10.2 Contrato de `xadrez.core`: acréscimos
 
@@ -464,28 +464,46 @@ Regras: escrita atômica (arquivo temporário e troca). Arquivo corrompido não 
 
 ```python
 # room_code.py
+ROOM_CODE_LENGTH = 7; LOOPBACK_IPV4 = "127.0.0.1"
 def encode_room_code(ipv4: str) -> str      # 7 caracteres: ip * 6 + conferência, em base 31 (sem 0, O, 1, I, L)
-def decode_room_code(code: str) -> str      # levanta ValueError com mensagem em pt-BR se o código for inválido
-def local_ipv4() -> str                     # IP desta máquina na rede local, sem enviar pacote
+def decode_room_code(code: str) -> str      # aceita minúsculas e espaços; levanta ValueError com mensagem em pt-BR
+def local_ipv4() -> str                     # IP desta máquina na rede local, sem enviar pacote; 127.0.0.1 sem rede
+def is_lan_address(ipv4: str) -> bool       # o jogo não conversa com a internet, nem por um código digitado errado
+
+# events.py: o que poll() entrega à interface. PeerLeft e NetworkError sempre encerram a sessão.
+PeerJoined(name), GameStart(white, black, your_color, minutes, increment), MoveReceived(uci, clock_ms), PeerResigned(),
+DrawOffered(), DrawAnswered(accept), RematchRequested(), PeerLeft(reason), NetworkError(message),
+GameDecided(result, plies)                  # só em quem entrou na sala
+
+# protocol.py: tudo o que entra e sai passa por aqui
+PROTOCOL_VERSION = 2; MAX_LINE_BYTES = 4096; MAX_NAME_CHARS = 16; MAX_CLOCK_MS = 7 dias
+class ProtocolError(Exception); class LineSplitter    # feed(chunk) -> list[bytes], nunca guarda mais que MAX_LINE_BYTES
+encode_message(message) -> bytes; decode_message(line) -> dict    # conferem tipo, campos e valores nos dois sentidos
+is_valid_name, is_valid_uci, sanitize_name, clock_to_wire, result_fields(result, plies), parse_result(message), parse_uci(uci)
+
+# connection.py: socket não bloqueante que conversa por linhas
+class PeerGone(Exception)                   # o outro lado sumiu; o texto é o motivo, pronto para a tela
+class LineConnection:                       # read_lines, queue, flush, shutdown_write, close_gracefully, close
+                                            # no máximo 2000 mensagens por segundo; acima disso, ProtocolError
 
 # session.py
 DEFAULT_PORT = 50507
-class HostSession:
-    def __init__(self, name: str, time_control: TimeControl, port: int = DEFAULT_PORT, bind: str = "0.0.0.0")
-    code: str; start(); poll() -> list[NetEvent]; send_*(...); close()
-class ClientSession:
-    def __init__(self, name: str, code_or_host: str, port: int = DEFAULT_PORT, timeout: float = 5.0)
-    start(); poll() -> list[NetEvent]; send_*(...); close()
-# Comum: send_move(uci, clock_ms), send_resign(), send_draw_offer(), send_draw_answer(accept), send_rematch(), send_bye(), is_authority
-# Só HostSession: send_result(result, plies)
-# NetEvent: PeerJoined(name), GameStart(white, black, your_color, minutes, increment), MoveReceived(uci, clock_ms),
-#           PeerResigned(), DrawOffered(), DrawAnswered(accept), RematchRequested(), PeerLeft(reason), NetworkError(message),
-#           GameDecided(result, plies), só em quem entrou na sala
+NetTimings(heartbeat_interval=2.0, heartbeat_timeout=8.0, handshake_timeout=5.0, tick=0.02)
+class _Session(ABC):                        # thread, filas e conversa depois do início da partida
+    is_authority: bool; name: str; start(); poll() -> list[NetEvent]; close()
+    send_move(uci, clock_ms); send_resign(); send_draw_offer(); send_draw_answer(accept); send_rematch(); send_bye()
+class HostSession(_Session):                # is_authority = True; code, port, offline_warning
+    def __init__(self, name, time_control, port=DEFAULT_PORT, bind="0.0.0.0", *, timings=NetTimings())
+    send_result(result, plies)              # só a sala tem
+class ClientSession(_Session):              # is_authority = False
+    def __init__(self, name, code_or_host, port=DEFAULT_PORT, timeout=5.0, *, timings=NetTimings())
 ```
 
-Protocolo: uma mensagem JSON por linha, com versão, hoje a 2. Quem cria a sala joga de brancas na primeira partida e é a autoridade do resultado: valida as jogadas, mede os dois relógios, decide o fim e manda `result`, com vencedor, motivo e em que lance a partida parou. Regras completas em `docs/plans/notas-ui.md`. Uma thread cuida do socket e entrega os eventos a `poll()`: a interface só espera em `close()`, por pouco tempo. Sinal de vida a cada 2 s, e 8 s sem resposta viram `PeerLeft`.
+Protocolo: uma mensagem JSON por linha, em TCP, com versão, hoje a 2. Quem entra manda `hello` (versão e nome). A sala responde `start` (nomes, cor de quem entrou, minutos e incremento) ou `refused` (`version` ou `room_full`). Na partida valem `move` (uci e `clock_ms`), `resign`, `draw_offer`, `draw_answer`, `rematch`, `ping` e `bye`, nos dois sentidos, além de `result` (vencedor, motivo e `plies`), que só a sala manda. Uma `result` vinda de quem entrou é mensagem inválida, como qualquer outra fora do protocolo.
 
-Segurança, porque a entrada vem da rede e não é confiável: só JSON, nunca `pickle` ou `eval`; linha de no máximo 4096 bytes; tipos conferidos; mensagem inválida encerra a conexão; o segundo a tentar entrar é recusado; a porta só fica aberta enquanto a sala existe. Quem recebe uma jogada a valida no próprio `GameEngine` antes de aceitar: jogada ilegal do outro lado encerra a sala. Quem entrou também confere o `result` contra o próprio tabuleiro.
+Quem cria a sala joga de brancas na primeira partida e é a autoridade do resultado, também na revanche: valida as jogadas, mede os dois relógios, decide o fim e manda `result`, com vencedor, motivo e em que lance a partida parou. Regras completas em `docs/plans/notas-ui.md`. Uma thread cuida dos sockets e fala com a interface por duas filas `deque`: a interface só espera em `close()`, por pouco tempo. Sinal de vida a cada 2 s, e 8 s sem resposta viram `PeerLeft`. Só linha completa e válida conta como sinal de vida.
+
+Segurança, porque a entrada vem da rede e não é confiável: só JSON, nunca `pickle` ou `eval`; linha de no máximo 4096 bytes; tipos conferidos; mensagem inválida encerra a conexão; o segundo a tentar entrar é recusado; no máximo 8 conexões à espera e 1024 eventos na fila; só endereços da rede local; a porta só fica aberta enquanto a sala existe. Quem recebe uma jogada a valida no próprio `GameEngine` antes de aceitar: jogada ilegal do outro lado encerra a sala. Quem entrou também confere o `result` contra o próprio tabuleiro.
 
 ### 10.5 Contrato de `xadrez.ui`: acréscimos
 
@@ -525,12 +543,12 @@ Divergências da implementação:
 
 Casos de uso novos: UC10 Jogar contra a CPU; UC11 Criar sala em rede; UC12 Entrar em sala; UC13 Entrar na conta; UC14 Consultar histórico; UC15 Copiar PGN.
 
-Casos de teste novos: motor e IA de CT-70 a CT-79; dados de CT-80 a CT-84; rede de CT-85 a CT-89; interface de CT-90 a CT-99; ataques do QA a partir de CT-100.
+Casos de teste novos: motor e IA de CT-70 a CT-79; dados de CT-80 a CT-84; rede de CT-85 a CT-89; interface de CT-90 a CT-99; ataques do QA a partir de CT-100. Os números sem caso (CT-78, CT-79, CT-84, CT-89 e CT-99) não estão em uso.
 
 | ID | Foco | RF |
 |---|---|---|
 | CT-70 | CPU sempre devolve jogada legal, sem alterar o tabuleiro | RF18 |
-| CT-71 | CPU acha mate em 1 nos níveis Medium, Hard e Hardcore | RF18 |
+| CT-71 | CPU acha mate em 1 em todos os níveis | RF18 |
 | CT-72 | CPU acha mate em 2 nos níveis Hard e Hardcore | RF18 |
 | CT-73 | CPU não entrega a dama de graça a partir do Medium | RF18 |
 | CT-74 | A força cresce com o nível, em partidas entre os níveis | RF18 |
@@ -554,3 +572,46 @@ Casos de teste novos: motor e IA de CT-70 a CT-79; dados de CT-80 a CT-84; rede 
 | CT-96 | Arrastar a peça para jogar | RF23 |
 | CT-97 | Virar o tabuleiro mantém o clique correto | RF23 |
 | CT-98 | Copiar PGN | RF22 |
+
+Ataques do QA da versão 1.1, descritos no topo de cada arquivo de `tests/ataque/test_ataque_v11_*.py`:
+
+| ID | Foco | RF |
+|---|---|---|
+| CT-100 | Modo Partida: tela igual com e sem xeque | RF17 |
+| CT-101 | Modo Partida: recusa igual em todo motivo | RF17 |
+| CT-102 | Modo Partida: só indicadores neutros em cada quadro | RF17 |
+| CT-103 | Modo Partida: planilha e cópia sem as marcas de xeque | RF17, RF22 |
+| CT-104 | Treinamento continua igual à versão 1.0 | RF17, RF09, RF10 |
+| CT-105 | Cada saída com a CPU pensando cancela a busca | RF18, RNF09 |
+| CT-106 | Jogada atrasada da CPU não entra em outra partida | RF18 |
+| CT-107 | A CPU faz lances especiais, dá mate e abre de brancas | RF18 |
+| CT-108 | Orçamento da CPU cabe no relógio | RF18 |
+| CT-109 | Entrada na vez da CPU e falhas da busca | RF18, RNF07 |
+| CT-110 | Rede: o que chega pelo socket | RF19, RNF08 |
+| CT-111 | Rede: nome hostil passa pela tela sem derrubar | RF19, RNF08 |
+| CT-112 | Rede: queda em cada estado | RF19, RNF07 |
+| CT-113 | Rede: mesmo FEN e mesmo resultado em cada fim | RF19 |
+| CT-114 | Rede: quem criou a sala decide o tempo | RF19 |
+| CT-115 | Rede: revanche e proposta de empate | RF19 |
+| CT-116 | Rede: entrada na sala | RF19 |
+| CT-117 | Rede: thread e socket não sobram | RF19, RNF07 |
+| CT-118 | Login e conta por teclado e mouse | RF20 |
+| CT-119 | A senha não fica em widget nem em cache | RNF08 |
+| CT-120 | Arquivo de contas ruim vira aviso | RF20, RNF07 |
+| CT-121 | Histórico editado à mão não derruba a aba | RF21, RNF07 |
+| CT-122 | Registro correto em cada fim de partida | RF21 |
+| CT-123 | Contas separadas, convidado e 51ª partida | RF20, RF21 |
+| CT-124 | Arrastar: soltar fora e interromper | RF23, RNF07 |
+| CT-125 | Arrastar: na vez errada, em voo e no fim | RF23 |
+| CT-126 | Arrastar até a promoção e misturar com clique | RF23, RF05 |
+| CT-127 | Virar durante o giro e a animação | RF23 |
+| CT-128 | Copiar PGN: casos difíceis | RF22 |
+| CT-129 | O 2º clique de um clique duplo não aciona a tela nova | RNF07 |
+| CT-130 | Macaco da versão 1.1 | RNF07 |
+| CT-131 | Telas: nada fora da janela nem por cima de nada | RNF07 |
+| CT-132 | HUD, sobreposições e tela de fim em cada janela | RF11, RNF07 |
+| CT-133 | Nome longo não corta o que explica a ação | RF11, RF14 |
+| CT-134 | O motivo gravado respeita quem lê | RF21 |
+| CT-135 | Os documentos falam da versão que roda | RF17, RF18, RF19, RF20, RF21, RF22, RF23, RF24 |
+
+Desvio registrado no QA: em dois jogadores com o mesmo nome (QA11-12), o sufixo "Nome (2)" fica em `Player.name`, não só na tela, então aparece também no PGN e no histórico.
