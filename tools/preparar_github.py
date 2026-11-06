@@ -159,7 +159,12 @@ def create_board(tasks: dict, repository: str, issue_urls: dict[str, str]) -> st
 
 def _configure_status_field(number: str, columns: list[str]) -> tuple[dict[str, str], str]:
     fields = json.loads(_gh(["gh", "project", "field-list", number, "--owner", "@me", "--format", "json"]))["fields"]
-    field_id = next(field["id"] for field in fields if field["name"] == "Status")
+    field = next(field for field in fields if field["name"] == "Status")
+    field_id = field["id"]
+    existing = {option["name"]: option["id"] for option in field.get("options", [])}
+    if list(existing) == columns:
+        # Recriar as opções soltaria as tarefas da coluna, e algumas ficariam em "No Status" na página do quadro.
+        return existing, field_id
     answer = _gh(["gh", "api", "graphql", "-f", f"query={status_options_query(columns)}", "-f", f"field={field_id}"])
     options = json.loads(answer)["data"]["updateProjectV2Field"]["projectV2Field"]["options"]
     return {option["name"]: option["id"] for option in options}, field_id

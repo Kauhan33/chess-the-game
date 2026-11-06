@@ -87,6 +87,7 @@ Tabela gerada do `git log`, com as datas e as mensagens originais dos commits.
 | 2026-11-06 09:31 | `0bcbc24` | docs: registra a release v1.1.0 e o print do quadro |
 | 2026-11-06 10:03 | `846bba7` | feat(rede): um modo so para os dois, escolhido por quem cria a sala |
 | 2026-11-06 11:37 | `4be3181` | docs: resultados da suite completa da versao 1.1.1 |
+| 2026-11-06 13:24 | `e338b9f` | docs: registra a release v1.1.1 e o quadro atualizado |
 <!-- FIM:evolucao -->
 
 ## 9.4 Prints do quadro
