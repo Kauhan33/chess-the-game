@@ -48,7 +48,9 @@ As sugestões 4, 7 e 8 foram aplicadas no mesmo commit `eaf8f25`: a ajuda só li
 - **Sala pelo IP real:** verificada em um só computador em 2026-11-06, no commit `eaf8f25`, com `0.0.0.0`, a porta 50507 e o código gerado com o IP da rede local, por um script avulso, com sessões e sem janela. Início da partida, um lance de cada lado, `result` e saída funcionaram.
 - **Macaco longo, no estado final:** 16 aprovados, em 12 min 41 s.
 
-**Segue não verificado:** conexão entre dois computadores, passagem pelo firewall, rede em janela real e versão 1.1 em Linux, em macOS e em Python 3.10, porque o CI só roda no envio ao GitHub.
+**CI:** a versão 1.1 passou em Python 3.10 e 3.12, no Windows, no Linux e no macOS, no commit `3cd07ad` ([execução](https://github.com/Kauhan33/chess-the-game/actions/runs/42202345318)).
+
+**Segue não verificado:** conexão entre dois computadores, passagem pelo firewall e rede em janela real.
 
 ## Relatório original da auditoria
 

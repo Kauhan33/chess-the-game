@@ -154,7 +154,7 @@ O resultado medido de cada um está na seção 7.6.
 | ID | Requisito | Critério de aceite | Como verificar |
 |---|---|---|---|
 | RNF01 | Desempenho: 60 FPS travados em 1280x720 | Média de 60 FPS em janela real, com intervalo perto de 16,67 ms. | `python tools/demo_automatica.py` e tecla F3 no jogo |
-| RNF02 | Portabilidade: Python 3.10+ em Windows, Linux e macOS | A suíte passa nas 3 plataformas, em Python 3.10 e 3.12. A versão 1.1 ainda não passou por essa conferência. | `.github/workflows/testes.yml`, que só roda depois da publicação |
+| RNF02 | Portabilidade: Python 3.10+ em Windows, Linux e macOS | A suíte passa nas 3 plataformas, em Python 3.10 e 3.12. | `.github/workflows/testes.yml`, a cada envio ao GitHub |
 | RNF03 | Responsividade: resposta visual à entrada em até 1 quadro | A casa sob o mouse e a seleção mudam no mesmo quadro do evento. | Testes em `tests/ui/test_ui_selecao.py` |
 | RNF04 | Estética e acessibilidade: paleta coerente e estados por cor e por forma | Texto com contraste de pelo menos 4,5:1. Caminho, captura e ameaça têm forma além de cor. | Testes em `tests/ui/test_ui_tema.py` e prints do capítulo 2 |
 | RNF05 | Arquitetura em camadas, com motor testável sem interface | `core`, `data` e `net` não importam pygame nem numpy. `graphics` não importa `core`. `data` e `net` não se importam. | `tests/test_arquitetura.py` |

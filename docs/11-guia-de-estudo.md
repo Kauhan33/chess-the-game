@@ -236,3 +236,9 @@ Cada resposta foi conferida no código, no arquivo citado. Todos precisam saber 
 **E se a sala sumir?** Vale `PeerLeft`, na hora, ou o sinal de vida, em 8 s. Sem ninguém para decidir, quem entrou fica com o que já sabia: o fim no tabuleiro, o próprio pedido ou o abandono da sala. Com a sala viva e muda depois de um pedido, a espera termina em 5 s.
 
 **E se quem entrou sair?** Sair é abandono, e a sala decide a favor de quem ficou. Se ele saiu com um lance da sala a caminho, o histórico dele fica com um lance a menos, porque não há mais a quem perguntar. O vencedor é o mesmo.
+
+### Testes e CI
+
+**O que é o CI?** É a execução automática dos testes a cada envio ao GitHub, em `.github/workflows/testes.yml`: Python 3.10 e 3.12, no Windows, no Linux e no macOS, sem janela. É o que comprova o RNF02.
+
+**O CI achou algo na versão 1.1?** Sim: dois casos de teste presos a uma suposição, e nenhum defeito do jogo. O de arquivo somente leitura supunha o Windows. No macOS e no Linux, a troca do temporário pelo arquivo só depende da permissão da pasta, e a gravação dá certo. O de profundidade dava 1 s ao Hardcore, o que não bastava em máquina lenta e com cobertura. Agora ele usa limite de nós, e o resultado é igual em qualquer máquina. A seção 7.9 traz as execuções.

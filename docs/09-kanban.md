@@ -23,8 +23,6 @@ As colunas são as pedidas no enunciado. A fonte das tarefas é `docs/kanban/tar
 | Backlog / A Fazer | T19 | Entregar a documentação unificada e o código | E4 | ainda não feita |
 | Backlog / A Fazer | T21 | Ensaiar a demonstração e a defesa técnica | E5 | ainda não feita |
 | Backlog / A Fazer | T31 | Versão 1.1: testar a rede entre dois computadores, em janela real e com o firewall | E5 | ainda não feita |
-| Backlog / A Fazer | T32 | Versão 1.1: confirmar pelo CI em Python 3.10, Linux e macOS (RNF02) | E4 | ainda não feita |
-| Backlog / A Fazer | T33 | Versão 1.1: publicar no GitHub e gerar o novo executável, com autorização do grupo | E4 | ainda não feita |
 | Backlog / A Fazer | T34 | Decidir se o modo de cada jogador deve aparecer para o outro em rede (sugestão 1 do QA) | E4 | ainda não feita |
 | Em Andamento (WIP) | T15 | Criar o quadro no GitHub Projects e capturar os prints | E4 | quadro criado em 2026-11-04; prints a capturar pelo grupo |
 | Em Revisão | T20 | Montar os slides e dividir a fala entre os integrantes | E5 | slides prontos para o grupo revisar |
@@ -51,6 +49,8 @@ As colunas são as pedidas no enunciado. A fonte das tarefas é `docs/kanban/tar
 | Concluído | T28 | Versão 1.1: medir o FPS em janela real, com a CPU pensando (RNF09) | E4 | medido no commit eaf8f25, seção 7.9 |
 | Concluído | T29 | Versão 1.1: levar requisitos, telas, UML, arquitetura, testes, roteiro e guia até a nova versão | E4 | commit 0021280 |
 | Concluído | T30 | Versão 1.1: rodar a suíte completa e gerar os documentos e os PDFs finais | E4 | suíte completa em 2026-11-06, commit 0021280: 3655 aprovados, 0 falhas |
+| Concluído | T32 | Versão 1.1: confirmar pelo CI em Python 3.10, Linux e macOS (RNF02) | E4 | CI aprovado nas 6 combinações, commit 3cd07ad |
+| Concluído | T33 | Versão 1.1: publicar no GitHub e gerar o novo executável, com autorização do grupo | E4 | main e release v1.1.0 |
 <!-- FIM:kanban -->
 
 ## 9.3 Evolução real pelo git
@@ -78,6 +78,8 @@ Tabela gerada do `git log`, com as datas e as mensagens originais dos commits.
 | 2026-11-05 19:56 | `032c696` | test: testes de ataque da versao 1.1, com os defeitos ainda abertos |
 | 2026-11-06 00:45 | `eaf8f25` | fix: corrige os achados do QA da versao 1.1 |
 | 2026-11-06 05:07 | `0021280` | docs: leva toda a documentacao ate a versao 1.1 |
+| 2026-11-06 06:38 | `45b0e5e` | docs: resultados da execucao completa da versao 1.1 |
+| 2026-11-06 07:24 | `3cd07ad` | test: torna dois testes independentes do sistema e da maquina |
 <!-- FIM:evolucao -->
 
 ## 9.4 Prints do quadro

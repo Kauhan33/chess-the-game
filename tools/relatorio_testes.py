@@ -376,7 +376,7 @@ def _rnf_row(rnf: str, description: str, entry: dict, execution: Execution, meas
         info = execution.info
         evidence = (f"Executado: Python {info['python']} em {info['system']}. "
                     f"{measures['pendencias_portabilidade']} {evidence}")
-        status = "Versão 1.0: atendido nos testes, com janela real só no Windows. Versão 1.1: não verificado fora do Windows"
+        status = "Atendido nos testes, com janela real só no Windows"
     elif kind == "cobertura_core":
         core = coverage_by_layer(execution)["core"]
         evidence = (f"Cobertura medida de {_decimal(core['percent'])}% em `xadrez/core` "

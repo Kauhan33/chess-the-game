@@ -157,7 +157,6 @@ Ainda não verificado, nesta versão:
 
 - **Duas máquinas e firewall.** A sala foi testada em `127.0.0.1` pelas suítes, e também pelo IP real da rede local, com `0.0.0.0` e a porta 50507, em um único computador, por um script avulso, com sessões e sem janela. Conexão entre dois computadores diferentes e passagem pelo firewall nunca foram verificadas.
 - **Rede em janela real.** Os testes de rede por tela rodam com o SDL sem janela.
-- **Versão 1.1 em Linux, macOS e Python 3.10.** O CI só roda no envio ao GitHub, e esta versão ainda não foi enviada.
 
 ## 5.8 Convenções
 

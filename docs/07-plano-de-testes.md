@@ -31,7 +31,7 @@ Cada teste ligado a um caso formal leva `@pytest.mark.ct("CT-xx")`. Um caso pode
 - **Total:** 3660 testes: 3655 passaram, 0 falharam, 1 foram pulados e 4 ficaram em `xfail`. Destes, 2989 estão vinculados a 117 casos de teste.
 <!-- FIM:execucao -->
 
-As verificações de rede fora da suíte estão na seção 7.9.
+As verificações de rede fora da suíte e o resultado do CI estão na seção 7.9.
 
 Para repetir:
 
@@ -244,7 +244,7 @@ Medida com `pytest-cov`, com ramos, na mesma execução dos casos acima. A meta 
 | Requisito | Critério de aceite | Evidência real | Situação |
 |---|---|---|---|
 | **RNF01** Desempenho: 60 FPS travados em 1280x720 | Média de 60 FPS em 1280x720, em janela real, com intervalo entre quadros perto de 16,67 ms. | `tools/demo_automatica.py`, janela real em 1280x720, com `display.flip`: 60,0 FPS médios em 1287 quadros, intervalo médio de 16,66 ms, p95 de 17,22 ms, p99 de 20,51 ms, máximo de 40,55 ms. 2 quadros passaram de 25 ms (0,16%). Por cenário: `tools/demo_automatica.py`, commit `eaf8f25`, janela real em 1280x720: 60,0 FPS em 2 jogadores, 59,7 FPS em partida contra a CPU Hardcore, 59,5 FPS em CPU pensando, câmera parada, 59,7 FPS em CPU pensando, com animação. O cenário de 2 jogadores roda sem argumento, e os da CPU rodam com `--cpu hardcore`. Testes `test_media_fica_em_60_fps_mesmo_com_sono_atrasado`: 1 de 1 passaram. | Atendido nesta máquina |
-| **RNF02** Portabilidade: Python 3.10+ em Windows, Linux e macOS | Suíte passa em Python 3.10+ no Windows, no Linux e no macOS. | Executado: Python 3.12.10 em Windows 11. O CI confirmou as 6 combinações no commit bf74717: Python 3.10 e 3.12 em Windows, Linux e macOS, com 1506 testes aprovados em cada uma, sem os testes slow (https://github.com/Kauhan33/chess-the-game/actions/runs/41887664468). O CI roda sem janela real. A versão 1.1 ainda não passou pelo CI, que só roda no envio ao GitHub: Linux, macOS e Python 3.10 seguem não verificados nela. Testes `test_source_parses_as_python_310`: 14 de 14 passaram. | Versão 1.0: atendido nos testes, com janela real só no Windows. Versão 1.1: não verificado fora do Windows |
+| **RNF02** Portabilidade: Python 3.10+ em Windows, Linux e macOS | Suíte passa em Python 3.10+ no Windows, no Linux e no macOS. | Executado: Python 3.12.10 em Windows 11. O CI confirmou as 6 combinações no commit 3cd07ad: Python 3.10 e 3.12 em Windows, Linux e macOS, com 3619 testes aprovados em cada uma, sem os testes slow (https://github.com/Kauhan33/chess-the-game/actions/runs/42202345318). O CI roda sem janela real. Testes `test_source_parses_as_python_310`: 14 de 14 passaram. | Atendido nos testes, com janela real só no Windows |
 | **RNF03** Responsividade: resposta visual à entrada em até 1 quadro | A casa sob o mouse e a seleção mudam no mesmo quadro do evento. | Testes `test_hover_marca_o_cursor_no_mesmo_quadro`, `test_clique_seleciona_e_preenche_a_matriz_de_cores`: 2 de 2 passaram. | Atendido |
 | **RNF04** Estética e acessibilidade: paleta coerente e estados por cor e por forma | Textos com contraste de pelo menos 4,5:1. Caminho, captura e ameaça têm forma além de cor. | Testes `test_contraste_dos_textos_passa_de_4_5_para_1`, `test_caminho_e_captura_tem_forma_alem_de_cor`, `test_pecas_ameacadas_aparecem_na_matriz_com_forma_e_tint`: 16 de 16 passaram. | Atendido |
 | **RNF05** Arquitetura em camadas, com motor testável sem interface | `core` não importa pygame, numpy nem `graphics`; `graphics` não importa `core`. | Testes `test_camada_nao_importa_o_que_nao_deve`: 4 de 4 passaram. | Atendido |
@@ -274,7 +274,6 @@ Custo do quadro sem janela e sem a espera do `display.flip`:
 
 ## 7.7 O que não foi testado
 
-- **Versão 1.1 em Linux, macOS e Python 3.10:** não verificado. O CI em `.github/workflows/testes.yml` só roda no envio ao GitHub, e esta versão ainda não foi enviada. A execução aprovada é da versão 1.0 ([execução](https://github.com/Kauhan33/chess-the-game/actions/runs/41887664468)).
 - **Janela real em Linux e macOS:** nenhuma versão foi aberta assim. O CI roda sem janela. O jogo só foi aberto em janela real, com FPS medido, no Windows.
 - **Rede entre duas máquinas e firewall:** não verificado. Ver a seção 7.9.
 - **Rede em janela real:** não verificado. Os testes de rede por tela rodam com o SDL sem janela.
@@ -330,10 +329,18 @@ Toda pasta de dados de teste é temporária, por `CHESS_THE_GAME_DATA`, e toda r
 
 - conexão entre dois computadores diferentes;
 - passagem pelo firewall;
-- rede em janela real;
-- versão 1.1 em Linux, em macOS e em Python 3.10, porque o CI só roda no envio ao GitHub.
+- rede em janela real.
 
 A sala pelo IP real prova que `0.0.0.0` e o código funcionam nesta máquina. Ela não prova que outra máquina chega até aqui, e por isso o roteiro da apresentação tem um plano B para a rede.
+
+### CI da versão 1.1
+
+O primeiro envio falhou nas 6 combinações ([execução](https://github.com/Kauhan33/chess-the-game/actions/runs/42197820704)). Foram dois casos de teste presos a uma suposição, e nenhum defeito do jogo:
+
+- **Arquivo somente leitura (CT-120 e CT-121), no macOS e no Linux.** Os testes supunham o Windows, onde um arquivo somente leitura barra a troca do temporário pelo arquivo. Nos outros sistemas, a troca só depende da permissão da pasta, e a gravação dá certo. Agora o teste bloqueia o que cada sistema confere.
+- **Profundidade do Hardcore, no Windows e no Linux.** O teste dava 1 s ao nível e esperava passar da profundidade 3 do Hard. Em máquina lenta e com cobertura, 1 s não bastava. Agora ele usa o mesmo limite de nós nos dois níveis, e o resultado é igual em qualquer máquina.
+
+Corrigidos os dois, as 6 combinações passaram no commit `3cd07ad`, com 3619 testes aprovados em cada uma, sem os `slow` ([execução](https://github.com/Kauhan33/chess-the-game/actions/runs/42202345318)). A execução completa da seção 7.2 é do commit `0021280`. Entre os dois, só esses testes mudaram, e o código do jogo é o mesmo.
 
 ### Força da CPU
 

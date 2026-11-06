@@ -94,7 +94,7 @@ pip install -r requirements.txt
 python main.py
 ```
 
-O CI em `.github/workflows/testes.yml` roda os testes em Python 3.10 e 3.12, no Windows, no Linux e no macOS, sem janela. Na versão 1.0, todas as combinações passaram. A versão 1.1 ainda não passou pelo CI, que só roda no envio ao GitHub: nela, Linux, macOS e Python 3.10 seguem não verificados. O jogo só foi aberto em janela real e medido em Python 3.12 no Windows 11. O capítulo 7 traz os detalhes.
+O CI em `.github/workflows/testes.yml` roda os testes em Python 3.10 e 3.12, no Windows, no Linux e no macOS, sem janela. Na versão 1.1, todas as combinações passaram, sem os testes `slow`. O jogo só foi aberto em janela real e medido em Python 3.12 no Windows 11. O capítulo 7 traz os detalhes.
 
 ### Executável, sem instalar Python (Windows)
 
