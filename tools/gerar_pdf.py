@@ -53,6 +53,9 @@ ALL_CHAPTERS = (
     "09-kanban.md",
 )
 EXCERPT_NOTE = "Recorte da documentação unificada. Referências a outros capítulos apontam para ela."
+# Escrito por extenso: no papel, um link embutido no texto não leva a lugar nenhum.
+CODE_NOTE = ("Código-fonte em Python, com o README de instruções: https://github.com/Kauhan33/chess-the-game. "
+             "O mesmo código acompanha esta documentação no arquivo chess-the-game-codigo.zip.")
 
 
 @dataclass(frozen=True)
@@ -64,7 +67,7 @@ class Document:
 
 
 DOCUMENTS = (
-    Document("A3_Documentacao_Unificada.pdf", "Documentação Unificada", ALL_CHAPTERS),
+    Document("A3_Documentacao_Unificada.pdf", "Documentação Unificada", ALL_CHAPTERS, CODE_NOTE),
     Document("A3_E1_Requisitos_e_Telas.pdf", "E1: Especificação de Requisitos e Telas", ALL_CHAPTERS[:2], EXCERPT_NOTE),
     Document("A3_E2_Casos_de_Uso.pdf", "E2: Modelagem de Casos de Uso", ALL_CHAPTERS[2:3], EXCERPT_NOTE),
     Document("A3_E3_Classes_e_Sequencia.pdf", "E3: Modelagem Estrutural e Dinâmica", ALL_CHAPTERS[3:4], EXCERPT_NOTE),
